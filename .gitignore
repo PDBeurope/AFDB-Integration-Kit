@@ -1,0 +1,39 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Sphinx
+docs/_build/
+build/
+dist/
+
+# Docker
+*.log
+
+# VSCode/IDE
+.vscode/
+.idea/
+
+# Coverage
+.coverage
+coverage/
+coverage.xml
+htmlcov/
+report.xml
+
+# Ruff
+.ruff_cache/
+
+# Node
+node_modules/
+npm-debug.log
+
+# OS
+.DS_Store

@@ -1,0 +1,3 @@
+[submodule "molstar"]
+	path = molstar
+	url = git@github.com:molstar/molstar.git
