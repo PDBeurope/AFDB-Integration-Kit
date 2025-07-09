@@ -23,10 +23,8 @@ def test():
 def process_file(input_path, output_path):
     command = [
         "node",
-        "molstar/lib/commonjs/servers/model/preprocess",
-        "-i",
+        "molstar/lib/commonjs/cli/cif2bcif",
         str(input_path),
-        "-ob",
         str(output_path),
     ]
     result = subprocess.run(command, capture_output=True, text=True)
@@ -34,7 +32,7 @@ def process_file(input_path, output_path):
 
 
 @app.command()
-def preprocess(
+def cif2bcif(
     input_file: Path = typer.Option(
         ...,
         "-i",
@@ -51,7 +49,7 @@ def preprocess(
         ...,
         "-o",
         "--output",
-        help="Output file in BCIF format.",
+        help="Output file in BCIF or BCIF.GZ format.",
         file_okay=True,
         dir_okay=False,
         writable=True,
@@ -60,12 +58,17 @@ def preprocess(
     ),
 ):
     """
-    Convert any CIF to BinaryCIF (or vice versa)
+    Convert CIF to BinaryCIF or BinaryCIF.GZ
     """
-    cmd_str = (
-        "node molstar/lib/commonjs/servers/model/preprocess -i "
-        f"{input_file} -ob {output_file}"
-    )
+    if not (
+        str(output_file).endswith(".bcif") or str(output_file).endswith(".bcif.gz")
+    ):
+        print(
+            "[WARNING] The output file extension '"
+            f"{output_file.suffix}"
+            "' is not '.bcif' or '.bcif.gz'."
+        )
+    cmd_str = f"node molstar/lib/commonjs/cli/cif2bcif {input_file} {output_file}"
     print(f"Running command: {cmd_str}")
     code, _, out, err = process_file(input_file, output_file)
     if code == 0:
@@ -77,7 +80,7 @@ def preprocess(
 
 
 @app.command()
-def batch_preprocess(
+def batch_cif2bcif(
     input_dir: Path = typer.Option(
         ...,
         "--input-dir",
@@ -93,7 +96,7 @@ def batch_preprocess(
         ...,
         "--output-dir",
         "-od",
-        help="Output directory for BCIF files.",
+        help="Output directory for BCIF or BCIF.GZ files.",
         file_okay=False,
         dir_okay=True,
         writable=True,
@@ -102,9 +105,12 @@ def batch_preprocess(
     workers: int = typer.Option(
         4, "--workers", "-w", help="Number of parallel workers (default: 4)"
     ),
+    gzip: bool = typer.Option(
+        False, "--gzip", "-gz", help="Output .bcif.gz files instead of .bcif"
+    ),
 ):
     """
-    Batch process all CIF files in a directory to BCIF.
+    Batch process all CIF files in a directory to BCIF or BCIF.GZ.
     """
     input_files = list(input_dir.glob("*.cif"))
     if output_dir.exists():
@@ -114,7 +120,17 @@ def batch_preprocess(
         print(f"Created output directory {output_dir}.")
 
     def process(input_file):
-        output_file = output_dir / (input_file.stem + ".bcif")
+        ext = ".bcif.gz" if gzip else ".bcif"
+        output_file = output_dir / (input_file.stem + ext)
+        if not (
+            str(output_file).endswith(".bcif") or str(output_file).endswith(".bcif.gz")
+        ):
+            print(
+                "[WARNING] The output file extension '"
+                f"{output_file.suffix}"
+                "' is not '.bcif' or '.bcif.gz'. File: "
+            )
+            print(f"{output_file}")
         code, _, out, err = process_file(input_file, output_file)
         if code == 0:
             return (input_file.name, True, out)
