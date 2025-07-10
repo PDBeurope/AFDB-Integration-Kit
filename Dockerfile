@@ -1,33 +1,78 @@
-# 1. Use an official Python runtime as a parent image
-FROM python:3.12-slim-bookworm
+# Stage 1: Build C++ tools
+FROM ubuntu:24.04 AS builder
 
-# 2. Install Node.js and npm
-# We are using the official Node.js setup script for Node.js 20.x (LTS)
+RUN apt-get update -y && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libeigen3-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /local
+
+# Build libcifpp
+RUN git clone https://github.com/PDB-REDO/libcifpp.git
+WORKDIR /local/libcifpp
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+RUN cmake --build build
+RUN cmake --install build
+
+# Build libmcfp
+WORKDIR /local
+RUN git clone https://github.com/mhekkel/libmcfp.git
+WORKDIR /local/libmcfp
+RUN cmake -S . -B build
+RUN cmake --build build --config Release
+RUN cmake --install build
+
+# Build dssp
+WORKDIR /local
+RUN git clone https://github.com/PDB-REDO/dssp.git
+WORKDIR /local/dssp
+RUN cmake -S . -B build
+RUN cmake --build build --config Release
+RUN cmake --install build
+
+# Stage 2: Main image
+FROM ubuntu:24.04 AS runtime
+
+# Install system dependencies
 RUN apt-get update && \
-    apt-get install -y curl && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y \
+        curl \
+        openjdk-17-jre-headless \
+        git \
+        python3.12 \
+        python3.12-venv \
+        python3-pip \
+        npm \
+        nodejs \
+        ca-certificates \
+        && rm -rf /var/lib/apt/lists/*
 
-# 3. Set the working directory in the container
+# Set python3.12 as default python
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1
+
+# Install Mol*
+RUN npm install -g molstar
+
+# Setup Nextflow
+RUN mkdir -p /usr/local/bin && curl -s https://get.nextflow.io | bash -s -- && \
+    mv nextflow /usr/local/bin/nextflow && chmod +x /usr/local/bin/nextflow
+
+# Copy C++ tools from builder
+COPY --from=builder /usr/local /usr/local
+
 WORKDIR /app
 
-# 4. Copy dependency definition files
-# Copy Python dependency files first
+# Copy Python dependency files
 COPY pyproject.toml requirements.txt uv.lock ./
-# Install Python dependencies using uv
-RUN pip install uv
-RUN uv pip install --system --no-cache-dir -r requirements.txt
+RUN pip install --break-system-packages uv
+RUN uv pip install --system --no-cache-dir --break-system-packages -r requirements.txt
 
-# 5. Copy the rest of the application code, including the molstar submodule
+# Copy the rest of the application code
 COPY . .
 
-# 6. Install Node.js dependencies and build the molstar project
-# The molstar project contains its own package.json
-RUN cd molstar && npm install && npm run build
-
-# 7. Define the entrypoint for the container
-ENTRYPOINT ["python", "main.py"]
-
-# 8. Set a default command (e.g., to show help)
-CMD ["--help"]
+# Default command
+CMD ["python", "main.py", "--help"]

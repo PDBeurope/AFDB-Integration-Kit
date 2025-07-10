@@ -37,3 +37,11 @@ npm-debug.log
 
 # OS
 .DS_Store
+
+# Nextflow
+.nextflow.log*
+.nextflow/
+
+# Input/Output directories
+input/
+output/
