@@ -5,15 +5,16 @@ process runCif2Bcif {
     publishDir "${params.results_dir}", mode: 'copy'
 
     input:
+        path cif_file
         val entry
 
     output:
-        path "${entry}-model_${params.version}.bcif", emit: bcif_file
+        path "${entry}-model_${params.version}.bcif"
 
     script:
     """
     echo "Converting ${entry} CIF to BCIF"
-    cif2bcif "${params.input_dir}/${entry}-model_${params.version}.cif" "${entry}-model_${params.version}.bcif"
+    ${params.python_cmd} run-cif2bcif -i "${cif_file}" -o "${entry}-model_${params.version}.bcif"
     """
 }
 
@@ -24,12 +25,13 @@ process runDSSP {
         val entry
 
     output:
-        path "${entry}-model_${params.version}.cif", emit: cif_file
+        path "${entry}-model_${params.version}.cif"
+        val entry, emit: entry
 
     script:
     """
-    echo "Running DSSP on ${bcif_file}"
-    dssp -i "${bcif_file}" -o "${bcif_file.baseName}.dssp"
+    echo "Running DSSP on ${entry} CIF"
+    ${params.python_cmd} run-dssp -i "${params.input_dir}/${entry}-model_${params.version}.cif" -o "${entry}-model_${params.version}.cif"
     """
 }
 
@@ -38,6 +40,7 @@ params.output_dir = "/output"
 params.input_list = "${params.input_dir}/input.txt"
 params.version = "v4"
 params.results_dir = "${params.output_dir}/results"
+params.python_cmd = "uv run /app/main.py"
 
 workflow {
 
@@ -45,7 +48,7 @@ workflow {
         .splitCsv()
         .map { row -> row[0] } // Assuming the first column contains the entry IDs
 
+    runDSSP(input_channel)
 
-
-    runCif2Bcif(input_channel)
+    runCif2Bcif(runDSSP.out)
 }
