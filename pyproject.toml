@@ -1,5 +1,5 @@
 [project]
-name = "af-toolkit"
+name = "afdb-toolkit"
 version = "0.1.0"
 description = "A comprehensive toolkit for integrating structural models into the AlphaFold Database (AFDB)."
 readme = "README.md"

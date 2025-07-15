@@ -236,7 +236,7 @@ uv run main.py run-dssp -i <input_cif> -o <output_cif>
 ### Build Docker Image
 
 ```bash
-docker build -t afdb-kit .
+docker build -t afdb-toolkit .
 ```
 
 ### Run Tools in Docker
@@ -248,7 +248,7 @@ docker run \
     -v "$PWD/output:/output" \
     -w /workspace \
     -v "$PWD:/workspace" \
-    afdb-kit uv run main.py run-modelcif-gen \
+    afdb-toolkit uv run main.py run-modelcif-gen \
         -p /input/AF-0000000000000001-model-v1.pdb \
         -m /input/AF-0000000000000001-v1.cif.json \
         -o /output/AF-0000000000000001-model-v1.cif
@@ -261,7 +261,7 @@ docker run \
     -v "$PWD/output:/output" \
     -w /workspace \
     -v "$PWD:/workspace" \
-    afdb-kit uv run main.py run-cif2bcif \
+    afdb-toolkit uv run main.py run-cif2bcif \
         -i /input/AF-0000000000000001-model-v1.cif \
         -o /output/AF-0000000000000001-model-v1.bcif
 ```
@@ -273,7 +273,7 @@ docker run \
     -v "$PWD/output:/output" \
     -w /workspace \
     -v "$PWD:/workspace" \
-    afdb-kit uv run main.py run-dssp \
+    afdb-toolkit uv run main.py run-dssp \
         -i /input/AF-0000000000000001-model-v1.cif \
         -o /output/AF-0000000000000001-model-v1.cif
 ```

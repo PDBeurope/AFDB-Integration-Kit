@@ -6,4 +6,4 @@ docker run \
     -v "$PWD/input:/input" \
     -w /workspace \
     -v "$PWD:/workspace" \
-    afdb-kit nextflow run workflow.nf -resume
+    afdb-toolkit nextflow run workflow.nf -resume

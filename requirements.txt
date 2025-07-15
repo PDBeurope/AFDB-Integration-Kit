@@ -13,11 +13,11 @@ click==8.2.1
 colorama==0.4.6 ; sys_platform == 'win32'
     # via click
 gemmi==0.7.3
-    # via af-toolkit
+    # via afdb-toolkit
 idna==3.10
     # via requests
 jsonschema==4.24.0
-    # via af-toolkit
+    # via afdb-toolkit
 jsonschema-specifications==2025.4.1
     # via jsonschema
 markdown-it-py==3.0.0
@@ -25,7 +25,7 @@ markdown-it-py==3.0.0
 mdurl==0.1.2
     # via markdown-it-py
 numpy==2.3.1
-    # via af-toolkit
+    # via afdb-toolkit
 pygments==2.19.1
     # via rich
 referencing==0.36.2
@@ -33,7 +33,7 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-specifications
 requests==2.32.4
-    # via af-toolkit
+    # via afdb-toolkit
 rich==14.0.0
     # via typer
 rpds-py==0.26.0
@@ -43,7 +43,7 @@ rpds-py==0.26.0
 shellingham==1.5.4
     # via typer
 typer==0.16.0
-    # via af-toolkit
+    # via afdb-toolkit
 typing-extensions==4.14.0
     # via
     #   referencing
