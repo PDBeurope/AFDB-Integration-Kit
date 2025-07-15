@@ -1,7 +1,7 @@
 [project]
 name = "af-toolkit"
 version = "0.1.0"
-description = "Add your description here"
+description = "A comprehensive toolkit for integrating structural models into the AlphaFold Database (AFDB)."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

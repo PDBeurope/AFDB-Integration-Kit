@@ -37,6 +37,7 @@ def test():
     logger.info("--- Testing Gemmi script ---")
     subprocess.run(["gemmi", "--version"])
 
+
 @app.command()
 def run_modelcif_gen(
     pdb: Path = typer.Option(

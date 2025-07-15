@@ -43,6 +43,7 @@ RUN apt-get update && \
         curl \
         openjdk-17-jre-headless \
         git \
+        wget \
         python3.12 \
         python3.12-venv \
         python3-pip \
@@ -65,6 +66,9 @@ RUN mkdir -p /usr/local/bin && curl -s https://get.nextflow.io | bash -s -- && \
 COPY --from=builder /usr/local /usr/local
 
 WORKDIR /app
+
+# Download latest ModelCIF dictionary
+RUN wget https://raw.githubusercontent.com/ihmwg/ModelCIF/refs/heads/master/dist/mmcif_ma.dic
 
 # Copy Python dependency files
 COPY pyproject.toml requirements.txt uv.lock ./
