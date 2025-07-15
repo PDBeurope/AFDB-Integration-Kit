@@ -288,6 +288,27 @@ Run the complete workflow using the provided script:
 ./run_workflow.sh
 ```
 
+### Input Requirements
+
+The Nextflow workflow requires an input list file at `input/input.txt` containing the entries to process. Each entry should be on a new line:
+
+```
+AF-0001234567890123
+AF-0001234567890124
+AF-0001234567890125
+AF-0001234567890126
+```
+
+**Example input.txt:**
+```bash
+# Create the input list file
+cat > input/input.txt << EOF
+AF-0001234567890123
+AF-0001234567890124
+AF-0001234567890125
+EOF
+```
+
 ### Workflow Features
 
 - **Resumable**: Uses `-resume` flag to continue from previous checkpoints
@@ -347,6 +368,7 @@ output/
 3. **File Not Found**: Verify input files follow the required directory structure
 4. **Memory Issues**: For large datasets, consider adjusting Docker memory limits
 5. **ModelCIF Validation Errors**: Ensure `mmcif_ma.dic` is present in the project directory (automatically handled in Docker)
+6. **Nextflow Workflow Errors**: Ensure `input/input.txt` exists and contains valid entry IDs
 
 ### Getting Help
 
