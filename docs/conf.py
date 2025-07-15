@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "AF-Toolkit"
+project = "afdb-toolkit"
 copyright = "2025, Damian Bertoni"
 author = "Damian Bertoni"
 release = "01-07-2025"

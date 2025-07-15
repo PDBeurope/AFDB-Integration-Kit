@@ -17,14 +17,14 @@ test:
 	uv run --dev coverage report -m
 
 build:
-	docker build -t af-toolkit .
+	docker build -t afdb-toolkit .
 
 build-test:
-	docker run --rm af-toolkit test
+	docker run --rm afdb-toolkit test
 
 
 shell:
-	docker run --rm -it af-toolkit /bin/bash
+	docker run --rm -it afdb-toolkit /bin/bash
 
 docs:
 	uv run --group docs sphinx-build docs build/html
