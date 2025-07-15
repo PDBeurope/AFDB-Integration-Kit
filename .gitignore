@@ -45,3 +45,5 @@ npm-debug.log
 # Input/Output directories
 input/
 output/
+mmcif_ma.dic
+data/

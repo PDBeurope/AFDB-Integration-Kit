@@ -8,6 +8,7 @@ from afdb_integration_kit.cif2bcif.convert import (
 )
 from afdb_integration_kit.cif2bcif.convert import run_cif2bcif as cif2bcif_helper
 from afdb_integration_kit.dssp.dssp import run_dssp as dssp_helper
+from afdb_integration_kit.modelcif.generate import generate
 
 # Set up logger
 logger = logging.getLogger("afdb_integration_kit")
@@ -33,6 +34,69 @@ def test():
     subprocess.run(["cif2bcif", "-h"])
     logger.info("--- Testing DSSP script ---")
     subprocess.run(["mkdssp", "-h"])
+    logger.info("--- Testing Gemmi script ---")
+    subprocess.run(["gemmi", "--version"])
+
+
+@app.command()
+def run_modelcif_gen(
+    pdb: Path = typer.Option(
+        ...,
+        "-p",
+        "--pdb",
+        help="Input PDB file path.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    metadata: Path = typer.Option(
+        ...,
+        "-m",
+        "--metadata",
+        help="Input metadata JSON file path.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    output: Path = typer.Option(
+        ...,
+        "-o",
+        "--output",
+        help="Output mmCIF file path.",
+        file_okay=True,
+        dir_okay=False,
+        writable=True,
+        resolve_path=True,
+    ),
+    validate: str = typer.Option(
+        None,
+        "--validate",
+        help="Optionally validate the output CIF file against a ModelCIF dictionary."
+        "If used as a flag without a path, it defaults to 'mmcif_ma.dic'.",
+    ),
+):
+    """
+    Enrich a PDB file with metadata to produce a feature-rich mmCIF file.
+    """
+    # Pre-flight checks
+    if not pdb.is_file():
+        logger.error(f"Input PDB file not found: {pdb}")
+        raise typer.Exit(code=1)
+    if not metadata.is_file():
+        logger.error(f"Input metadata JSON file not found: {metadata}")
+        raise typer.Exit(code=1)
+
+    # If validate is passed as a flag (True but no value), default to 'mmcif_ma.dic'
+    validate_path = validate if validate else None
+    if validate is not None and validate == "":
+        validate_path = "mmcif_ma.dic"
+
+    # Call main logic (assuming main is imported or defined elsewhere)
+    generate(str(pdb), str(metadata), str(output), validate_path)
 
 
 @app.command()

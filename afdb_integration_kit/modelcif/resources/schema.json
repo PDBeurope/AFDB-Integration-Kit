@@ -1,0 +1,336 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Protein Model Data Schema",
+  "description": "A comprehensive schema for representing protein model data, including metadata, detailed categories based on the PDBx/mmCIF data model, and chain information.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "categories",
+    "chains"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "description": "High-level metadata about the model file.",
+      "required": [
+        "version",
+        "model_type"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Version of the model file format."
+        },
+        "model_type": {
+          "type": "string",
+          "description": "The type of model, e.g., Monomer."
+        }
+      }
+    },
+    "categories": {
+      "type": "object",
+      "description": "A collection of categories defining the model's attributes, history, and source information.",
+      "properties": {
+        "_audit_conform": {
+          "type": "object",
+          "description": "Specifies the dictionary to which this data block conforms.",
+          "properties": {
+            "dict_name": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "The string identifying the highest-level dictionary defining data names used in this file."
+            },
+            "dict_version": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "The version number of the dictionary to which the current data block conforms."
+            },
+            "dict_location": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "A file name or uniform resource locator (URL) for the dictionary."
+            }
+          }
+        },
+        "_pdbx_data_usage": {
+          "type": "object",
+          "description": "Specifies data usage, license, and disclaimer information.",
+          "properties": {
+            "id": { "type": "array", "items": { "type": "string" }, "description": "Unique identifier for the data usage record." },
+            "type": { "type": "array", "items": { "type": "string" }, "description": "The type of data usage (e.g., license, disclaimer)." },
+            "details": { "type": "array", "items": { "type": "string" }, "description": "Textual details about the data usage." },
+            "url": { "type": "array", "items": { "type": "string" }, "description": "A URL for more details on the data usage." },
+            "name": { "type": "array", "items": { "type": "string" }, "description": "A name for the data usage type (e.g., CC-BY-4.0)." }
+          }
+        },
+        "_citation": {
+          "type": "object",
+          "description": "Defines bibliographic citations.",
+          "properties": {
+            "id": { "type": "array", "items": { "type": "integer" }, "description": "The primary identifier for the citation." },
+            "title": { "type": "array", "items": { "type": "string" }, "description": "The title of the publication." },
+            "journal_full": { "type": "array", "items": { "type": "string" }, "description": "The full name of the journal." },
+            "journal_volume": { "type": "array", "items": { "type": "string" }, "description": "Volume number of the journal." },
+            "page_first": { "type": "array", "items": { "type": "string" }, "description": "The first page of the publication." },
+            "page_last": { "type": "array", "items": { "type": "string" }, "description": "The last page of the publication." },
+            "year": { "type": "array", "items": { "type": "string" }, "description": "The year of publication." },
+            "journal_id_ASTM": { "type": "array", "items": { "type": "string" }, "description": "The ASTM code for the journal." },
+            "country": { "type": "array", "items": { "type": "string" }, "description": "Country of publication." },
+            "journal_id_ISSN": { "type": "array", "items": { "type": "string" }, "description": "The ISSN code for the journal." },
+            "journal_id_CSD": { "type": "array", "items": { "type": "string" }, "description": "The CSD code for the journal." },
+            "book_publisher": { "type": "array", "items": { "type": "string" }, "description": "The publisher of a book or book chapter." },
+            "pdbx_database_id_PubMed": { "type": "array", "items": { "type": "string" }, "description": "Accession number used by PubMed." },
+            "pdbx_database_id_DOI": { "type": "array", "items": { "type": "string" }, "description": "Document Object Identifier (DOI)." }
+          }
+        },
+        "_ma_data": {
+          "type": "object",
+          "description": "Groups of related data files or data items.",
+          "properties": {
+            "id": { "type": "array", "items": { "type": "string" }, "description": "A unique identifier for the data group." },
+            "name": { "type": "array", "items": { "type": "string" }, "description": "A descriptive name for the data group." },
+            "content_type": { "type": "array", "items": { "type": "string" }, "description": "The type of content in the data group." }
+          }
+        },
+        "_ma_model_list": {
+          "type": "object",
+          "description": "A list of all structural models in the entry.",
+          "properties": {
+            "ordinal_id": { "type": "array", "items": { "type": "string" }, "description": "A unique identifier for each model in the list." },
+            "model_id": { "type": "array", "items": { "type": "string" }, "description": "A unique identifier for the structural model being deposited." },
+            "model_group_id": { "type": "array", "items": { "type": "string" }, "description": "An identifier to group structural models into collections." },
+            "model_name": { "type": "array", "items": { "type": "string" }, "description": "A descriptive name for the model." },
+            "data_id": { "type": "array", "items": { "type": "string" }, "description": "A pointer to the corresponding data group in _ma_data.id." },
+            "model_type": { "type": "array", "items": { "type": "string" }, "description": "The type of the model (e.g., Ab initio model)." }
+          }
+        },
+        "_software": {
+          "type": "object",
+          "description": "Details of the software used in the modeling.",
+          "properties": {
+            "pdbx_ordinal": { "type": "array", "items": { "type": "string" }, "description": "An ordinal index for the software entry." },
+            "name": { "type": "array", "items": { "type": "string" }, "description": "The name of the software." },
+            "type": { "type": "array", "items": { "type": "string" }, "description": "The type of software (e.g., package)." },
+            "description": { "type": "array", "items": { "type": "string" }, "description": "A description of the software's function." },
+            "classification": { "type": "array", "items": { "type": "string" }, "description": "Classification of the software by major function." },
+            "date": { "type": "array", "items": { "type": "string" }, "description": "The date the software was used." }
+          }
+        },
+        "_ma_software_group": {
+          "type": "object",
+          "description": "A group of software used in a particular protocol step.",
+          "properties": {
+            "ordinal_id": { "type": "array", "items": { "type": "string" } },
+            "group_id": { "type": "array", "items": { "type": "string" } },
+            "software_id": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "_ma_protocol_step": {
+          "type": "object",
+          "description": "Details of the various steps in the modeling protocol.",
+          "properties": {
+            "ordinal_id": { "type": "array", "items": { "type": "string" } },
+            "protocol_id": { "type": "array", "items": { "type": "string" } },
+            "step_id": { "type": "array", "items": { "type": "string" } },
+            "method_type": { "type": "array", "items": { "type": "string" }, "description": "The type of method used in this protocol step." }
+          }
+        },
+        "_ma_qa_metric": {
+          "type": "object",
+          "description": "Definition of the quality assessment (QA) metrics used.",
+          "properties": {
+            "id": { "type": "array", "items": { "type": "string" }, "description": "A unique identifier for the QA metric." },
+            "name": { "type": "array", "items": { "type": "string" }, "description": "The name of the QA metric (e.g., pLDDT)." },
+            "type": { "type": "array", "items": { "type": "string" }, "description": "The type of QA metric." },
+            "mode": { "type": "array", "items": { "type": "string" }, "description": "The mode of the QA metric (e.g., global, local)." },
+            "software_group_id": { "type": "array", "items": { "type": "string" }, "description": "Identifier for the software group used to calculate the metric." }
+          }
+        },
+        "_ma_qa_metric_global": {
+          "type": "object",
+          "description": "Global quality assessment metric values.",
+          "properties": {
+            "ordinal_id": { "type": "array", "items": { "type": "string" } },
+            "model_id": { "type": "array", "items": { "type": "string" } },
+            "metric_id": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "_ma_target_entity": {
+          "type": "object",
+          "description": "The target molecular entity.",
+          "properties": {
+            "data_id": { "type": "array", "items": { "type": "string" } },
+            "entity_id": { "type": "array", "items": { "type": "string" } },
+            "origin": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "_ma_target_entity_instance": {
+          "type": "object",
+          "description": "An instance of the target entity.",
+          "properties": {
+            "asym_id": { "type": "array", "items": { "type": "string" } },
+            "details": { "type": "array", "items": { "type": "string" } },
+            "entity_id": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "_entity": {
+          "type": "object",
+          "description": "Defines the distinct molecular entities in the model.",
+          "properties": {
+            "id": { "type": "array", "items": { "type": "string" } },
+            "type": { "type": "array", "items": { "type": "string" }, "description": "Defines the type of the entity (e.g., polymer)." },
+            "src_method": { "type": "array", "items": { "type": "string" }, "description": "The method by which the sample for the entity was produced." },
+            "pdbx_description": { "type": "array", "items": { "type": "string" }, "description": "A description of the entity." }
+          }
+        },
+        "_entity_poly": {
+          "type": "object",
+          "description": "Specifies properties of a polymer entity.",
+          "properties": {
+            "entity_id": { "type": "array", "items": { "type": "string" } },
+            "nstd_linkage": { "type": "array", "items": { "type": "string" }, "description": "Flag indicating non-standard monomer-to-monomer links." },
+            "nstd_monomer": { "type": "array", "items": { "type": "string" }, "description": "Flag indicating non-standard monomers." },
+            "pdbx_seq_one_letter_code": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Sequence of the polymer in standard one-letter codes."
+            },
+            "type": { "type": "array", "items": { "type": "string" }, "description": "The type of polymer (e.g., polypeptide(L))." }
+          }
+        },
+        "_audit_author": {
+          "type": "object",
+          "description": "Specifies the authors of the data block.",
+          "properties": {
+            "pdbx_ordinal": {
+              "type": "array",
+              "items": { "type": "integer" },
+              "description": "Defines the order of the author's name in the list."
+            },
+            "name": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "The name of an author."
+            }
+          }
+        },
+        "_citation_author": {
+          "type": "object",
+          "description": "Specifies the authors of a citation.",
+          "properties": {
+            "citation_id": { "type": "array", "items": { "type": "integer" } },
+            "name": { "type": "array", "items": { "type": "string" } },
+            "ordinal": { "type": "array", "items": { "type": "integer" } }
+          }
+        },
+        "_database_2": {
+          "type": "object",
+          "description": "References to external databases.",
+          "properties": {
+            "database_id": { "type": "array", "items": { "type": "string" } },
+            "database_code": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "_struct_ref": {
+          "type": "object",
+          "description": "References to other structural database entries.",
+          "properties": {
+            "db_code": { "type": "array", "items": { "type": "string" } },
+            "db_name": { "type": "array", "items": { "type": "string" } },
+            "entity_id": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "_struct_ref_seq": {
+          "type": "object",
+          "description": "Sequence alignment details for structure references.",
+          "properties": {
+            "db_align_beg": { "type": "array", "items": { "type": "integer" } },
+            "db_align_end": { "type": "array", "items": { "type": "integer" } },
+            "ref_id": { "type": "array", "items": { "type": "string" } },
+            "seq_align_beg": { "type": "array", "items": { "type": "integer" } },
+            "seq_align_end": { "type": "array", "items": { "type": "integer" } }
+          }
+        },
+        "_pdbx_database_status": {
+          "type": "object",
+          "description": "Status information for the PDB entry.",
+          "properties": {
+            "status_code": { "type": "array", "items": { "type": "string" } },
+            "entry_id": { "type": "array", "items": { "type": "string" } },
+            "recvd_initial_deposition_date": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "_pdbx_audit_revision_history": {
+          "type": "object",
+          "description": "A history of revisions to the data block.",
+          "properties": {
+            "ordinal": { "type": "array", "items": { "type": "integer" }, "description": "A unique identifier for each revision." },
+            "data_content_type": { "type": "array", "items": { "type": "string" }, "description": "The type of data content that was revised." },
+            "major_revision": { "type": "array", "items": { "type": "integer" }, "description": "The major version number of the revision." },
+            "minor_revision": { "type": "array", "items": { "type": "integer" }, "description": "The minor version number of the revision." },
+            "revision_date": { "type": "array", "items": { "type": "string" }, "description": "The date of the revision." }
+          }
+        },
+        "_pdbx_audit_revision_details": {
+          "type": "object",
+          "description": "Details about specific revisions.",
+          "properties": {
+            "ordinal": { "type": "array", "items": { "type": "integer" } },
+            "revision_ordinal": { "type": "array", "items": { "type": "integer" } },
+            "data_content_type": { "type": "array", "items": { "type": "string" } },
+            "provider": { "type": "array", "items": { "type": "string" } },
+            "type": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "_ma_template_details": {
+          "type": "object",
+          "description": "Details about the structural templates used for modeling.",
+          "properties": {
+            "ordinal_id": { "type": "array", "items": { "type": "string" } },
+            "template_id": { "type": "array", "items": { "type": "string" } },
+            "template_entity_type": { "type": "array", "items": { "type": "string" } },
+            "template_origin": { "type": "array", "items": { "type": "string" } },
+            "template_data_id": { "type": "array", "items": { "type": "string" } },
+            "target_asym_id": { "type": "array", "items": { "type": "string" } },
+            "template_auth_asym_id": { "type": "array", "items": { "type": "string" } },
+            "template_model_num": { "type": "array", "items": { "type": "string" } },
+            "template_trans_matrix_id": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "_ma_template_ref_db_details": {
+          "type": "object",
+          "description": "Database reference details for the templates.",
+          "properties": {
+            "template_id": { "type": "array", "items": { "type": "string" } },
+            "db_name": { "type": "array", "items": { "type": "string" } },
+            "db_accession_code": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "chains": {
+      "type": "array",
+      "description": "Describes the polymer chains in the model.",
+      "items": {
+        "type": "object",
+        "required": [
+          "chain_id"
+        ],
+        "properties": {
+          "chain_id": {
+            "type": "string",
+            "description": "The identifier for the polymer chain."
+          },
+          "entity_id": {
+            "type": "string",
+            "description": "A pointer to the corresponding entity in _entity.id."
+          },
+          "uniprot_accession": {
+            "type": "string",
+            "description": "The UniProt accession code for the polymer chain."
+          }
+        }
+      }
+    }
+  }
+}

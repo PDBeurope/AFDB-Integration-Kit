@@ -1,76 +1,369 @@
-AFDB Integration Kit
+# AFDB Integration Toolkit
+
+A comprehensive toolkit for integrating structural models into the AlphaFold Database (AFDB). This toolkit provides essential tools and workflows to prepare, validate, and format molecular structure data for seamless integration with AFDB infrastructure.
+
+## Table of Contents
+
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Usage](#usage)
+- [Docker Usage](#docker-usage)
+- [Nextflow Workflow](#nextflow-workflow)
+- [File Structure Requirements](#file-structure-requirements)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
+
+## Features
+
+- **ModelCIF Generation**: Convert PDB files to mmCIF format with metadata integration
+- **Binary CIF Conversion**: Efficient conversion from mmCIF to Binary CIF (BCIF) format
+- **Secondary Structure Assignment**: DSSP-based secondary structure annotation
+- **Automated Workflows**: Nextflow-based end-to-end processing pipelines
+- **Docker Support**: Containerized execution for reproducible results
+- **Validation Tools**: Built-in testing and validation utilities
+
+## Prerequisites
+
+- Python 3.8+
+- Node.js 14+ (for Mol* CLI)
+- Docker (optional, for containerized execution)
+- Nextflow (optional, for workflow automation)
+
+## Installation
+
+### 1. Clone the Repository
 
 ```bash
-docker build -t af-toolkit .
+git clone https://github.com/PDBeurope/AFDB-Integration-Kit
+cd AFDB-Integration-Kit
 ```
 
-This command will create a Docker image named `af-toolkit` on your local machine.
+### 2. Install UV (Python Package Manager)
 
-## How to Run Commands
+UV is used to manage Python dependencies and virtual environments.
 
-The Docker container is designed to be used as an executable. You can pass arguments to it directly on the `docker run` command line, which will be forwarded to the Python script inside the container.
+**macOS/Linux:**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-### Displaying Help
+**Windows:**
+```bash
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
 
-To see the available commands and options, you can run the container without any additional arguments. This will execute the default command, which is to display the help message.
+**Alternative installation methods:**
+```bash
+# Using pip
+pip install uv
+
+# Using conda
+conda install -c conda-forge uv
+```
+
+### 3. Install Mol* CLI
+
+If you use nvm (Node Version Manager):
+```bash
+nvm use  # Uses the version specified in .nvmrc
+npm install -g molstar
+```
+
+Without nvm:
+```bash
+npm install -g molstar
+```
+
+### 4. Install DSSP
+
+We use the modern DSSP implementation by the PDB-REDO team:
 
 ```bash
-docker run --rm af-toolkit
+# Clone and build DSSP
+git clone https://github.com/PDB-REDO/dssp.git
+cd dssp
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
 ```
 
-This is equivalent to running `docker run --rm af-toolkit --help`.
+For detailed installation instructions, visit: https://github.com/PDB-REDO/dssp
 
-### Running the `cif2bcif` Command
+### 5. Install Gemmi
 
-To run the `cif2bcif` command, you need to provide the input and output file paths.
+Gemmi is a structural biology library with command-line tools:
 
-A critical aspect of using this Docker container is managing file access. The container runs in isolation from your local file system. To allow the script inside the container to read your input files and write the output, you must mount a local directory into the container using a Docker volume.
+**Using conda:**
+```bash
+conda install -c conda-forge gemmi
+```
 
-**Example:**
+**Using pip:**
+```bash
+pip install gemmi
+```
 
-Let's say you have your input files (e.g., `file.cif`) in a local directory named `data`.
+**From source:**
+```bash
+git clone https://github.com/project-gemmi/gemmi.git
+cd gemmi
+make
+```
 
-1.  **Create a `data` directory** in your project's root and place your input files there.
+For more installation options, see: https://gemmi.readthedocs.io/en/latest/install.html
 
-2.  **Run the container with a volume mount**:
+### 6. Download mmCIF Dictionary (Required for ModelCIF Generator)
 
-    ```bash
-    docker run --rm -v "$(pwd)/data:/app/data" af-toolkit cif2bcif -i /app/data/file.cif -o /app/data/file.bcif
-    ```
-
-    Or to output a gzipped BCIF file:
-
-    ```bash
-    docker run --rm -v "$(pwd)/data:/app/data" af-toolkit cif2bcif -i /app/data/file.cif -o /app/data/file.bcif.gz
-    ```
-
-    Let's break down this command:
-    *   `docker run --rm`: Runs the container and automatically removes it when it exits.
-    *   `-v "$(pwd)/data:/app/data"`: This is the volume mount.
-        *   `$(pwd)/data`: This is the absolute path to your local `data` directory.
-        *   `/app/data`: This is the path inside the container where your local directory will be accessible. `/app` is the working directory defined in the `Dockerfile`.
-    *   `af-toolkit`: The name of the image to run.
-    *   `cif2bcif -i /app/data/file.cif -o /app/data/file.bcif`: These are the arguments passed to the Python script. Note that the file paths are relative to the container's file system (`/app/data`), not your local machine.
-
-The output file (`file.bcif` or `file.bcif.gz`) will be created in the `/app/data` directory inside the container, and because of the volume mount, it will appear in your local `data` directory.
-
-### Running the `batch_cif2bcif` Command
-
-To convert all `.cif` files in a directory to `.bcif` or `.bcif.gz` in batch mode, use the `batch_cif2bcif` command. You can also specify the number of parallel workers and whether to output gzipped files.
-
-**Example:**
+The ModelCIF tool requires the updated mmCIF dictionary for validation. Download it to your project directory:
 
 ```bash
-docker run --rm -v "$(pwd)/data:/app/data" af-toolkit batch_cif2bcif -id /app/data -od /app/data/converted
+# Download the mmCIF dictionary
+curl -o mmcif_ma.dic https://raw.githubusercontent.com/ihmwg/ModelCIF/refs/heads/master/dist/mmcif_ma.dic
 ```
 
-To output gzipped BCIF files:
+**Note:** This step is automatically handled in the Docker environment, but is required for local installations.
+
+### 7. Install Nextflow (Optional)
+
+For workflow automation:
 
 ```bash
-docker run --rm -v "$(pwd)/data:/app/data" af-toolkit batch_cif2bcif -id /app/data -od /app/data/converted --gzip
+# Using curl
+curl -s https://get.nextflow.io | bash
+
+# Make executable and add to PATH
+chmod +x nextflow
+sudo mv nextflow /usr/local/bin/
 ```
 
-- `-id /app/data`: Input directory containing `.cif` files.
-- `-od /app/data/converted`: Output directory for `.bcif` or `.bcif.gz` files.
-- `--gzip`: (Optional) Output files as `.bcif.gz` instead of `.bcif`.
-- `--workers N`: (Optional) Number of parallel workers (default: 4).
+### 8. Install Docker (Optional)
+
+For containerized execution:
+- **macOS/Windows**: Download Docker Desktop from https://www.docker.com/products/docker-desktop
+- **Linux**: Follow instructions at https://docs.docker.com/engine/install/
+
+## Quick Start
+
+### Verify Installation
+
+Test that all dependencies are correctly installed:
+
+```bash
+uv run main.py test
+```
+
+This command will validate your environment and report any missing dependencies.
+
+### Basic Usage Example
+
+```bash
+# Generate ModelCIF
+uv run main.py run-modelcif-gen \
+    -p input/AF-0000000000000001-model-v1.pdb \
+    -m input/AF-0000000000000001-v1.cif.json \
+    -o output/AF-0000000000000001-model-v1.cif
+
+# Convert to BCIF
+uv run main.py run-cif2bcif \
+    -i input/AF-0000000000000001-model-v1.cif \
+    -o output/AF-0000000000000001-model-v1.bcif
+
+# Add secondary structure annotation
+uv run main.py run-dssp \
+    -i input/AF-0000000000000001-model-v1.cif \
+    -o output/AF-0000000000000001-model-v1.cif
+```
+
+## Usage
+
+### ModelCIF Generator
+
+Converts PDB files to mmCIF format with integrated metadata.
+
+**Requirements:**
+- Input PDB file
+- Metadata JSON file conforming to the schema: `afdb_integration_kit/modelcif/resources/schema.json`
+- mmCIF dictionary file (mmcif_ma.dic) in the project directory
+
+**Important:** For local installations, ensure you have downloaded the mmCIF dictionary:
+```bash
+curl -o mmcif_ma.dic https://raw.githubusercontent.com/ihmwg/ModelCIF/refs/heads/master/dist/mmcif_ma.dic
+```
+
+**Command:**
+```bash
+uv run main.py run-modelcif-gen -p <pdb_file> -m <metadata_json> -o <output_cif>
+```
+
+**Parameters:**
+- `-p, --pdb`: Input PDB file path
+- `-m, --metadata`: Metadata JSON file path
+- `-o, --output`: Output mmCIF file path
+
+### CIF to BCIF Converter
+
+Converts mmCIF files to Binary CIF format for efficient storage and transmission.
+
+**Command:**
+```bash
+uv run main.py run-cif2bcif -i <input_cif> -o <output_bcif>
+```
+
+**Parameters:**
+- `-i, --input`: Input mmCIF file path
+- `-o, --output`: Output BCIF file path
+
+### DSSP Secondary Structure Assignment
+
+Assigns secondary structure annotations based on atomic coordinates.
+
+**Command:**
+```bash
+uv run main.py run-dssp -i <input_cif> -o <output_cif>
+```
+
+**Parameters:**
+- `-i, --input`: Input mmCIF file path
+- `-o, --output`: Output annotated mmCIF file path
+
+## Docker Usage
+
+### Build Docker Image
+
+```bash
+docker build -t afdb-kit .
+```
+
+### Run Tools in Docker
+
+**ModelCIF Generator:**
+```bash
+docker run \
+    -v "$PWD/input:/input" \
+    -v "$PWD/output:/output" \
+    -w /workspace \
+    -v "$PWD:/workspace" \
+    afdb-kit uv run main.py run-modelcif-gen \
+        -p /input/AF-0000000000000001-model-v1.pdb \
+        -m /input/AF-0000000000000001-v1.cif.json \
+        -o /output/AF-0000000000000001-model-v1.cif
+```
+
+**CIF to BCIF Converter:**
+```bash
+docker run \
+    -v "$PWD/input:/input" \
+    -v "$PWD/output:/output" \
+    -w /workspace \
+    -v "$PWD:/workspace" \
+    afdb-kit uv run main.py run-cif2bcif \
+        -i /input/AF-0000000000000001-model-v1.cif \
+        -o /output/AF-0000000000000001-model-v1.bcif
+```
+
+**DSSP Processing:**
+```bash
+docker run \
+    -v "$PWD/input:/input" \
+    -v "$PWD/output:/output" \
+    -w /workspace \
+    -v "$PWD:/workspace" \
+    afdb-kit uv run main.py run-dssp \
+        -i /input/AF-0000000000000001-model-v1.cif \
+        -o /output/AF-0000000000000001-model-v1.cif
+```
+
+## Nextflow Workflow
+
+### End-to-End Processing
+
+Run the complete workflow using the provided script:
+
+```bash
+./run_workflow.sh
+```
+
+### Workflow Features
+
+- **Resumable**: Uses `-resume` flag to continue from previous checkpoints
+- **Cached**: Maintains state in `.nextflow` directory
+- **Dependency Management**: Automatically handles tool dependencies
+- **Parallel Processing**: Processes multiple files concurrently
+
+### Important Notes
+
+- Mount the `.nextflow` directory to preserve workflow state
+- Ensure proper input/output directory mounting
+- The workflow runs in resume mode by default
+
+## File Structure Requirements
+
+### Input Directory Structure
+
+The toolkit expects files to be organized in a specific hierarchical structure:
+
+```
+input/
+├── 0001/
+│   ├── 2345/
+│   │   ├── 6789/
+│   │   │   ├── 0123/
+│   │   │   │   ├── AF-0001234567890123-model-v1.pdb
+│   │   │   │   └── AF-0001234567890123-v1.cif.json
+```
+
+### Directory Structure Rules
+
+1. **Extract 16-digit numeric ID**: From `AF-0001234567890123-model-v1.pdb` → `0001234567890123`
+2. **Split into 4-digit segments**: `0001`, `2345`, `6789`, `0123`
+3. **Create nested directories**: `0001/2345/6789/0123/`
+4. **Place files in final directory**: Both PDB and JSON files
+
+### Output Structure
+
+The workflow automatically creates corresponding output directories following the same structure:
+
+```
+output/
+├── 0001/
+│   ├── 2345/
+│   │   ├── 6789/
+│   │   │   ├── 0123/
+│   │   │   │   ├── AF-0001234567890123-model-v1.cif
+│   │   │   │   └── AF-0001234567890123-model-v1.bcif
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Missing Dependencies**: Run `uv run main.py test` to identify missing components
+2. **Permission Errors**: Ensure Docker has proper access to mounted directories
+3. **File Not Found**: Verify input files follow the required directory structure
+4. **Memory Issues**: For large datasets, consider adjusting Docker memory limits
+5. **ModelCIF Validation Errors**: Ensure `mmcif_ma.dic` is present in the project directory (automatically handled in Docker)
+
+### Getting Help
+
+- Check the [Issues](https://github.com/PDBeurope/AFDB-Integration-Kit/issues) page
+- Validate your metadata JSON against the provided schema
+
+
+## License
+
+This project is licensed under the [CC0 1.0 Universal](LICENSE) - see the LICENSE file for details.
+
+## Support
+
+For support and questions:
+
+- **Issues**: [GitHub Issues](https://github.com/PDBeurope/AFDB-Integration-Kit/issues)
+- **Email**: afdbhelp@ebi.ac.uk
+
+
+---
