@@ -231,7 +231,39 @@ uv run main.py run-dssp -i <input_cif> -o <output_cif>
 - `-i, --input`: Input mmCIF file path
 - `-o, --output`: Output annotated mmCIF file path
 
+
 ## Docker Usage
+
+### Use Prebuilt Docker Image (Recommended)
+
+You can skip building the image locally by using the prebuilt image available on Docker Hub:
+
+```bash
+docker pull pdbegroup/afdb-integration-toolkit
+```
+
+Use it in the same way as the locally built image. For example:
+
+```bash
+docker run \
+    -v "$PWD/input:/input" \
+    -v "$PWD/output:/output" \
+    -w /workspace \
+    -v "$PWD:/workspace" \
+    pdbegroup/afdb-integration-toolkit uv run main.py run-modelcif-gen \
+        -p /input/AF-0000000000000001-model-v1.pdb \
+        -m /input/AF-0000000000000001-v1.cif.json \
+        -o /output/AF-0000000000000001-model-v1.cif
+```
+
+### Build Docker Image (Optional)
+
+If you prefer to build the image yourself:
+
+```bash
+docker build -t afdb-toolkit .
+```
+
 
 ### Build Docker Image
 
