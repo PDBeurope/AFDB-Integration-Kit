@@ -27,8 +27,8 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
 
 ## Prerequisites
 
-- Python 3.8+
-- Node.js 14+ (for Mol* CLI)
+- Python 3.12+
+- Node.js 18+ (for Mol* CLI)
 - Docker (optional, for containerized execution)
 - Nextflow (optional, for workflow automation)
 
