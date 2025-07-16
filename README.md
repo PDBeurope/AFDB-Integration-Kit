@@ -320,6 +320,28 @@ Run the complete workflow using the provided script:
 ./run_workflow.sh
 ```
 
+### Workflow Structure
+
+```mermaid
+flowchart TD
+    A[".pdb file"] --> C[ModelCIF Generator]
+    B["CIF metadata JSON"] --> C
+    C --> D[".cif file (mmCIF)"]
+    D --> E[DSSP]
+    E --> F[".cif file (mmCIF, with DSSP annotations)"]
+    F --> G[CIF to BCIF Generator]
+    G --> H[".bcif file (Binary CIF)"]
+    
+    style A fill:#e1f5fe
+    style B fill:#e1f5fe
+    style D fill:#fff3e0
+    style F fill:#fff3e0
+    style H fill:#e8f5e8
+    style C fill:#f3e5f5
+    style E fill:#f3e5f5 
+    style G fill:#f3e5f5
+```
+
 ### Input Requirements
 
 The Nextflow workflow requires an input list file at `input/input.txt` containing the entries to process. Each entry should be on a new line:
