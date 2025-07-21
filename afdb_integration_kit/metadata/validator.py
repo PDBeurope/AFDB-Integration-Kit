@@ -1,0 +1,92 @@
+import json
+import logging
+from enum import Enum
+from importlib.resources import files
+from pathlib import Path
+
+import jsonschema
+
+# --- Logger setup ---
+logger = logging.getLogger("schema_validator")
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter("[%(levelname)s] %(message)s")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+logger.setLevel(logging.INFO)
+
+
+# --- Constants ---
+class SchemaType(Enum):
+    MODEL = "model"
+    PROVIDER = "provider"
+
+
+SCHEMA_PATHS = {
+    SchemaType.MODEL: files("afdb_integration_kit.metadata.resources").joinpath(
+        "model_schema.json"
+    ),
+    SchemaType.PROVIDER: files("afdb_integration_kit.metadata.resources").joinpath(
+        "provider_schema.json"
+    ),
+}
+
+
+# --- Utility Functions ---
+def _load_json_file(file_path: Path) -> dict:
+    """Load a JSON file and return its content as a dict."""
+    try:
+        with file_path.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logger.error("File not found: %s", file_path)
+        raise
+    except json.JSONDecodeError as e:
+        logger.error("Invalid JSON in file %s: %s", file_path, e)
+        raise
+
+
+def validate_against_schema(input_file: Path, schema_type: str):
+    """
+    Validate the input JSON file against the specified schema.
+
+    Args:
+        input_file (Path): Path to the JSON file to validate.
+        schema_type (str): Either 'model' or 'provider'.
+
+    Raises:
+        ValueError: If the schema_type is not valid.
+        FileNotFoundError, JSONDecodeError,
+        jsonschema.ValidationError: For specific errors.
+    """
+    try:
+        schema_enum = SchemaType(schema_type.lower())
+    except ValueError:
+        logger.error(
+            "Unknown schema type '%s'. Expected 'model' or 'provider'.", schema_type
+        )
+        raise ValueError(
+            f"Unknown schema type '{schema_type}'. Expected 'model' or 'provider'."
+        )
+
+    schema_path = SCHEMA_PATHS[schema_enum]
+
+    logger.debug("Using schema: %s", schema_path)
+    logger.debug("Validating file: %s", input_file)
+
+    schema = _load_json_file(schema_path)
+    data = _load_json_file(input_file)
+
+    try:
+        jsonschema.validate(instance=data, schema=schema)
+        logger.info(
+            "Validation successful for '%s' against schema '%s'",
+            input_file.name,
+            schema_enum.value,
+        )
+    except jsonschema.ValidationError as e:
+        logger.error("Validation error: %s", e.message)
+        raise
+    except Exception as e:
+        logger.exception("Unexpected error during validation: %s", e)
+        raise
