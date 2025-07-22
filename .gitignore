@@ -41,6 +41,7 @@ npm-debug.log
 # Nextflow
 .nextflow.log*
 .nextflow/
+nf_workspace/
 
 # Input/Output directories
 input/

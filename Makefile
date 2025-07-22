@@ -10,7 +10,6 @@ help:
 	@echo "  make clean         - Remove build artifacts and caches"
 
 test:
-	export TEST=1
 	uv run --dev pre-commit install && uv run --dev pre-commit run --all
 	uv run --dev coverage run -m pytest --junitxml=report.xml tests
 	uv run --dev coverage xml -o coverage/cobertura-coverage.xml

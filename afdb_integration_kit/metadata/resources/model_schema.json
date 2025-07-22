@@ -46,69 +46,69 @@
       "examples": ["AF-1000000000000001-v1"]
     },
     "complexName": {
-      "type": "string",
+      "type": ["string", "null"],
       "description": "Name of the complex",
       "examples": ["Hemoglobin Tetramer"]
     },
     "complexComposition": {
-      "type": "string",
+      "type": ["string", "null"],
       "description": "Comma-separated list of components in the format <sequenceChecksum>_<stoichiometry>",
       "examples": ["408C22731C6EDFBE_2,A8B880A25617EC96_1"]
     },
     "uniprotAccession": {
-      "type": "string",
+      "type": ["string", "null"],
       "description": "UniProt accession",
       "examples": ["P12345"]
     },
     "uniprotId": {
-      "type": "string",
+      "type": ["string", "null"],
       "description": "UniProt identifier",
       "examples": ["HBA_HUMAN"]
     },
     "uniprotDescription": {
-      "type": "string",
+      "type": ["string", "null"],
       "description": "Description of the protein in UniProt",
       "examples": ["Hemoglobin subunit alpha"]
     },
     "geneSynonyms": {
-      "type": "array",
+      "type": ["array", "null"],
       "description": "List of gene synonyms (strings)",
       "items": { "type": "string" },
       "examples": [["HBA1", "HB1", "Alpha-globin"]]
     },
     "gene": {
-      "type": "string",
+      "type": ["string", "null"],
       "description": "Gene name (string)",
       "examples": ["HBA"]
     },
     "isUniProtReferenceProteome": {
-      "type": "boolean",
+      "type": ["boolean", "null"],
       "description": "Boolean flag for UniProt reference proteome",
       "examples": [true]
     },
     "isUniProtReviewed": {
-      "type": "boolean",
+      "type": ["boolean", "null"],
       "description": "Boolean flag for UniProt curation status",
       "examples": [true]
     },
     "taxId": {
-      "type": "integer",
+      "type": ["integer", "null"],
       "description": "NCBI Taxonomy ID",
       "examples": [9606]
     },
     "organismScientificName": {
-      "type": "string",
+      "type": ["string", "null"],
       "description": "Scientific name of the organism",
       "examples": ["Homo sapiens"]
     },
     "otherTaxIds": {
-      "type": "array",
+      "type": ["array", "null"],
       "description": "List of NCBI Taxonomy IDs representing additional taxa associated with the sequence",
       "items": { "type": "integer" },
       "examples": [[9606, 9615]]
     },
     "otherOrganismScientificNames": {
-      "type": "array",
+      "type": ["array", "null"],
       "description": "List of scientific names corresponding to the otherTaxIds (must match order)",
       "items": { "type": "string" },
       "examples": [["Homo sapiens", "Canis lupus familiaris"]]
@@ -119,12 +119,12 @@
       "examples": [2]
     },
     "ipTM": {
-      "type": "number",
+      "type": ["number", "null"],
       "description": "Quality metric (float)",
       "examples": [0.85]
     },
     "ipSAE": {
-      "type": "number",
+      "type": ["number", "null"],
       "description": "Quality metric (float)",
       "examples": [0.12]
     },
@@ -149,7 +149,7 @@
       "examples": ["408C22731C6EDFBE"]
     },
     "sequenceVersionDate": {
-      "type": "string",
+      "type": ["string", "null"],
       "format": "date-time",
       "description": "Sequence version date in YYYY-MM-DDT00:00:00Z format (ISO 8601)",
       "examples": ["2022-01-10T00:00:00Z"]
@@ -165,7 +165,7 @@
       "examples": [142]
     },
     "isFragment": {
-      "type": "boolean",
+      "type": ["boolean", "null"],
       "description": "Boolean indicating whether the sequence is a fragment",
       "examples": [false]
     },
@@ -200,55 +200,55 @@
       "examples": [0.34]
     },
     "organismCommonNames": {
-      "type": "array",
+      "type": ["array", "null"],
       "description": "List of common names of the organism, including those for otherOrganismScientificNames",
       "items": { "type": "string" },
       "examples": [["human", "dog"]]
     },
     "organismSynonyms": {
-      "type": "array",
+      "type": ["array", "null"],
       "description": "List of synonyms of the organism, including those for otherOrganismScientificNames",
       "items": { "type": "string" },
       "examples": [["H. sapiens", "C. lupus familiaris"]]
     },
     "proteinFullNames": {
-      "type": "array",
+      "type": ["array", "null"],
       "description": "Full names of the protein",
       "items": { "type": "string" },
       "examples": [["Hemoglobin subunit alpha"]]
     },
     "proteinShortNames": {
-      "type": "array",
+      "type": ["array", "null"],
       "description": "Short names of the protein",
       "items": { "type": "string" },
       "examples": [["HbA"]]
     },
     "keywords": {
-      "type": "array",
+      "type": ["array", "null"],
       "description": "List of descriptive keywords (from UniProt XML)",
       "items": { "type": "string" },
       "examples": [["oxygen transport", "heme-binding"]]
     },
     "taxonomyLineage": {
-      "type": "array",
+      "type": ["array", "null"],
       "description": "List of taxonomy lineage terms (from UniProt XML)",
       "items": { "type": "string" },
       "examples": [["Eukaryota", "Metazoa", "Chordata", "Mammalia"]]
     },
     "functions": {
-      "type": "array",
+      "type": ["array", "null"],
       "description": "List of functions (from UniProt XML)",
       "items": { "type": "string" },
       "examples": [["Oxygen transport from the lungs to body tissues"]]
     },
     "alternativeNames": {
-      "type": "array",
+      "type": ["array", "null"],
       "description": "List of alternative protein names (from UniProt XML)",
       "items": { "type": "string" },
       "examples": [["Alpha-globin"]]
     },
     "catalyticActivities": {
-      "type": "array",
+      "type": ["array", "null"],
       "description": "List of catalytic activities (from UniProt XML)",
       "items": { "type": "string" },
       "examples": [["EC 1.1.1.1 - alcohol dehydrogenase activity"]]
