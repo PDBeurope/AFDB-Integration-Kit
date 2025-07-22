@@ -32,8 +32,8 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
     - [Run Tools in Docker](#run-tools-in-docker)
   - [Nextflow Workflow](#nextflow-workflow)
     - [End-to-End Processing](#end-to-end-processing)
-    - [Schema Validation](#schema-validation)
     - [Workflow Structure](#workflow-structure)
+    - [Schema Validation](#schema-validation)
     - [Input Requirements](#input-requirements)
     - [Workflow Features](#workflow-features)
     - [Important Notes](#important-notes)
@@ -408,20 +408,6 @@ docker run \
 
 This will process all the model files in the `input` directory and place the output files in the `output` directory.
 
-### Schema Validation
-Run the schema validation workflow using the provided script:
-
-```bash
-docker run \
-    -v "$PWD/nf_workspace/.nextflow:/workspace/.nextflow" \
-    -v "$PWD/input:/input" \
-    -w /workspace \
-    -v "$PWD/nf_workspace:/workspace" \
-    afdb-toolkit nextflow run /app/workflow/validate.nf -resume
-```
-
-> **💡 Note:** This workflow contains only a single process, which may seem unnecessary for a workflow implementation. However, we included this structure to allow Nextflow to manage batch job scheduling and execution for the validation process.
-
 
 ### Workflow Structure
 
@@ -444,6 +430,30 @@ flowchart TD
     style E fill:#f3e5f5
     style G fill:#f3e5f5
 ```
+
+### Schema Validation
+Run the schema validation workflow using the provided script. This workflow performs two tasks:
+
+1. **Validate Metadata**: Ensures that the model metadata JSON files conform to the required schema.
+2. **Batch Processing**: If validation is successful, the workflow concatenates the JSON files into a list of JSONs for further processing based on a configurable chunk size, which defaults to 100.
+
+To adjust the chunk size, update the `params.metadata_chunk_size` parameter in the `workflow/validate.nf` script or pass it as a command-line argument when executing the workflow. For example:
+
+```bash
+--metadata_chunk_size 100
+```
+
+```bash
+docker run \
+    -v "$PWD/nf_workspace/.nextflow:/workspace/.nextflow" \
+    -v "$PWD/input:/input" \
+    -v "$PWD/output:/output" \
+    -w /workspace \
+    -v "$PWD/nf_workspace:/workspace" \
+    afdb-toolkit nextflow run /app/workflow/validate.nf -resume
+```
+
+The output will be stored in the `output/metadata` directory, containing the batched validated model metadata JSON files.
 
 ### Input Requirements
 

@@ -49,6 +49,7 @@ RUN apt-get update && \
         python3-pip \
         npm \
         nodejs \
+        jq \
         ca-certificates \
         && rm -rf /var/lib/apt/lists/*
 
