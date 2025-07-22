@@ -20,7 +20,7 @@ process validateModelMetadata {
 
 params.input_dir = "/input"
 params.input_list = "${params.input_dir}/input.txt"
-params.version = "v2"
+params.version = "v1"
 params.python_cmd = "uv run /app/main.py"
 
 
