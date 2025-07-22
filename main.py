@@ -8,6 +8,7 @@ from afdb_integration_kit.cif2bcif.convert import (
 )
 from afdb_integration_kit.cif2bcif.convert import run_cif2bcif as cif2bcif_helper
 from afdb_integration_kit.dssp.dssp import run_dssp as dssp_helper
+from afdb_integration_kit.metadata.validator import validate_against_schema
 from afdb_integration_kit.modelcif.generate import generate
 
 # Set up logger
@@ -36,6 +37,33 @@ def test():
     subprocess.run(["mkdssp", "-h"])
     logger.info("--- Testing Gemmi script ---")
     subprocess.run(["gemmi", "--version"])
+
+
+@app.command()
+def run_schema_validation(
+    input_file: Path = typer.Option(
+        ...,
+        "-i",
+        "--input",
+        help="Input JSON file path to validate against schema.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    type: str = typer.Option(
+        ...,
+        "-t",
+        "--type",
+        help="Type of schema to validate against ('model' or 'provider').",
+    ),
+):
+    """
+    Validate a JSON file against the specified schema.
+    """
+
+    validate_against_schema(input_file, type)
 
 
 @app.command()

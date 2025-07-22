@@ -4,26 +4,59 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
 
 ## Table of Contents
 
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Usage](#usage)
-- [Docker Usage](#docker-usage)
-- [Nextflow Workflow](#nextflow-workflow)
-- [File Structure Requirements](#file-structure-requirements)
-- [Contributing](#contributing)
-- [License](#license)
-- [Support](#support)
+- [AFDB Integration Toolkit](#afdb-integration-toolkit)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+    - [1. Clone the Repository](#1-clone-the-repository)
+    - [2. Install UV (Python Package Manager)](#2-install-uv-python-package-manager)
+    - [3. Install Mol\* CLI](#3-install-mol-cli)
+    - [4. Install DSSP](#4-install-dssp)
+    - [5. Install Gemmi](#5-install-gemmi)
+    - [6. Download mmCIF Dictionary (Required for ModelCIF Generator)](#6-download-mmcif-dictionary-required-for-modelcif-generator)
+    - [7. Install Nextflow (Optional)](#7-install-nextflow-optional)
+    - [8. Install Docker (Optional)](#8-install-docker-optional)
+  - [Quick Start](#quick-start)
+    - [Verify Installation](#verify-installation)
+    - [Basic Usage Example](#basic-usage-example)
+  - [Usage](#usage)
+    - [ModelCIF Generator](#modelcif-generator)
+    - [CIF to BCIF Converter](#cif-to-bcif-converter)
+    - [DSSP Secondary Structure Assignment](#dssp-secondary-structure-assignment)
+    - [Metadata Schema Validation](#metadata-schema-validation)
+  - [Docker Usage](#docker-usage)
+    - [Use Prebuilt Docker Image (Recommended)](#use-prebuilt-docker-image-recommended)
+    - [Build Docker Image (Optional)](#build-docker-image-optional)
+    - [Build Docker Image](#build-docker-image)
+    - [Run Tools in Docker](#run-tools-in-docker)
+  - [Nextflow Workflow](#nextflow-workflow)
+    - [End-to-End Processing](#end-to-end-processing)
+    - [Schema Validation](#schema-validation)
+    - [Workflow Structure](#workflow-structure)
+    - [Input Requirements](#input-requirements)
+    - [Workflow Features](#workflow-features)
+    - [Important Notes](#important-notes)
+  - [File Structure Requirements](#file-structure-requirements)
+    - [Input Directory Structure](#input-directory-structure)
+    - [Directory Structure Rules](#directory-structure-rules)
+    - [Output Structure](#output-structure)
+  - [Troubleshooting](#troubleshooting)
+    - [Common Issues](#common-issues)
+    - [Getting Help](#getting-help)
+  - [License](#license)
+  - [Support](#support)
 
 ## Features
 
 - **ModelCIF Generation**: Convert PDB files to mmCIF format with metadata integration
 - **Binary CIF Conversion**: Efficient conversion from mmCIF to Binary CIF (BCIF) format
 - **Secondary Structure Assignment**: DSSP-based secondary structure annotation
+- **Metadata Schema Validation**: Validate model and provider metadata JSONs against AFDB-defined schemas
 - **Automated Workflows**: Nextflow-based end-to-end processing pipelines
 - **Docker Support**: Containerized execution for reproducible results
 - **Validation Tools**: Built-in testing and validation utilities
+
 
 ## Prerequisites
 
@@ -231,6 +264,32 @@ uv run main.py run-dssp -i <input_cif> -o <output_cif>
 - `-i, --input`: Input mmCIF file path
 - `-o, --output`: Output annotated mmCIF file path
 
+### Metadata Schema Validation
+
+Validate metadata JSON files (`model` or `provider`) against the required JSON schemas to ensure data consistency and compliance.
+
+**Schemas:**
+
+* Model: `afdb_integration_kit/metadata/resources/model_schema.json`
+* Provider: `afdb_integration_kit/metadata/resources/provider_schema.json`
+
+**Command:**
+
+```bash
+uv run main.py run-schema-validation -i <metadata_json_file> -t <type>
+```
+
+**Parameters:**
+
+* `-i, --input`: Path to the metadata JSON file to validate
+* `-t, --type`: Type of metadata to validate (`model` or `provider`)
+
+**Examples:**
+
+```bash
+uv run main.py run-schema-validation -i model.json -t model
+uv run main.py run-schema-validation -i provider.json -t provider
+```
 
 ## Docker Usage
 
@@ -310,15 +369,59 @@ docker run \
         -o /output/AF-0000000000000001-model-v1.cif
 ```
 
+**Schema Validation**
+
+Run schema validation in Docker:
+
+```bash
+docker run \
+    -v "$PWD/input:/input" \
+    -v "$PWD/output:/output" \
+    -w /workspace \
+    -v "$PWD:/workspace" \
+    afdb-toolkit uv run main.py run-schema-validation -i model.json -t model
+```
+
+Replace `model.json` with the actual path to your metadata file. For provider metadata:
+
+```bash
+afdb-toolkit uv run main.py run-schema-validation -i provider.json -t provider
+```
+
 ## Nextflow Workflow
+
+The nextflow scripts are placed in the `workflow` directory. The main workflow script is `workflow.nf`, which orchestrates the end-to-end processing of the model files (except metadata JSON validation). `validate.nf` is used for schema validation of model and provider metadata files.
 
 ### End-to-End Processing
 
 Run the complete workflow using the provided script:
 
 ```bash
-./run_workflow.sh
+docker run \
+    -v "$PWD/nf_workspace/.nextflow:/workspace/.nextflow" \
+    -v "$PWD/output:/output" \
+    -v "$PWD/input:/input" \
+    -w /workspace \
+    -v "$PWD/nf_workspace:/workspace" \
+    afdb-toolkit nextflow run /app/workflow/workflow.nf -resume
 ```
+
+This will process all the model files in the `input` directory and place the output files in the `output` directory.
+
+### Schema Validation
+Run the schema validation workflow using the provided script:
+
+```bash
+docker run \
+    -v "$PWD/nf_workspace/.nextflow:/workspace/.nextflow" \
+    -v "$PWD/input:/input" \
+    -w /workspace \
+    -v "$PWD/nf_workspace:/workspace" \
+    afdb-toolkit nextflow run /app/workflow/validate.nf -resume
+```
+
+> **💡 Note:** This workflow contains only a single process, which may seem unnecessary for a workflow implementation. However, we included this structure to allow Nextflow to manage batch job scheduling and execution for the validation process.
+
 
 ### Workflow Structure
 
@@ -331,14 +434,14 @@ flowchart TD
     E --> F[".cif file (mmCIF, with DSSP annotations)"]
     F --> G[CIF to BCIF Generator]
     G --> H[".bcif file (Binary CIF)"]
-    
+
     style A fill:#e1f5fe
     style B fill:#e1f5fe
     style D fill:#fff3e0
     style F fill:#fff3e0
     style H fill:#e8f5e8
     style C fill:#f3e5f5
-    style E fill:#f3e5f5 
+    style E fill:#f3e5f5
     style G fill:#f3e5f5
 ```
 

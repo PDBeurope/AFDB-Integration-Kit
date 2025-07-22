@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Provider Metadata Schema",
+  "type": "object",
+  "required": ["providerId", "providerName", "license"],
+  "properties": {
+    "providerId": {
+      "type": "string",
+      "description": "ID assigned by EBI",
+      "examples": ["GDM"]
+    },
+    "providerName": {
+      "type": "string",
+      "description": "Full name of the provider",
+      "examples": ["Google DeepMind"]
+    },
+    "providerUrl": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "description": "URL to provider’s website. Leave null if not applicable",
+      "examples": ["https://deepmind.com"]
+    },
+    "feedback": {
+      "type": "string",
+      "format": "email",
+      "description": "Email address for sending feedback",
+      "examples": ["alphafold@deepmind.com"]
+    },
+    "license": {
+      "type": "string",
+      "description": "The license under which the data is released",
+      "enum": ["CC-BY-4.0", "ccby 0"],
+      "examples": ["CC-BY-4.0"]
+    },
+    "citations": {
+      "type": "array",
+      "description": "List of citation dictionaries with description, url, and category",
+      "items": {
+        "type": "object",
+        "required": ["description", "url", "category"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Citation text",
+            "examples": ["Jumper, J et al. Highly accurate protein structure prediction with AlphaFold. Nature (2021)"]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Link to the citation source",
+            "examples": ["https://www.nature.com/articles/s41586-021-03819-2"]
+          },
+          "category": {
+            "type": "string",
+            "description": "Category of the citation",
+            "examples": ["AlphaFold"]
+          }
+        }
+      },
+      "examples": [[
+        {
+          "description": "Jumper, J et al. Highly accurate protein structure prediction with AlphaFold. Nature (2021)",
+          "url": "https://www.nature.com/articles/s41586-021-03819-2",
+          "category": "AlphaFold"
+        }
+      ]]
+    },
+    "copyrights": {
+      "type": "array",
+      "description": "List of copyright strings",
+      "items": { "type": "string" },
+      "examples": [[
+        "AlphaFold Data Copyright (2022) DeepMind Technologies Limited.",
+        "AlphaMissense Copyright (2023) DeepMind Technologies Limited."
+      ]]
+    }
+  },
+  "additionalProperties": false
+}

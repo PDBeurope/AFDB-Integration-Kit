@@ -1,10 +1,13 @@
+#!/usr/bin/env nextflow
 
-def getEntryDir(entry) {
-    // Function to get the directory for a given entry
-    // AF-1000000000000001 -> 1000/0000/0000/0001
-    return entry.replaceFirst(/^AF-/, '').replaceAll(/(\d{4})(?=\d)/, '$1/')
-}
 
+// Include utility functions
+include { getEntryDir } from './utils.nf'
+
+
+/*
+  Create output directory for each entry
+*/
 process createEntryOutDir {
 
     publishDir "${params.output_dir}", mode: 'copy'
@@ -22,6 +25,10 @@ process createEntryOutDir {
     """
 }
 
+
+/*
+    Generate model CIF for each entry
+*/
 process runModelCifGenerator {
 
     publishDir "${params.output_dir}/${getEntryDir(entry)}", mode: 'copy'
@@ -43,6 +50,9 @@ process runModelCifGenerator {
     """
 }
 
+/*
+    Convert CIF to BCIF for each entry
+*/
 process runCif2Bcif {
 
     publishDir "${params.output_dir}/${getEntryDir(entry)}", mode: 'copy'
@@ -61,6 +71,10 @@ process runCif2Bcif {
     """
 }
 
+
+/*
+    Run DSSP on CIF files for each entry
+*/
 process runDSSP {
     publishDir "${params.output_dir}/${getEntryDir(entry)}", mode: 'copy'
 
@@ -86,6 +100,10 @@ params.version = "v1"
 params.results_dir = "${params.output_dir}/results"
 params.python_cmd = "uv run /app/main.py"
 
+
+/*
+    Main workflow
+*/
 workflow {
 
     input_channel = Channel.fromPath(params.input_list)
