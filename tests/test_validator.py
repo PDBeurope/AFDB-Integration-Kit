@@ -1,10 +1,13 @@
-import pytest
-import tempfile
 import json
+import tempfile
 from pathlib import Path
 from unittest.mock import patch
-from afdb_integration_kit.metadata import validator as schema_validator
+
+import pytest
 from jsonschema import ValidationError
+
+from afdb_integration_kit.metadata import validator as schema_validator
+
 
 # Fixture to temporarily write JSON to a file
 @pytest.fixture
@@ -14,6 +17,7 @@ def temp_json_file():
             json.dump(data, f)
             f.flush()
             return Path(f.name)
+
     return _write_temp_json
 
 
@@ -23,9 +27,7 @@ def fake_model_schema(tmp_path):
     schema = {
         "type": "object",
         "required": ["name"],
-        "properties": {
-            "name": {"type": "string"}
-        }
+        "properties": {"name": {"type": "string"}},
     }
     schema_path = tmp_path / "test_model_schema.json"
     schema_path.write_text(json.dumps(schema), encoding="utf-8")
@@ -38,9 +40,10 @@ def test_validate_with_overridden_schema(tmp_path, fake_model_schema):
     input_file = tmp_path / "valid_input.json"
     input_file.write_text(json.dumps(input_data), encoding="utf-8")
 
-    with patch.dict(schema_validator.SCHEMA_PATHS, {
-        schema_validator.SchemaType.MODEL: fake_model_schema
-    }):
+    with patch.dict(
+        schema_validator.SCHEMA_PATHS,
+        {schema_validator.SchemaType.MODEL: fake_model_schema},
+    ):
         schema_validator.validate_against_schema(input_file, "model")
 
 
@@ -60,9 +63,7 @@ def test_invalid_json_file(tmp_path):
 
 def test_schema_validation_error(temp_json_file):
     # Assuming the model schema requires a "name" field
-    invalid_data = {
-        "invalid_field": "missing name"
-    }
+    invalid_data = {"invalid_field": "missing name"}
     input_file = temp_json_file(invalid_data)
 
     with pytest.raises(ValidationError):
