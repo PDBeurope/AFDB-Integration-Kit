@@ -14,6 +14,8 @@ colorama==0.4.6 ; sys_platform == 'win32'
     # via click
 gemmi==0.7.3
     # via afdb-toolkit
+gemmi-program==0.7.3
+    # via afdb-toolkit
 idna==3.10
     # via requests
 jsonschema==4.24.0

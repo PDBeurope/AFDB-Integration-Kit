@@ -4,10 +4,11 @@ requires-python = ">=3.12"
 
 [[package]]
 name = "afdb-toolkit"
-version = "0.1.1"
+version = "0.1.2"
 source = { virtual = "." }
 dependencies = [
     { name = "gemmi" },
+    { name = "gemmi-program" },
     { name = "jsonschema" },
     { name = "numpy" },
     { name = "requests" },
@@ -30,6 +31,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "gemmi", specifier = ">=0.7.3" },
+    { name = "gemmi-program", specifier = ">=0.7.3" },
     { name = "jsonschema", specifier = ">=4.24.0" },
     { name = "numpy", specifier = ">=2.3.1" },
     { name = "requests", specifier = ">=2.32.4" },
@@ -281,6 +283,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/37/81/64b296e7ef51b5dc90cc9a0d0ddb244ee945330c05e1916e7d1a069a4827/gemmi-0.7.3-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:b7c6f3450e36bb08b63c8e514e79f08ca1eb7c0d6963440d25b426d34749dfed", size = 2757152, upload-time = "2025-07-05T17:34:04.369Z" },
     { url = "https://files.pythonhosted.org/packages/a3/7f/2be74c1ec33903434f9f71ae10f11e5bf905e9d9c7440be00e30228c657d/gemmi-0.7.3-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:84f1ec474c42c8ce5fc373a9efb1a875683c3c879b6bc68d180d9bb24b5fa2bf", size = 3082142, upload-time = "2025-07-05T17:34:07.011Z" },
     { url = "https://files.pythonhosted.org/packages/28/38/c5c1b52c16ef70b9e7e0392f6298b93dd17783c3c34a92512825b1617841/gemmi-0.7.3-cp313-cp313-win_amd64.whl", hash = "sha256:ffcd45974f4f0f1eea212679697e01f5048842754af6daeb06128bf5df2929ce", size = 1967528, upload-time = "2025-07-05T17:34:09.714Z" },
+]
+
+[[package]]
+name = "gemmi-program"
+version = "0.7.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3c/09/96923402cdb1971ae42629f2ac87bed9d0ad87b99a5fc4bc3b9a0b86b3d1/gemmi_program-0.7.3.tar.gz", hash = "sha256:04bb483c26b045e84c3a44c4e5c955bf7b525c268206bdf2c5650a30b19d1a3f", size = 2401, upload-time = "2025-07-06T15:02:53.692Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e6/8d/301ffd16ffb5e3bc95782b6bcf112ccd95781a3c10da7634449db400f2ae/gemmi_program-0.7.3-py2.py3-none-macosx_10_13_x86_64.whl", hash = "sha256:0bbbaa7b808d7a1d8cc9c090a02a36240fa8740902a0b28061d21790fea60c16", size = 1722312, upload-time = "2025-07-06T15:03:09.078Z" },
+    { url = "https://files.pythonhosted.org/packages/51/f8/7a9395a82b42f628aa3a843f5faa218f433dc94b9ba9a2e72a714eee82ec/gemmi_program-0.7.3-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:954dfff7b6c171385b7d36168f75b43f74b5ffb06e66e86f8750ab93be167ccd", size = 1585661, upload-time = "2025-07-06T15:03:13.371Z" },
+    { url = "https://files.pythonhosted.org/packages/06/d6/7d88cf30c849c5934ad747417ac55c5e35cbce2b73ae3ba7264751505a1d/gemmi_program-0.7.3-py2.py3-none-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d2bfacce4d054c479813036e543ac0301673194a2675db7c76be47fcae0715bd", size = 1580583, upload-time = "2025-07-06T15:03:16.442Z" },
+    { url = "https://files.pythonhosted.org/packages/c7/ca/4468df60fe02be51cb1744fab7de0f3cc28b5c5007221a37a34d6c71e77f/gemmi_program-0.7.3-py2.py3-none-win_amd64.whl", hash = "sha256:73a3d65c40d769efac7074c4405ba086913e6bf592e43e7e1eec42b49945f16b", size = 1290490, upload-time = "2025-07-06T15:03:19.485Z" },
 ]
 
 [[package]]

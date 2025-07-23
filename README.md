@@ -13,10 +13,9 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
     - [2. Install UV (Python Package Manager)](#2-install-uv-python-package-manager)
     - [3. Install Mol\* CLI](#3-install-mol-cli)
     - [4. Install DSSP](#4-install-dssp)
-    - [5. Install Gemmi](#5-install-gemmi)
-    - [6. Download mmCIF Dictionary (Required for ModelCIF Generator)](#6-download-mmcif-dictionary-required-for-modelcif-generator)
-    - [7. Install Nextflow (Optional)](#7-install-nextflow-optional)
-    - [8. Install Docker (Optional)](#8-install-docker-optional)
+    - [5. Download mmCIF Dictionary (Required for ModelCIF Generator)](#5-download-mmcif-dictionary-required-for-modelcif-generator)
+    - [6. Install Nextflow (Optional)](#6-install-nextflow-optional)
+    - [7. Install Docker (Optional)](#7-install-docker-optional)
   - [Quick Start](#quick-start)
     - [Verify Installation](#verify-installation)
     - [Basic Usage Example](#basic-usage-example)
@@ -127,32 +126,12 @@ sudo make install
 
 For detailed installation instructions, visit: https://github.com/PDB-REDO/dssp
 
-### 5. Install Gemmi
+### 5. Download mmCIF Dictionary (Optional)
 
-Gemmi is a structural biology library with command-line tools:
+The ModelCIF tool has an additional option to validate the mmCIF files against the updated model cif dictionary. 
+This is an optional parameter, but it is recommended to validate the output files when first setting up the tool.
 
-**Using conda:**
-```bash
-conda install -c conda-forge gemmi
-```
-
-**Using pip:**
-```bash
-pip install gemmi
-```
-
-**From source:**
-```bash
-git clone https://github.com/project-gemmi/gemmi.git
-cd gemmi
-make
-```
-
-For more installation options, see: https://gemmi.readthedocs.io/en/latest/install.html
-
-### 6. Download mmCIF Dictionary (Required for ModelCIF Generator)
-
-The ModelCIF tool requires the updated mmCIF dictionary for validation. Download it to your project directory:
+Download the modelcif dictionary to your project directory:
 
 ```bash
 # Download the mmCIF dictionary
@@ -161,7 +140,7 @@ curl -o mmcif_ma.dic https://raw.githubusercontent.com/ihmwg/ModelCIF/refs/heads
 
 **Note:** This step is automatically handled in the Docker environment, but is required for local installations.
 
-### 7. Install Nextflow (Optional)
+### 6. Install Nextflow (Optional)
 
 For workflow automation:
 
@@ -174,7 +153,7 @@ chmod +x nextflow
 sudo mv nextflow /usr/local/bin/
 ```
 
-### 8. Install Docker (Optional)
+### 7. Install Docker (Optional)
 
 For containerized execution:
 - **macOS/Windows**: Download Docker Desktop from https://www.docker.com/products/docker-desktop
