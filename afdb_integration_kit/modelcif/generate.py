@@ -630,7 +630,19 @@ def generate(
 
     # 3. Add metadata from JSON file
     model_meta = input_metadata.get("metadata", {})
-    cif_data.set_item(CAT_SOFTWARE, "version", f"v{model_meta.get('version', '3.1')}")
+
+    software_category = input_metadata.get("categories", {}).get(CAT_SOFTWARE, {})
+    if software_category:
+        # Get the length of the first item in the _software category
+        first_item_key = next(iter(software_category))
+        array_length = len(software_category[first_item_key])
+        
+        # Create an array of the same length for the version
+        version_value = f"v{model_meta.get('version', '3.1')}"
+        version_list = [version_value] * array_length
+        software_category['version'] = version_list
+        cif_data.set_items(CAT_SOFTWARE, software_category)
+    
     cif_data.set_item(
         CAT_MODEL_LIST,
         "model_group_name",
