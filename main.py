@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import json
 
 import typer
 
@@ -12,7 +13,10 @@ from afdb_integration_kit.metadata.validator import validate_against_schema
 from afdb_integration_kit.modelcif.generate import generate
 from afdb_integration_kit.modelpdb.generate import generate_pdb_headers
 from afdb_integration_kit.modelcif_replace.replace import replace_mmcif_with_json as replace_mmcif_with_json
-
+from afdb_integration_kit.quality_assessment.naming import (
+    validate_dataset_naming,
+    format_human
+)
 
 # Set up logger
 logger = logging.getLogger("afdb_integration_kit")
@@ -300,6 +304,81 @@ def batch_cif2bcif(
     )
     run_batch_cif2bcif(input_dir, output_dir, workers=workers, gzip=gzip)
     logger.info("Batch conversion complete.")
+
+@app.command()
+def run_naming_check(
+    root: Path = typer.Option(
+        ...,
+        "--root",
+        help="Path to dataset directory to scan.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        resolve_path=True,
+    ),
+    out: Path = typer.Option(
+        None,
+        "-o",
+        "--out",
+        help="Optional path to write a human-readable report.",
+        file_okay=True,
+        dir_okay=False,
+        writable=True,
+        resolve_path=True,
+    ),
+    ids_file: Path = typer.Option(
+        None,
+        "--ids-file",
+        help="Optional file containing AFIDs to check, one per line. Accepts AF-<16>-vN or AF-<16>.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    errors_only: bool = typer.Option(
+        False,
+        "--errors-only",
+        help="Print only failing entries as one-liners.",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        help="Print every entry as one-liners.",
+    ),
+    limit: int = typer.Option(
+        5,
+        "--limit",
+        min=1,
+        help="Limit example AFIDs in summary and cap one-liner output when not in --verbose mode.",
+    ),
+):
+    """
+    Check AFDB naming conventions and required-file presence for a dataset directory.
+    Default output is a HUMAN-READABLE summary. Exit code 0 on PASS, 1 if any issue is found.
+    """
+    # Read optional ids-file
+    ids_pairs = None
+    ids_afids = None
+    if ids_file is not None:
+        from afdb_integration_kit.quality_assessment.naming import parse_ids_file
+        ids_pairs, ids_afids = parse_ids_file(ids_file)
+
+    # Validate and build report
+    ok, report = validate_dataset_naming(root, ids_pairs=ids_pairs, ids_afids=ids_afids)
+
+    # Human-readable to stdout
+    text = format_human(report, errors_only=errors_only, verbose=verbose, limit=limit)
+    print(text)
+
+    # Optional save of human-readable
+    if out is not None:
+        out.write_text(text + "\n")
+        logger.info(f"Wrote report: {out}")
+
+    if not ok:
+        raise typer.Exit(code=1)
 
 
 @app.command()
