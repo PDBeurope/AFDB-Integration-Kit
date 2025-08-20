@@ -37,16 +37,16 @@ process runModelCifGenerator {
         val entry
 
     output:
-        path "${entry}-model-${params.version}.cif", emit: cif_file
+        path "${entry}.cif", emit: cif_file
         val entry, emit: entry
 
     script:
     """
     echo "Generating model CIF for entry: ${entry}"
     ${params.python_cmd} run-modelcif-gen \
-        -p "${params.input_dir}/${getEntryDir(entry)}/${entry}-model-${params.version}.pdb" \
+        -p "${params.input_dir}/${getEntryDir(entry)}/${entry}.pdb" \
         -m "${params.input_dir}/${getEntryDir(entry)}/${entry}-${params.version}.cif.json" \
-        -o "${entry}-model-${params.version}.cif"
+        -o "${entry}.cif"
     """
 }
 
@@ -63,11 +63,12 @@ process runCif2Bcif {
 
     output:
         path "${entry}-model-${params.version}.bcif"
+        path "${entry}-model-${params.version}.cif"
 
     script:
     """
     echo "Converting ${entry} CIF to BCIF"
-    ${params.python_cmd} run-cif2bcif -i "${cif_file}" -o "${entry}-model-${params.version}.bcif"
+    ${params.python_cmd} run-cif2bcif -i "${cif_file}" -o  "${entry}-model-${params.version}.bcif"  
     """
 }
 
@@ -83,15 +84,16 @@ process runDSSP {
         val entry
 
     output:
-        path "${entry}-model-${params.version}.cif", emit: cif_file
+        path "${entry}-model-${params.version}.cif", emit: cif_file     
         val entry, emit: entry
 
     script:
     """
     echo "Running DSSP on ${entry} CIF"
-    ${params.python_cmd} run-dssp -i "${cif_file}" -o "${entry}-model-${params.version}.cif"
+    ${params.python_cmd} run-dssp -i "${cif_file}" -o "${entry}-model-${params.version}.cif"  
     """
 }
+
 
 params.input_dir = "/input"
 params.output_dir = "/output"
