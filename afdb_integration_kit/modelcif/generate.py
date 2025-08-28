@@ -83,7 +83,7 @@ class CifDataStorage:
     def set_item(self, category_name: str, item_name: str, item_value: Any):
         if category_name not in self.data:
             self.data[category_name] = {}
-        self.data[category_name][item_name] = [item_value]
+        self.data[category_name][item_name] = item_value
 
     def get_data(self) -> Dict[str, Dict[str, List[Any]]]:
         return self.data
@@ -172,7 +172,7 @@ def process_uniprot_response(data: Dict[str, Any]) -> Dict[str, str]:
         }
 
     seq = data.get("sequence", {}).get("value", "")
-    checksum = hashlib.md5(seq.encode()).hexdigest() if seq else "?"
+    crc_64 = data.get("sequence", {}).get("crc64", "?")
 
     return {
         "db_accession": data.get("primaryAccession", None),
@@ -184,7 +184,7 @@ def process_uniprot_response(data: Dict[str, Any]) -> Dict[str, str]:
         "seq_db_align_begin": "1",
         "seq_db_align_end": str(len(seq)) if seq else None,
         "seq_db_isoform": None,
-        "seq_db_sequence_checksum": checksum,
+        "seq_db_sequence_checksum": crc_64,
         "seq_db_sequence_version_date": data.get("entryAudit", {}).get(
             "lastSequenceUpdateDate", None
         ),
@@ -630,16 +630,27 @@ def generate(
 
     # 3. Add metadata from JSON file
     model_meta = input_metadata.get("metadata", {})
-    cif_data.set_item(CAT_SOFTWARE, "version", f"v{model_meta.get('version', '3.1')}")
     cif_data.set_item(
         CAT_MODEL_LIST,
         "model_group_name",
-        f"AlphaFold {model_meta.get(
-            'model_type', 'Monomer')} v{model_meta.get('version', '3.1')} model",
+        [f"AlphaFold {model_meta.get(
+            'model_type', 'Monomer')} v{model_meta.get('version', '3.1')} model"],
     )
     for category, items in input_metadata.get("categories", {}).items():
         if items:
             cif_data.set_items(category, items)
+    # check if _software is alphafold. If yes get version from model_meta. If softwares are multiple log that versions should be correctly provided
+    software_category = input_metadata.get("categories", {}).get(CAT_SOFTWARE, {})
+    versions = []
+    if software_category.get("version", None) is None:
+        software_names = software_category.get("name", None)
+        for software_name in software_names:
+            if software_name == "AlphaFold":
+                versions.append(f"v{model_meta.get('version', '3.1')}")
+            else:
+                versions.append(None)
+                logger.warning("Different softwares found in JSON file. Consider adding versions for all softwares you have mentioned.")
+        cif_data.set_item(CAT_SOFTWARE, "version", versions)
 
     # 4. Fetch and process external data (UniProt)
     uniprot_details = defaultdict(list)
@@ -664,7 +675,7 @@ def generate(
 
     global_plddt = compute_global_plddt(atom_site_data.get(ITEM_B_FACTOR, []))
     if global_plddt >= 0:
-        cif_data.set_item(CAT_GLOBAL_QA, "metric_value", f"{global_plddt:.2f}")
+        cif_data.set_item(CAT_GLOBAL_QA, "metric_value", [f"{global_plddt:.2f}"])
 
     local_plddt_metrics = compute_local_plddt_metrics(
         atom_site_data.get(ITEM_LABEL_ASYM_ID, []),
