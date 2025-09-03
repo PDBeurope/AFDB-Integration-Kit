@@ -252,11 +252,11 @@ class PDBFileEditor:
             prefix = f"REMARK   1  TITL"
             if i > 0:
                 prefix += f" {i + 1}"
-            formatted_line = f"{prefix:<14} {titl_line:<65}"
+            formatted_line = f"{prefix:<18} {titl_line:<61}"
             self._header_lines_to_insert.append(formatted_line + '\n')
 
         # Format the reference line
-        ref_line = f"REMARK   1  REF   {journal:<20} V. {volume: <4} {page: >5} {year: <4}"
+        ref_line = f"REMARK   1  REF    {journal:<20} V. {volume: <4} {page: >5} {year: <4}"
         self._header_lines_to_insert.append(f"{ref_line:<80}\n")
 
         # Format the ISSN line
