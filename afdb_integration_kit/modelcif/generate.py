@@ -172,7 +172,7 @@ def process_uniprot_response(data: Dict[str, Any]) -> Dict[str, str]:
         }
 
     seq = data.get("sequence", {}).get("value", "")
-    crc_64 = data.get("sequence", {}).get("crc64", "?")
+    crc_64 = data.get("sequence", {}).get("crc64", None)
 
     return {
         "db_accession": data.get("primaryAccession", None),
