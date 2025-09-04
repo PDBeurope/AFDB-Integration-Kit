@@ -10,6 +10,8 @@ CAT_LOCAL_QA = "_ma_qa_metric_local"
 CAT_ENTITY_POLY_SEQ = "_entity_poly_seq"
 CAT_ENTITY_POLY_SEQ_SCHEME = "_pdbx_poly_seq_scheme"
 CAT_STRUCT_ASYM = "_struct_asym."
+CAT_CELL = "_cell."
+CAT_SYMMETRY = "_symmetry."
 
 ITEM_B_FACTOR = "B_iso_or_equiv"
 ITEM_LABEL_ASYM_ID = "label_asym_id"

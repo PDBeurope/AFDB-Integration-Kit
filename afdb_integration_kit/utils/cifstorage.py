@@ -7,6 +7,8 @@ from afdb_integration_kit.utils.constant import (
     ITEM_AUTH_COMP_ID,
     ITEM_LABEL_SEQ_ID,
     ITEM_AUTH_SEQ_ID,
+    CAT_CELL,
+    CAT_SYMMETRY,
 )
 import gemmi
 import logging
@@ -48,6 +50,8 @@ class CifDataStorage:
         self.data[CAT_ATOM_SITE][ITEM_LABEL_SEQ_ID] = self.data[CAT_ATOM_SITE][
             ITEM_AUTH_SEQ_ID
         ]
+        del(self.data[CAT_SYMMETRY])
+        del(self.data[CAT_CELL])
 
     def write_to_cif(self, output_file: str, block_name: str = "model"):
         """Writes the stored data to an mmCIF file."""
