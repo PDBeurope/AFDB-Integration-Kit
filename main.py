@@ -10,6 +10,8 @@ from afdb_integration_kit.cif2bcif.convert import run_cif2bcif as cif2bcif_helpe
 from afdb_integration_kit.dssp.dssp import run_dssp as dssp_helper
 from afdb_integration_kit.metadata.validator import validate_against_schema
 from afdb_integration_kit.modelcif.generate import generate
+from afdb_integration_kit.modelpdb.generate import generate_pdb_headers
+
 
 # Set up logger
 logger = logging.getLogger("afdb_integration_kit")
@@ -125,6 +127,69 @@ def run_modelcif_gen(
 
     # Call main logic (assuming main is imported or defined elsewhere)
     generate(str(pdb), str(metadata), str(output), validate_path)
+
+@app.command()
+def run_modelpdb_gen(
+    cif: Path = typer.Option(
+        ...,
+        "-c",
+        "--cif",
+        help="Input mmCIF file path.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    pdb: Path = typer.Option(
+        ...,
+        "-p",
+        "--pdb",
+        help="Input PDB file path (with ATOM coordinates).",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    provider: Path = typer.Option(
+        ...,
+        "-r",
+        "--provider",
+        help="Input provider JSON file path.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    output: Path = typer.Option(
+        ...,
+        "-o",
+        "--output",
+        help="Output PDB file path.",
+        file_okay=True,
+        dir_okay=False,
+        writable=True,
+        resolve_path=True,
+    ),
+):
+    """
+    Enrich a PDB file with header information from a mmCIF file.
+    """
+    # Pre-flight checks
+    if not cif.is_file():
+        logger.error(f"Input mmCIF file not found: {cif}")
+        raise typer.Exit(code=1)
+    if not pdb.is_file():
+        logger.error(f"Input PDB file not found: {pdb}")
+        raise typer.Exit(code=1)
+    if not provider.is_file():
+        logger.error(f"Input provider JSON file not found: {provider}")
+        raise typer.Exit(code=1)
+
+    # Call main logic
+    generate_pdb_headers(str(cif), str(pdb), str(output), str(provider))
 
 
 @app.command()

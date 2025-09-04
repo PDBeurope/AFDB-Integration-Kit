@@ -1,4 +1,3 @@
-import hashlib
 import json
 import logging
 import shutil
@@ -8,145 +7,52 @@ from collections import defaultdict
 from importlib.resources import files
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TypedDict
-
+import datetime
 import gemmi
 import jsonschema
 import numpy as np
 import requests
+from afdb_integration_kit.utils.pdbeditor import PDBFileEditor
+from afdb_integration_kit.utils.cifstorage import CifDataStorage
+from afdb_integration_kit.utils.uniprot import UniprotAPIClient
+from afdb_integration_kit.utils.constant import (
+    CAT_ATOM_SITE,
+    CAT_CHEM_COMP,
+    CAT_SOFTWARE,
+    CAT_MODEL_LIST,
+    CAT_TARGET_REF_DB,
+    CAT_GLOBAL_QA,
+    CAT_LOCAL_QA,
+    CAT_ENTITY_POLY_SEQ,
+    CAT_ENTITY_POLY_SEQ_SCHEME,
+    CAT_STRUCT_ASYM,
+    ITEM_B_FACTOR,
+    ITEM_LABEL_ASYM_ID,
+    ITEM_AUTH_ASYM_ID,
+    ITEM_LABEL_COMP_ID,
+    ITEM_AUTH_COMP_ID,
+    ITEM_LABEL_SEQ_ID,
+    ITEM_AUTH_SEQ_ID,
+    ITEM_PDB_INS_CODE,
+)
 
 # --- Configuration & Constants ---
 
 # Configure logger
-logger = logging.getLogger("modelcif")
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
-formatter = logging.Formatter("[%(levelname)s] %(message)s")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+logger = logging.getLogger("afdb_integration_kit")
+
 JSON_SCHEMA_PATH = str(
     files("afdb_integration_kit.modelcif.resources").joinpath("schema.json")
 )
-
-# MMCIF Category and Item Constants
-CAT_ATOM_SITE = "_atom_site."
-CAT_CHEM_COMP = "_chem_comp"
-CAT_SOFTWARE = "_software"
-CAT_MODEL_LIST = "_ma_model_list"
-CAT_TARGET_REF_DB = "_ma_target_ref_db_details"
-CAT_GLOBAL_QA = "_ma_qa_metric_global"
-CAT_LOCAL_QA = "_ma_qa_metric_local"
-CAT_ENTITY_POLY_SEQ = "_entity_poly_seq"
-CAT_ENTITY_POLY_SEQ_SCHEME = "_pdbx_poly_seq_scheme"
-CAT_STRUCT_ASYM = "_struct_asym."
-
-ITEM_B_FACTOR = "B_iso_or_equiv"
-ITEM_LABEL_ASYM_ID = "label_asym_id"
-ITEM_AUTH_ASYM_ID = "auth_asym_id"
-ITEM_LABEL_COMP_ID = "label_comp_id"
-ITEM_AUTH_COMP_ID = "auth_comp_id"
-ITEM_LABEL_SEQ_ID = "label_seq_id"
-ITEM_AUTH_SEQ_ID = "auth_seq_id"
-ITEM_PDB_INS_CODE = "pdbx_PDB_ins_code"
-
-
-UNIPROT_API_BASE_URL = "https://rest.uniprot.org/uniprotkb"
-
-# --- Data Structures (Type Definitions) ---
-
 
 class ChainMetadata(TypedDict):
     uniprot_accession: str
     chain_id: str
 
-
 class InputMetadata(TypedDict):
     metadata: Dict[str, Any]
     categories: Dict[str, Any]
     chains: List[ChainMetadata]
-
-
-# --- Data Storage Class ---
-
-
-class CifDataStorage:
-    """A container for holding and writing mmCIF data."""
-
-    def __init__(self):
-        self.data: Dict[str, Dict[str, List[Any]]] = {}
-
-    def set_items(self, category_name: str, items_dict: Dict[str, List[Any]]):
-        if category_name not in self.data:
-            self.data[category_name] = {}
-        for item, values in items_dict.items():
-            self.data[category_name][item] = values
-
-    def set_item(self, category_name: str, item_name: str, item_value: Any):
-        if category_name not in self.data:
-            self.data[category_name] = {}
-        self.data[category_name][item_name] = item_value
-
-    def get_data(self) -> Dict[str, Dict[str, List[Any]]]:
-        return self.data
-
-    def populate_from_cif_block(self, cif_block: gemmi.cif.Block):
-        """Initializes the storage from a gemmi cif.Block."""
-        for category in cif_block.get_mmcif_category_names():
-            items = cif_block.get_mmcif_category(category)
-            self.set_items(category, items)
-
-        # Perform initial data mappings required for consistency
-        self.data[CAT_ATOM_SITE][ITEM_LABEL_ASYM_ID] = self.data[CAT_ATOM_SITE][
-            ITEM_AUTH_ASYM_ID
-        ]
-        self.data[CAT_ATOM_SITE][ITEM_AUTH_COMP_ID] = self.data[CAT_ATOM_SITE][
-            ITEM_LABEL_COMP_ID
-        ]
-        self.data[CAT_ATOM_SITE][ITEM_LABEL_SEQ_ID] = self.data[CAT_ATOM_SITE][
-            ITEM_AUTH_SEQ_ID
-        ]
-
-    def write_to_cif(self, output_file: str, block_name: str = "model"):
-        """Writes the stored data to an mmCIF file."""
-        logger.info("Writing CIF file...")
-        doc = gemmi.cif.Document()
-        block = doc.add_new_block(block_name)
-
-        for category, items in self.data.items():
-            block.set_mmcif_category(category, items)
-
-        write_options = gemmi.cif.WriteOptions()
-        write_options.align_loops = 50
-        write_options.align_pairs = 50
-        write_options.prefer_pairs = True
-        doc.write_file(output_file, write_options)
-        logger.info(f"mmCIF file written to: {output_file}")
-
-
-# --- External Service Client ---
-
-
-class UniprotAPIClient:
-    """Client for fetching data from the UniProt API."""
-
-    def __init__(self, session: requests.Session, base_url: str = UNIPROT_API_BASE_URL):
-        self.session = session
-        self.base_url = base_url
-
-    def fetch_metadata(self, uniprot_accession: str) -> Dict[str, Any]:
-        """Fetches metadata for a given UniProt ID."""
-        url = f"{self.base_url}/{uniprot_accession}.json"
-        logger.info(f"Fetching UniProt metadata for ID: {uniprot_accession}")
-        try:
-            response = self.session.get(url, timeout=15)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            logger.warning(
-                f"Failed to fetch UniProt ID {uniprot_accession}: {e}. "
-                "Please check the ID and your network connection."
-            )
-            return {}
-
 
 # --- Core Processing Functions (Pure Functions) ---
 
@@ -609,10 +515,7 @@ def validate_with_gemmi(cif_path: str, dict_path: str):
     except Exception as e:
         logger.error(f"An unexpected error occurred during validation: {e}")
 
-
 # --- Main Orchestration ---
-
-
 def generate(
     pdb_file: str, metadata_file: str, output_file: str, validate_dict_path: str
 ):
@@ -695,8 +598,11 @@ def generate(
 
     # 6. Write the final mmCIF file
     block_name = Path(output_file).stem
-    cif_data.write_to_cif(output_file, block_name=block_name)
+    mmcif_output_file = Path(output_file)
+    cif_data.write_to_cif(str(mmcif_output_file), block_name=block_name)
 
     # 7. Optionally validate the output file
     if validate_dict_path:
-        validate_with_gemmi(output_file, validate_dict_path)
+        validate_with_gemmi(str(mmcif_output_file), validate_dict_path)
+
+    
