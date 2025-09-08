@@ -50,8 +50,10 @@ class CifDataStorage:
         self.data[CAT_ATOM_SITE][ITEM_LABEL_SEQ_ID] = self.data[CAT_ATOM_SITE][
             ITEM_AUTH_SEQ_ID
         ]
-        del(self.data[CAT_SYMMETRY])
-        del(self.data[CAT_CELL])
+        if CAT_SYMMETRY in self.data:
+            del(self.data[CAT_SYMMETRY])
+        if CAT_CELL in self.data:
+            del(self.data[CAT_CELL])
 
     def write_to_cif(self, output_file: str, block_name: str = "model"):
         """Writes the stored data to an mmCIF file."""
