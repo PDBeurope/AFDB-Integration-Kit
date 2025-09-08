@@ -185,8 +185,9 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
  
     if data_usage.get("details"):
         # disclaimer = data_usage.get("details", ["?"])[0]
+        cleaned_copyrights_str = copyrights_str.encode('ascii', errors='ignore').decode('ascii')
         disclaimer = (
-            f'{copyrights_str.upper()} THE INFORMATION PROVIDED IS THEORETICAL MODELLING ONLY '
+            f'{cleaned_copyrights_str.upper()} THE INFORMATION PROVIDED IS THEORETICAL MODELLING ONLY '
             'AND CAUTION SHOULD BE EXERCISED IN ITS USE. IT IS PROVIDED "AS-IS" '
             'WITHOUT ANY WARRANTY OF ANY KIND, WHETHER EXPRESSED OR IMPLIED. '
             'NO WARRANTY IS GIVEN THAT USE OF THE INFORMATION SHALL NOT INFRINGE THE RIGHTS OF ANY THIRD PARTY. '
@@ -317,6 +318,7 @@ def generate_pdb_headers(
     pdb_editor.load_pdb(pdb_file)
 
     add_pdb_headers(pdb_editor, cif_data, Path(output_pdb_file).stem, copyrights_str)
+    pdb_editor.validate_ter_records()
     pdb_editor.write_pdb(output_pdb_file)
     logger.info(f"PDB file with headers written to: {output_pdb_file}")
 

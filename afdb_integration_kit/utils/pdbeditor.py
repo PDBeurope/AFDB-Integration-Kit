@@ -8,6 +8,10 @@ and update records like TITLE, REMARK, COMPND, and SOURCE.
 
 import textwrap
 
+import logging
+
+logger = logging.getLogger("afdb_integration_kit")
+
 class PDBFileEditor:
     """
     A class to read, edit, and write PDB files, with a focus on
@@ -119,31 +123,40 @@ class PDBFileEditor:
             molecule (str): The name of the molecule.
             chain (str): The chain identifier.
         """
-        # Line 1: MOL_ID
+        # Start with the mandatory MOL_ID line.
         self._header_lines_to_insert.append(f"COMPND    MOL_ID: {molecule_id}\n")
-        
-        # Lines 2 to N: Molecule description (potentially multi-line)
-        # Content for MOLECULE starts at column 20 in the AlphaFold example.
-        # Line content width is 80 - 19 (COMPND + space + 2-digit number + space + "MOLECULE: ") = 61. 
-        molecule_content_prefix = "MOLECULE: "
-        wrapped_lines = textwrap.wrap(molecule, width=60)
-        
-        # First molecule line
-        line1 = f"COMPND   2 {molecule_content_prefix}{wrapped_lines[0]};"
-        self._header_lines_to_insert.append(f"{line1:<80}\n")
-        
-        # Subsequent molecule lines, if any
-        for i, line_content in enumerate(wrapped_lines[1:]):
-            # The continuation number for subsequent lines starts at 3.
-            continuation_number = i + 3
-            line = f"COMPND  {continuation_number: >2} {line_content};"
-            self._header_lines_to_insert.append(f"{line:<80}\n")
-        
-        # Line N+1: Chain
-        # Its continuation number depends on the number of lines the MOLECULE field took.
-        chain_continuation_number = 2 + len(wrapped_lines)
-        chain_line = f"COMPND  {chain_continuation_number: >2} CHAIN: {chain}"
-        self._header_lines_to_insert.append(f"{chain_line:<80}\n")
+
+        # Group components with their prefixes to iterate over them easily.
+        # The last component in the list will not get a semicolon.
+        compnd_components = [
+            ("MOLECULE: ", molecule),
+            ("CHAIN: ", chain)
+        ]
+
+        # Start the continuation number at 2 since MOL_ID is line 1.
+        continuation_number = 2
+
+        for i, (prefix, content) in enumerate(compnd_components):
+            is_last_component = (i == len(compnd_components) - 1)
+            
+            # 80 Char - len(CMPND) - len(Prefix).
+            wrapped_lines = textwrap.wrap(content, width=80 - 11 - len(prefix))
+            
+            for j, line_content in enumerate(wrapped_lines):
+                # Only add a semicolon if it's NOT the last component AND
+                # if it's the last wrapped line of the current component.
+                add_semicolon = not is_last_component and (j == len(wrapped_lines) - 1)
+                semicolon = ";" if add_semicolon else ""
+                
+                # Only the first wrapped line of a component needs its prefix.
+                line_prefix = prefix if j == 0 else ""
+                
+                # Format and append the line.
+                formatted_line = f"COMPND  {continuation_number: >2} {line_prefix}{line_content}{semicolon}"
+                self._header_lines_to_insert.append(f"{formatted_line:<80}\n")
+                
+                # Increment the continuation number for the next line.
+                continuation_number += 1
 
     def add_source(self, molecule_id, organism_scientific, organism_taxid):
         """
@@ -325,3 +338,108 @@ class PDBFileEditor:
                 f"SEQRES {serial_num: >3} {chain_id: >1} {total_residues: >4}  {residue_line_str}"
             )
             self._header_lines_to_insert.append(f"{formatted_line:<80}\n")
+    
+    def _get_record_fields(self, line):
+        """
+        Helper method to parse fields from ATOM, HETATM, or TER records.
+        """
+        fields = {
+            'record_name': line[0:6].strip(),
+            'serial_number': int(line[6:11].strip()),
+            'residue_name': line[17:20].strip(),
+            'chain_id': line[21:22].strip(),
+            'residue_number': int(line[22:26].strip())
+        }
+        return fields
+        
+    def find_ter_records(self):
+        """
+        Finds all TER records in the loaded PDB file content.
+        
+        Returns:
+            list: A list of tuples, where each tuple contains (line_index, line_content).
+        """
+        ter_records = []
+        for i, line in enumerate(self.lines):
+            if line.startswith('TER'):
+                ter_records.append((i, line))
+        return ter_records
+
+    def get_last_atom_before_ter(self, ter_index):
+        """
+        Searches backward from a given TER record index to find the last
+        preceding ATOM or HETATM record.
+
+        Args:
+            ter_index (int): The line index of the TER record.
+
+        Returns:
+            str: The line content of the preceding ATOM/HETATM record, or None if not found.
+        """
+        # Search backwards from the TER record's index
+        for i in range(ter_index - 1, -1, -1):
+            line = self.lines[i]
+            if line.startswith('ATOM') or line.startswith('HETATM'):
+                return line
+        return None
+
+    def validate_ter_records(self):
+        """
+        Iterates through all TER records, finds the preceding ATOM record,
+        and updates the TER record if the residue name or number does not match.
+        """
+        ter_records = self.find_ter_records()
+        if not ter_records:
+            logger.info("No TER records found in the file.")
+            return
+
+        logger.info(f"Found {len(ter_records)} TER records. Validating...")
+        
+        records_to_update = []
+        for ter_index, ter_line in ter_records:
+            atom_line = self.get_last_atom_before_ter(ter_index)
+            
+            if atom_line is None:
+                logger.warning(f"Could not find a preceding ATOM record for TER at line {ter_index + 1}.")
+                continue
+            
+            try:
+                ter_fields = self._get_record_fields(ter_line)
+                atom_fields = self._get_record_fields(atom_line)
+                
+                # Check for mismatches
+                if (ter_fields['residue_name'] != atom_fields['residue_name'] or
+                    ter_fields['residue_number'] != atom_fields['residue_number'] or
+                    ter_fields['chain_id'] != atom_fields['chain_id']):
+                    
+                    logger.warning(f"Mismatch found at TER record (line {ter_index + 1}):")
+                    logger.warning(f"  TER: Residue '{ter_fields['residue_name']}' No. {ter_fields['residue_number']} Chain '{ter_fields['chain_id']}'")
+                    logger.warning(f"  ATOM:Residue '{atom_fields['residue_name']}' No. {atom_fields['residue_number']} Chain '{atom_fields['chain_id']}'")
+                    
+                    # Prepare the corrected TER line
+                    corrected_ter_line = (
+                        f"TER   {int(atom_fields['serial_number'])+1: >5}      "
+                        f"{atom_fields['residue_name']: >3} "
+                        f"{atom_fields['chain_id']: >1}{atom_fields['residue_number']: >4}   "
+                    )
+                    
+                    # Add to the list of updates
+                    records_to_update.append((ter_index, f"{corrected_ter_line:<80}\n"))
+                    
+                    logger.warning("  -> TER record will be updated.")
+                
+                else:
+                    logger.info(f"TER record at line {ter_index + 1} is consistent with preceding ATOM record.")
+
+            except (ValueError, IndexError) as e:
+                logger.error(f"Error parsing line {ter_index + 1}: {e}")
+                
+        # Apply the updates to the in-memory lines
+        for ter_index, new_ter_line in records_to_update:
+            self.lines[ter_index] = new_ter_line
+
+            
+        if records_to_update:
+            logger.info(f"Validation complete. {len(records_to_update)} TER records have been updated.")
+        else:
+            logger.info("Validation complete. All TER records are consistent.")
