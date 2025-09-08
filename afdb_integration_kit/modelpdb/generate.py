@@ -117,7 +117,7 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
         taxonomy_id = target_ref_db["ncbi_taxonomy_id"][0]
         pdb_editor.add_source(
             molecule_id=target_ref_db.get("target_entity_id", ["?"])[0],
-            organism_scientific=scientific_name,
+            organism_scientific=scientific_name.upper(),
             organism_taxid=int(taxonomy_id) if taxonomy_id != "?" else None
         )
     else:
