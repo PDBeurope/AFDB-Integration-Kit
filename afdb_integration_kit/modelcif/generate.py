@@ -604,5 +604,4 @@ def generate(
     # 7. Optionally validate the output file
     if validate_dict_path:
         validate_with_gemmi(str(mmcif_output_file), validate_dict_path)
-
     

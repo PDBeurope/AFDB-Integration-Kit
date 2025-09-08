@@ -140,7 +140,9 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
 
             def safe_get(key: str) -> str:
                 values = citation.get(key, [])
-                return values[idx] if idx < len(values) else ""
+                if values[idx] is None or idx >= len(values):
+                    return ""                    
+                return values[idx]
 
             non_primary_citation_data = {
                 "title": safe_get("title"),
@@ -297,9 +299,6 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
     # 8. Add MODEL record before ATOMs
     pdb_editor.add_model(model_number=1)
     
-
-
-
 
 def generate_pdb_headers(
     cif_file: str, pdb_file: str, output_pdb_file: str, provider_json_file: str
