@@ -11,6 +11,7 @@ from afdb_integration_kit.dssp.dssp import run_dssp as dssp_helper
 from afdb_integration_kit.metadata.validator import validate_against_schema
 from afdb_integration_kit.modelcif.generate import generate
 from afdb_integration_kit.modelpdb.generate import generate_pdb_headers
+from afdb_integration_kit.modelcif_replace.replace import replace_mmcif_with_json as replace_mmcif_with_json
 
 
 # Set up logger
@@ -299,6 +300,47 @@ def batch_cif2bcif(
     )
     run_batch_cif2bcif(input_dir, output_dir, workers=workers, gzip=gzip)
     logger.info("Batch conversion complete.")
+
+
+@app.command()
+def run_modelcif_replace(
+    pdb: Path = typer.Option(
+        ...,
+        "-i",
+        "--cif",
+        help="Input CIF file path.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    metadata: Path = typer.Option(
+        ...,
+        "-m",
+        "--metadata",
+        help="Input metadata JSON file path.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    output: Path = typer.Option(
+        ...,
+        "-o",
+        "--output",
+        help="Output mmCIF file path.",
+        file_okay=True,
+        dir_okay=False,
+        writable=True,
+        resolve_path=True,
+    ),
+):
+    """
+    Replace the metadata in a CIF file with metadata.
+    """
+    replace_mmcif_with_json(str(pdb), str(metadata), str(output))
 
 
 if __name__ == "__main__":
