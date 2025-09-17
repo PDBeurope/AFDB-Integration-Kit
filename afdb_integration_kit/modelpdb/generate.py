@@ -140,7 +140,7 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
 
             def safe_get(key: str) -> str:
                 values = citation.get(key, [])
-                if values[idx] is None or idx >= len(values):
+                if idx >= len(values) or values[idx] is None:
                     return ""                    
                 return values[idx]
 
