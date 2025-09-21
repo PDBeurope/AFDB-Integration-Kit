@@ -89,9 +89,8 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
 
     # 2. TITLE and COMPND
     # Use _entity.pdbx_description and _entity_poly.pdbx_seq_one_letter_code to build the title
-    if entity.get("pdbx_description") and entity_poly.get("pdbx_seq_one_letter_code"):
+    if entity.get("pdbx_description",[False])[0]:
         description = entity["pdbx_description"][0]
-        seq = entity_poly["pdbx_seq_one_letter_code"][0]
         title_text = f"{description} ({target_ref_db.get('db_accession', ['?'])[0]})"
         pdb_editor.add_title(title_text.upper())
 
@@ -112,7 +111,7 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
 
     # 3. SOURCE
     # Using the first entry from _ma_target_ref_db_details which contains UNIPROT info
-    if target_ref_db.get("organism_scientific") and target_ref_db.get("ncbi_taxonomy_id"):
+    if target_ref_db.get("organism_scientific", [False])[0] and target_ref_db.get("ncbi_taxonomy_id", [False])[0]:
         scientific_name = target_ref_db["organism_scientific"][0]
         taxonomy_id = target_ref_db["ncbi_taxonomy_id"][0]
         pdb_editor.add_source(
@@ -239,8 +238,13 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
                 if not pdb_seq_ids:
                     logger.warning(f"No sequence data found for chain '{pdb_chain_id}'. Skipping DBREF.")
                     continue
+                if not uniprot_info["seq_db_align_begin"] or not uniprot_info["seq_db_align_end"]:
+                    logger.warning(f"No sequence data found for chain '{pdb_chain_id}'. Skipping DBREF.")
+                    continue
                 
                 try:
+                    import pdb
+                    pdb.set_trace()
                     pdb_editor.add_dbref(
                         pdb_id=dbref_id,
                         chain_id=pdb_chain_id,
