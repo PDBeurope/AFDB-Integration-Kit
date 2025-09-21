@@ -243,8 +243,6 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
                     continue
                 
                 try:
-                    import pdb
-                    pdb.set_trace()
                     pdb_editor.add_dbref(
                         pdb_id=dbref_id,
                         chain_id=pdb_chain_id,
