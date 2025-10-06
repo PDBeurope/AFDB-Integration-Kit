@@ -4,6 +4,8 @@ import re
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Iterable, Set
 
+from afdb_integration_kit.validation.registry import ValidationHook, register_validator
+
 # Canonical per-entry patterns
 PATTERNS = {
     "pdb":   re.compile(r"^(AF-\d{16})-model-(v\d+)\.pdb$"),
@@ -389,3 +391,13 @@ def format_human(
                 break
 
     return "\n".join(lines)
+
+
+register_validator(
+    ValidationHook(
+        name="naming",
+        run=validate_dataset_naming,
+        formatter=format_human,
+        description="Validate AFDB dataset naming conventions and required file presence.",
+    )
+)

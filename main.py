@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Dict, List, Optional, Set
 import json
 
 import typer
@@ -14,9 +15,14 @@ from afdb_integration_kit.modelcif.generate import generate
 from afdb_integration_kit.modelpdb.generate import generate_pdb_headers
 from afdb_integration_kit.modelcif_replace.replace import replace_mmcif_with_json as replace_mmcif_with_json
 from afdb_integration_kit.quality_assessment.naming import (
-    validate_dataset_naming,
-    format_human
+    parse_ids_file
 )
+from afdb_integration_kit.validation import (
+    ensure_default_validators,
+    list_validators,
+    run_validations,
+)
+from afdb_integration_kit.validation.runner import ValidationResult
 
 # Set up logger
 logger = logging.getLogger("afdb_integration_kit")
@@ -25,6 +31,23 @@ logging.basicConfig(
 )
 
 app = typer.Typer()
+
+
+def _format_validation_result(
+    result: ValidationResult,
+    *,
+    errors_only: bool = False,
+    verbose: bool = False,
+    limit: int = 5,
+) -> str:
+    if result.formatter is None:
+        return json.dumps(result.report, indent=2, sort_keys=True)
+    return result.formatter(
+        result.report,
+        errors_only=errors_only,
+        verbose=verbose,
+        limit=limit,
+    )
 
 
 @app.command()
@@ -44,6 +67,20 @@ def test():
     subprocess.run(["mkdssp", "-h"])
     logger.info("--- Testing Gemmi script ---")
     subprocess.run(["gemmi", "--version"])
+
+
+@app.command(name="list-validations")
+def list_validations_cmd() -> None:
+    """List the validation checks that are available to run."""
+    ensure_default_validators()
+    hooks = list_validators()
+    if not hooks:
+        typer.echo("No validations registered.")
+        return
+
+    for hook in hooks:
+        suffix = f" - {hook.description}" if hook.description else ""
+        typer.echo(f"{hook.name}{suffix}")
 
 
 @app.command()
@@ -305,6 +342,121 @@ def batch_cif2bcif(
     run_batch_cif2bcif(input_dir, output_dir, workers=workers, gzip=gzip)
     logger.info("Batch conversion complete.")
 
+
+@app.command(name="run-validations")
+def run_validation_suite(
+    root: Path = typer.Option(
+        ...,
+        "--root",
+        "-r",
+        help="Dataset directory to validate.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        resolve_path=True,
+    ),
+    check: List[str] = typer.Option(
+        None,
+        "--check",
+        "-c",
+        help="Validation name to run. Repeat for multiple; defaults to all registered.",
+    ),
+    output: Path = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Optional path to write the combined human-readable report.",
+        file_okay=True,
+        dir_okay=False,
+        writable=True,
+        resolve_path=True,
+    ),
+    json_output: Path = typer.Option(
+        None,
+        "--json-output",
+        help="Optional path to write an aggregate JSON report.",
+        file_okay=True,
+        dir_okay=False,
+        writable=True,
+        resolve_path=True,
+    ),
+    errors_only: bool = typer.Option(
+        False,
+        "--errors-only",
+        help="Print only failing entries for each validation report.",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        help="Print all entries for each validation report.",
+    ),
+    limit: int = typer.Option(
+        5,
+        "--limit",
+        min=1,
+        help="Limit example entries in summaries when not in verbose mode.",
+    ),
+):
+    """Run one or more validation checks via the shared validation runner."""
+    ensure_default_validators()
+    hooks = {hook.name: hook for hook in list_validators()}
+    if not hooks:
+        logger.error("No validations are registered.")
+        raise typer.Exit(code=1)
+
+    selected = check or list(hooks.keys())
+    unknown = [name for name in selected if name not in hooks]
+    if unknown:
+        available = ", ".join(sorted(hooks))
+        raise typer.BadParameter(
+            f"Unknown validation(s): {', '.join(unknown)}. Available: {available}",
+            param_hint="--check/-c",
+        )
+
+    ok, results = run_validations(root, checks=selected)
+
+    human_output = ""
+    if results:
+        chunks = [
+            _format_validation_result(
+                result,
+                errors_only=errors_only,
+                verbose=verbose,
+                limit=limit,
+            )
+            for result in results
+        ]
+        human_output = "\n\n".join(chunks)
+        typer.echo(human_output)
+    else:
+        typer.echo("No validation results produced.")
+
+    aggregate = {
+        "dataset_root": str(Path(root).resolve()),
+        "overall_ok": ok,
+        "results": {
+            result.name: {
+                "ok": result.ok,
+                "description": result.description,
+                "options": result.options,
+                "report": result.report,
+            }
+            for result in results
+        },
+    }
+
+    if output is not None and human_output:
+        output.write_text(human_output + "\n", encoding="utf-8")
+        logger.info(f"Wrote report: {output}")
+
+    if json_output is not None:
+        json_output.write_text(json.dumps(aggregate, indent=2) + "\n", encoding="utf-8")
+        logger.info(f"Wrote JSON report: {json_output}")
+
+    raise typer.Exit(code=0 if ok else 1)
+
+
 @app.command()
 def run_naming_check(
     root: Path = typer.Option(
@@ -358,30 +510,43 @@ def run_naming_check(
     Check AFDB naming conventions and required-file presence for a dataset directory.
     Default output is a HUMAN-READABLE summary. Exit code 0 on PASS, 1 if any issue is found.
     """
-    # Read optional ids-file
     ids_pairs = None
     ids_afids = None
     if ids_file is not None:
-        from afdb_integration_kit.quality_assessment.naming import parse_ids_file
         ids_pairs, ids_afids = parse_ids_file(ids_file)
 
-    # Validate and build report
-    ok, report = validate_dataset_naming(root, ids_pairs=ids_pairs, ids_afids=ids_afids)
+    overrides: Dict[str, Dict[str, object]] = {}
+    selection_args: Dict[str, object] = {}
+    if ids_pairs:
+        selection_args["ids_pairs"] = ids_pairs
+    if ids_afids:
+        selection_args["ids_afids"] = ids_afids
+    if selection_args:
+        overrides["naming"] = selection_args
 
-    # Human-readable to stdout
-    text = format_human(report, errors_only=errors_only, verbose=verbose, limit=limit)
+    ok, results = run_validations(root, checks=["naming"], overrides=overrides)
+    if not results:
+        logger.error("Validator 'naming' is not registered.")
+        raise typer.Exit(code=1)
+
+    result = results[0]
+    text = _format_validation_result(
+        result,
+        errors_only=errors_only,
+        verbose=verbose,
+        limit=limit,
+    )
     print(text)
 
-    # Optional save of human-readable
     if out is not None:
-        out.write_text(text + "\n")
+        out.write_text(text + "\n", encoding="utf-8")
         logger.info(f"Wrote report: {out}")
 
     if not ok:
         raise typer.Exit(code=1)
 
 
-@app.command()
+@app.command("modelcif-replace")
 def run_modelcif_replace(
     pdb: Path = typer.Option(
         ...,
@@ -417,9 +582,131 @@ def run_modelcif_replace(
     ),
 ):
     """
-    Replace the metadata in a CIF file with metadata.
+    Replace the metadata in a CIF file with metadata from a JSON file.
     """
     replace_mmcif_with_json(str(pdb), str(metadata), str(output))
+    logger.info("Replaced metadata in %s -> %s", pdb, output)
+
+
+@app.command("plddt-check")
+def run_plddt_check(
+    root: Path = typer.Option(
+        ...,
+        "--root",
+        "-r",
+        help="Dataset root to scan for AF-*-confidence-*.json files.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        resolve_path=True,
+    ),
+    output: Path = typer.Option(
+        None,
+        "-o",
+        "--output",
+        help="Optional path to save the human-readable report.",
+        file_okay=True,
+        dir_okay=False,
+        writable=True,
+        resolve_path=True,
+    ),
+    errors_only: bool = typer.Option(
+        False, "--errors-only", help="Print only failing entries (compact)."
+    ),
+    verbose: bool = typer.Option(
+        False, "--verbose", help="Print all entries (one line each)."
+    ),
+    limit: int = typer.Option(
+        5, "--limit", "-l", help="Max examples to show in summaries."
+    ),
+    ids: List[str] = typer.Option(
+        None,
+        "--ids",
+        help="Filter by specific AFID/version tokens like 'AF-...-v2'. "
+             "You can pass multiple --ids flags.",
+    ),
+    ids_file: Path = typer.Option(
+        None,
+        "--ids-file",
+        help="Text file of AFID/version, one per line (e.g. AF-...-v2).",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    skip_pae: bool = typer.Option(
+        False, "--skip-pae", help="Skip PAE dimension cross-check to save memory/time."
+    ),
+    bfactor_tolerance: float = typer.Option(
+        1.0,
+        "--bfactor-tolerance",
+        help="Tolerance when comparing structure B-factor min/max to JSON min/max.",
+    ),
+    with_structure: bool = typer.Option(
+        False,
+        "--with-structure/--no-with-structure",
+        help="Cross-check vs local PDB/mmCIF (residue count and optional B-factor).",
+    ),
+):
+    """
+    Validate pLDDT JSON files and summarise results.
+    """
+    # parse --ids / --ids-file into filters
+    ids_pairs: Set[tuple[str, str]] = set()
+    ids_afids: Set[str] = set()
+
+    def parse_token(tok: str) -> Optional[tuple[str, str]]:
+        # Accept tokens like AF-<16>-vN
+        import re
+        m = re.match(r"^(AF-\d{16})-(v\d+)$", tok.strip())
+        return (m.group(1), m.group(2)) if m else None
+
+    if ids:
+        for t in ids:
+            pv = parse_token(t)
+            if pv:
+                ids_pairs.add(pv)
+    if ids_file:
+        for line in ids_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            pv = parse_token(line)
+            if pv:
+                ids_pairs.add(pv)
+
+    overrides: Dict[str, Dict[str, object]] = {
+        "plddt": {
+            "skip_pae": skip_pae,
+            "bfactor_tolerance": bfactor_tolerance,
+            "with_structure": with_structure,
+        }
+    }
+    if ids_pairs:
+        overrides["plddt"]["ids_pairs"] = ids_pairs
+    if ids_afids:
+        overrides["plddt"]["ids_afids"] = ids_afids
+
+    ok, results = run_validations(root, checks=["plddt"], overrides=overrides)
+    if not results:
+        logger.error("Validator 'plddt' is not registered.")
+        raise typer.Exit(code=1)
+
+    result = results[0]
+    text = _format_validation_result(
+        result,
+        errors_only=errors_only,
+        verbose=verbose,
+        limit=limit,
+    )
+    print(text)
+    if output:
+        output.write_text(text + "\n", encoding="utf-8")
+        logger.info("Wrote report: %s", output)
+
+    raise typer.Exit(code=0 if ok else 1)
 
 
 if __name__ == "__main__":
