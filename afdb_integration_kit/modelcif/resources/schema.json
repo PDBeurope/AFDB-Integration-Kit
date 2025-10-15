@@ -54,13 +54,52 @@
         },
         "_pdbx_data_usage": {
           "type": "object",
-          "description": "Specifies data usage, license, and disclaimer information.",
+          "description": "Specifies data usage, license, and disclaimer information. Must contain both 'license' and 'disclaimer' types.",
+          "required": [
+            "id",
+            "type"
+          ],
           "properties": {
-            "id": { "type": "array", "items": { "type": "string" }, "description": "Unique identifier for the data usage record." },
-            "type": { "type": "array", "items": { "type": "string" }, "description": "The type of data usage (e.g., license, disclaimer)." },
-            "details": { "type": "array", "items": { "type": "string" }, "description": "Textual details about the data usage." },
-            "url": { "type": "array", "items": { "type": "string" }, "description": "A URL for more details on the data usage." },
-            "name": { "type": "array", "items": { "type": "string" }, "description": "A name for the data usage type (e.g., CC-BY-4.0)." }
+            "id": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "uniqueItems": true,
+              "items": { "type": "string" },
+              "description": "Unique identifiers for the data usage records."
+            },
+            "type": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "uniqueItems": true,
+              "items" : { "enum": ["license", "disclaimer"]},
+              "description": "The types of data usage (must be 'license' and 'disclaimer')."
+            },
+            "details": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "uniqueItems": false,
+              "items": { "type": "string" },
+              "description": "Textual details about the data usage."
+            },
+            "url": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "uniqueItems": false,
+              "items": { "type": "string" },
+              "description": "A URL for more details on the data usage."
+            },
+            "name": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "uniqueItems": false,
+              "items": { "type": "string" },
+              "description": "A name for the data usage type (e.g., CC-BY-4.0)."
+            }
           }
         },
         "_citation": {
