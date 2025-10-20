@@ -54,10 +54,19 @@ class CifDataStorage:
             del(self.data[CAT_SYMMETRY])
         if CAT_CELL in self.data:
             del(self.data[CAT_CELL])
+    
+    def convert_values_to_none(self):
+        """Converts all '?' values to None."""
+        for category, items in self.data.items():
+            for item, values in items.items():
+                for i in range(len(values)):
+                    if values[i] == "?":
+                        values[i] = None
 
     def write_to_cif(self, output_file: str, block_name: str = "model"):
         """Writes the stored data to an mmCIF file."""
         logger.info("Writing CIF file...")
+        self.convert_values_to_none()
         doc = gemmi.cif.Document()
         block = doc.add_new_block(block_name)
         for category, items in self.data.items():
