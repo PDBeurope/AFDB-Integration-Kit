@@ -1,0 +1,164 @@
+{
+    "metadata": {
+      "version": "3.1",
+      "model_type": "Monomer"
+    },
+    "categories": {
+        "_audit_conform": {
+          "dict_name": ["mmcif_ma.dic"],
+          "dict_version": ["1.3.9"],
+          "dict_location": [
+            "https://raw.githubusercontent.com/ihmwg/ModelCIF/master/dist/mmcif_ma.dic"
+          ]
+        },
+        "_pdbx_data_usage": {
+          "id": ["1", "2"],
+          "type": ["license", "disclaimer"],
+          "details": [
+            "Data in this file is available under a CC-BY-4.0 license.",
+            "RESOURCE DATA, COPYRIGHT (2025) COMPANY LIMITED.\nTHE INFORMATION PROVIDED IS THEORETICAL MODELLING ONLY AND CAUTION SHOULD BE\nEXERCISED IN ITS USE. IT IS PROVIDED \"AS-IS\" WITHOUT ANY WARRANTY OF ANY KIND,\nWHETHER EXPRESSED OR IMPLIED. NO WARRANTY IS GIVEN THAT USE OF THE INFORMATION\nSHALL NOT INFRINGE THE RIGHTS OF ANY THIRD PARTY. DISCLAIMER: THE INFORMATION IS\nNOT INTENDED TO BE A SUBSTITUTE FOR PROFESSIONAL MEDICAL ADVICE, DIAGNOSIS, OR\nTREATMENT, AND DOES NOT CONSTITUTE MEDICAL OR OTHER PROFESSIONAL ADVICE. IT IS\nAVAILABLE FOR ACADEMIC AND COMMERCIAL PURPOSES, UNDER CC-BY 4.0 LICENCE."
+          ],
+          "url": [
+            "https://creativecommons.org/licenses/by/4.0/", "?"],
+          "name": ["CC-BY-4.0", "?"]
+        },
+        "_citation": {
+          "id": [1],
+          "title": ["A very cool paper about something important"],
+          "journal_full": ["Nature"],
+          "journal_volume": ["123"],
+          "page_first": ["456"],
+          "page_last": ["789"],
+          "year": ["2025"],
+          "journal_id_ASTM": ["ASDF"],
+          "country": ["UK"],
+          "journal_id_ISSN": ["1234-5678"],
+          "journal_id_CSD": ["1234"],
+          "book_publisher": ["?"],
+          "pdbx_database_id_PubMed": ["12345678"],
+          "pdbx_database_id_DOI": ["12.3456/s12345-678-91234-5"]
+        },
+        "_ma_data": {
+          "id": ["1"],
+          "name": ["Model"],
+          "content_type": ["model coordinates"]
+        },
+        "_ma_model_list": {
+          "ordinal_id": ["1"],
+          "model_id": ["1"],
+          "model_group_id": ["1"],
+          "model_name": ["Top ranked model"],
+          "data_id": ["1"],
+          "model_type": ["Ab initio model"]
+        },
+        "_software": {
+          "pdbx_ordinal": ["1"],
+          "name": ["AlphaFold"],
+          "type": ["package"],
+          "description": ["Structure prediction"],
+          "classification": ["other"],
+          "date": ["?"]
+        },
+        "_ma_software_group": {
+          "ordinal_id": ["1"],
+          "group_id": ["1"],
+          "software_id": ["1"]
+        },
+        "_ma_protocol_step": {
+          "ordinal_id": ["1", "2", "3"],
+          "protocol_id": ["1", "1", "1"],
+          "step_id": ["1", "2", "3"],
+          "method_type": ["coevolution MSA", "template search", "modeling"]
+        },
+        "_ma_qa_metric": {
+          "id": ["1", "2"],
+          "name": ["pLDDT", "pLDDT"],
+          "type": ["pLDDT", "pLDDT"],
+          "mode": ["global", "local"],
+          "software_group_id": ["1", "1"]
+        },
+        "_ma_qa_metric_global": {
+          "ordinal_id": ["1"],
+          "model_id": ["1"],
+          "metric_id": ["1"]
+        },
+        "_ma_target_entity" : {
+          "data_id": ["1"],
+          "entity_id": ["1"],
+          "origin": ["reference database"]        
+        },
+        "_ma_target_entity_instance" : {
+          "asym_id": ["A"],
+          "details": ["?"],
+          "entity_id": ["1"]
+        },
+        "_entity" :{
+          "id": ["1"],
+          "type": ["polymer"],
+          "src_method" : ["man"],
+          "pdbx_description" : ["Cytochrome P450 76C2"]
+        },
+        "_entity_poly" : {
+          "entity_id" : ["1"],
+          "nstd_linkage" : ["no"],
+          "nstd_monomer" : ["no"],
+          "pdbx_seq_one_letter_code": ["MDIIFEQALFPLFCFVLSFFIIFFTTTRPRSSRKVVPSPPGPPRLPIIGNIHLVGRNPHHSFADLSKTYGPIMSLKFGSLNTVVVTSPEAAREVLRTYDQILSSRTPTNSIRSINHDKVSVVWLPPSSSRWRLLRKLSATQLFSPQRIEATKTLRENKVKELVSFMSESSEREEAVDISRATFITALNIISNILFSVDLGNYDSNKSGVFQDTVIGVMEAVGNPDAANFFPFLGFLDLQGNRKTLKACSERLFKVFRGFIDAKLAEKSLRDTNSKDVRERDFVDVLLDLTEGDEAELNTNDIVHLLLDLFGAGTDTNSSTVEWAMAELLRNPETMVKAQAEIDCVIGQKGVVEESDISALPYLQAVVKETFRLHPAAPLLVPRKAESDVEVLGFMVPKDTQVFVNVWAIGRDPNVWENSSRFKPERFLGKDIDLRGRDYELTPFGAGRRICPGLPLAVKTVPLMLASLLYSFDWKLPNGVGSEDLDMDETFGLTLHKTNPLHAVPVKKRGRN"],
+          "type" : ["polypeptide(L)"]
+        },
+        "_audit_author" :{
+          "pdbx_ordinal" : [1],
+          "name" : ["Jane Doe"]
+        },
+        "_citation_author" :{
+          "citation_id" : [1],
+          "name" : ["Jane Doe"],
+          "ordinal" : [1]
+        },
+        "_database_2":{
+          "database_id" : ["AlphaFoldDB"],
+          "database_code" : ["AF-0000000000000002"]
+        },
+        "_struct_ref":{
+          "db_code" : ["C76C2_ARATH"],
+          "db_name" : ["UNP"],
+          "entity_id" : ["1"],
+          "id" : [1],
+          "pdbx_db_accession": ["AF-0000000000000002"]
+        },
+        "_struct_ref_seq":{
+          "db_align_beg" : [1],
+          "db_align_end" : [512],
+          "ref_id" : ["1"],
+          "align_id" : [1],
+          "seq_align_beg" : [1],
+          "seq_align_end" : [512]
+        },
+        "_pdbx_database_status":{
+          "status_code" : ["REL"],
+          "entry_id" : ["AF-0000000000000002"],
+          "recvd_initial_deposition_date" : ["2025-10-20"]
+        },
+        "_pdbx_audit_revision_history":{
+          "ordinal" : [1],
+          "data_content_type" : ["Structure model"],
+          "major_revision" : [1],
+          "minor_revision" : [0],
+          "revision_date" : ["2025-10-20"]
+        },
+        "_pdbx_audit_revision_details":{
+          "ordinal" : [1],
+          "revision_ordinal" : [1],
+          "data_content_type" : ["Structure model"],
+          "provider" : ["repository"],
+          "type" : ["Initial release"]
+        }
+    },
+    "chains": [
+      {
+        "chain_id": "A",
+        "entity_id": "1",
+        "uniprot_accession": "O64637"
+      }
+    ]
+  }
+  
