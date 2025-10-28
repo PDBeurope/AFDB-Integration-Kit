@@ -48,3 +48,6 @@ input/
 output/
 mmcif_ma.dic
 data/
+
+# Tooling artifacts
+dssp/

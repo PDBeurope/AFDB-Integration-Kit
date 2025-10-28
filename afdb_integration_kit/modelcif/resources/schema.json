@@ -30,10 +30,39 @@
     "categories": {
       "type": "object",
       "description": "A collection of categories defining the model's attributes, history, and source information.",
+      "required": [
+        "_audit_conform",
+        "_pdbx_data_usage",
+        "_citation",
+        "_audit_author",
+        "_citation_author",
+        "_ma_data",
+        "_ma_model_list",
+        "_software",
+        "_ma_software_group",
+        "_ma_protocol_step",
+        "_ma_qa_metric",
+        "_ma_qa_metric_global",
+        "_ma_target_entity",
+        "_ma_target_entity_instance",
+        "_entity",
+        "_entity_poly",
+        "_database_2",
+        "_struct_ref",
+        "_struct_ref_seq",
+        "_pdbx_database_status",
+        "_pdbx_audit_revision_history",
+        "_pdbx_audit_revision_details"
+      ],
       "properties": {
         "_audit_conform": {
           "type": "object",
           "description": "Specifies the dictionary to which this data block conforms.",
+          "required": [
+            "dict_name",
+            "dict_version",
+            "dict_location"
+          ],
           "properties": {
             "dict_name": {
               "type": "array",
@@ -57,7 +86,10 @@
           "description": "Specifies data usage, license, and disclaimer information. Must contain both 'license' and 'disclaimer' types.",
           "required": [
             "id",
-            "type"
+            "type",
+            "details",
+            "url",
+            "name"
           ],
           "properties": {
             "id": {
@@ -105,6 +137,12 @@
         "_citation": {
           "type": "object",
           "description": "Defines bibliographic citations.",
+          "required": [
+            "id",
+            "title",
+            "journal_full",
+            "year"
+          ],
           "properties": {
             "id": { "type": "array", "items": { "type": "integer" }, "description": "The primary identifier for the citation." },
             "title": { "type": "array", "items": { "type": "string" }, "description": "The title of the publication." },
@@ -129,7 +167,12 @@
             "id": { "type": "array", "items": { "type": "string" }, "description": "A unique identifier for the data group." },
             "name": { "type": "array", "items": { "type": "string" }, "description": "A descriptive name for the data group." },
             "content_type": { "type": "array", "items": { "type": "string" }, "description": "The type of content in the data group." }
-          }
+          },
+          "required": [
+            "id",
+            "name",
+            "content_type"
+          ]
         },
         "_ma_model_list": {
           "type": "object",
@@ -141,7 +184,12 @@
             "model_name": { "type": "array", "items": { "type": "string" }, "description": "A descriptive name for the model." },
             "data_id": { "type": "array", "items": { "type": "string" }, "description": "A pointer to the corresponding data group in _ma_data.id." },
             "model_type": { "type": "array", "items": { "type": "string" }, "description": "The type of the model (e.g., Ab initio model)." }
-          }
+          },
+          "required": [
+            "ordinal_id",
+            "model_type",
+            "data_id"
+          ]
         },
         "_software": {
           "type": "object",
@@ -153,7 +201,13 @@
             "description": { "type": "array", "items": { "type": "string" }, "description": "A description of the software's function." },
             "classification": { "type": "array", "items": { "type": "string" }, "description": "Classification of the software by major function." },
             "date": { "type": "array", "items": { "type": "string" }, "description": "The date the software was used." }
-          }
+          },
+          "required": [
+            "pdbx_ordinal",
+            "name",
+            "classification",
+            "type"
+          ]
         },
         "_ma_software_group": {
           "type": "object",
@@ -162,7 +216,12 @@
             "ordinal_id": { "type": "array", "items": { "type": "string" } },
             "group_id": { "type": "array", "items": { "type": "string" } },
             "software_id": { "type": "array", "items": { "type": "string" } }
-          }
+          },
+          "required": [
+            "ordinal_id",
+            "group_id",
+            "software_id"
+          ]
         },
         "_ma_protocol_step": {
           "type": "object",
@@ -172,7 +231,13 @@
             "protocol_id": { "type": "array", "items": { "type": "string" } },
             "step_id": { "type": "array", "items": { "type": "string" } },
             "method_type": { "type": "array", "items": { "type": "string" }, "description": "The type of method used in this protocol step." }
-          }
+          },
+          "required": [
+            "ordinal_id",
+            "protocol_id",
+            "step_id",
+            "method_type"
+          ]
         },
         "_ma_qa_metric": {
           "type": "object",
@@ -183,7 +248,13 @@
             "type": { "type": "array", "items": { "type": "string" }, "description": "The type of QA metric." },
             "mode": { "type": "array", "items": { "type": "string" }, "description": "The mode of the QA metric (e.g., global, local)." },
             "software_group_id": { "type": "array", "items": { "type": "string" }, "description": "Identifier for the software group used to calculate the metric." }
-          }
+          },
+          "required": [
+            "id",
+            "name",
+            "type",
+            "mode"
+          ]
         },
         "_ma_qa_metric_global": {
           "type": "object",
@@ -192,7 +263,12 @@
             "ordinal_id": { "type": "array", "items": { "type": "string" } },
             "model_id": { "type": "array", "items": { "type": "string" } },
             "metric_id": { "type": "array", "items": { "type": "string" } }
-          }
+          },
+          "required": [
+            "ordinal_id",
+            "model_id",
+            "metric_id"
+          ]
         },
         "_ma_target_entity": {
           "type": "object",
@@ -201,7 +277,12 @@
             "data_id": { "type": "array", "items": { "type": "string" } },
             "entity_id": { "type": "array", "items": { "type": "string" } },
             "origin": { "type": "array", "items": { "type": "string" } }
-          }
+          },
+          "required": [
+            "data_id",
+            "entity_id",
+            "origin"
+          ]
         },
         "_ma_target_entity_instance": {
           "type": "object",
@@ -210,7 +291,11 @@
             "asym_id": { "type": "array", "items": { "type": "string" } },
             "details": { "type": "array", "items": { "type": "string" } },
             "entity_id": { "type": "array", "items": { "type": "string" } }
-          }
+          },
+          "required": [
+            "asym_id",
+            "entity_id"
+          ]
         },
         "_entity": {
           "type": "object",
@@ -220,7 +305,13 @@
             "type": { "type": "array", "items": { "type": "string" }, "description": "Defines the type of the entity (e.g., polymer)." },
             "src_method": { "type": "array", "items": { "type": "string" }, "description": "The method by which the sample for the entity was produced." },
             "pdbx_description": { "type": "array", "items": { "type": "string" }, "description": "A description of the entity." }
-          }
+          },
+          "required": [
+            "id",
+            "type",
+            "src_method",
+            "pdbx_description"
+          ]
         },
         "_entity_poly": {
           "type": "object",
@@ -235,7 +326,14 @@
               "description": "Sequence of the polymer in standard one-letter codes."
             },
             "type": { "type": "array", "items": { "type": "string" }, "description": "The type of polymer (e.g., polypeptide(L))." }
-          }
+          },
+          "required": [
+            "entity_id",
+            "nstd_linkage",
+            "nstd_monomer",
+            "pdbx_seq_one_letter_code",
+            "type"
+          ]
         },
         "_audit_author": {
           "type": "object",
@@ -251,7 +349,11 @@
               "items": { "type": "string" },
               "description": "The name of an author."
             }
-          }
+          },
+          "required": [
+            "pdbx_ordinal",
+            "name"
+          ]
         },
         "_citation_author": {
           "type": "object",
@@ -260,7 +362,12 @@
             "citation_id": { "type": "array", "items": { "type": "integer" } },
             "name": { "type": "array", "items": { "type": "string" } },
             "ordinal": { "type": "array", "items": { "type": "integer" } }
-          }
+          },
+          "required": [
+            "citation_id",
+            "name",
+            "ordinal"
+          ]
         },
         "_database_2": {
           "type": "object",
@@ -268,7 +375,11 @@
           "properties": {
             "database_id": { "type": "array", "items": { "type": "string" } },
             "database_code": { "type": "array", "items": { "type": "string" } }
-          }
+          },
+          "required": [
+            "database_id",
+            "database_code"
+          ]
         },
         "_struct_ref": {
           "type": "object",
@@ -276,8 +387,17 @@
           "properties": {
             "db_code": { "type": "array", "items": { "type": "string" } },
             "db_name": { "type": "array", "items": { "type": "string" } },
-            "entity_id": { "type": "array", "items": { "type": "string" } }
-          }
+            "entity_id": { "type": "array", "items": { "type": "string" } },
+            "id": { "type": "array", "items": { "type": "integer" } },
+            "pdbx_db_accession": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": [
+            "db_code",
+            "db_name",
+            "entity_id",
+            "id",
+            "pdbx_db_accession"
+          ]
         },
         "_struct_ref_seq": {
           "type": "object",
@@ -287,8 +407,16 @@
             "db_align_end": { "type": "array", "items": { "type": "integer" } },
             "ref_id": { "type": "array", "items": { "type": "string" } },
             "seq_align_beg": { "type": "array", "items": { "type": "integer" } },
-            "seq_align_end": { "type": "array", "items": { "type": "integer" } }
-          }
+            "seq_align_end": { "type": "array", "items": { "type": "integer" } },
+            "align_id": { "type": "array", "items": { "type": "integer" } }
+          },
+          "required": [
+            "db_align_beg",
+            "db_align_end",
+            "ref_id",
+            "seq_align_beg",
+            "seq_align_end"
+          ]
         },
         "_pdbx_database_status": {
           "type": "object",
@@ -297,7 +425,11 @@
             "status_code": { "type": "array", "items": { "type": "string" } },
             "entry_id": { "type": "array", "items": { "type": "string" } },
             "recvd_initial_deposition_date": { "type": "array", "items": { "type": "string" } }
-          }
+          },
+          "required": [
+            "status_code",
+            "entry_id"
+          ]
         },
         "_pdbx_audit_revision_history": {
           "type": "object",
@@ -308,7 +440,14 @@
             "major_revision": { "type": "array", "items": { "type": "integer" }, "description": "The major version number of the revision." },
             "minor_revision": { "type": "array", "items": { "type": "integer" }, "description": "The minor version number of the revision." },
             "revision_date": { "type": "array", "items": { "type": "string" }, "description": "The date of the revision." }
-          }
+          },
+          "required": [
+            "ordinal",
+            "data_content_type",
+            "major_revision",
+            "minor_revision",
+            "revision_date"
+          ]
         },
         "_pdbx_audit_revision_details": {
           "type": "object",
@@ -319,7 +458,12 @@
             "data_content_type": { "type": "array", "items": { "type": "string" } },
             "provider": { "type": "array", "items": { "type": "string" } },
             "type": { "type": "array", "items": { "type": "string" } }
-          }
+          },
+          "required": [
+            "ordinal",
+            "revision_ordinal",
+            "data_content_type"
+          ]
         },
         "_ma_template_details": {
           "type": "object",
@@ -334,7 +478,15 @@
             "template_auth_asym_id": { "type": "array", "items": { "type": "string" } },
             "template_model_num": { "type": "array", "items": { "type": "string" } },
             "template_trans_matrix_id": { "type": "array", "items": { "type": "string" } }
-          }
+          },
+          "required": [
+            "ordinal_id",
+            "template_id",
+            "template_entity_type",
+            "template_origin",
+            "template_data_id",
+            "target_asym_id"
+          ]
         },
         "_ma_template_ref_db_details": {
           "type": "object",
@@ -343,7 +495,11 @@
             "template_id": { "type": "array", "items": { "type": "string" } },
             "db_name": { "type": "array", "items": { "type": "string" } },
             "db_accession_code": { "type": "array", "items": { "type": "string" } }
-          }
+          },
+          "required": [
+            "template_id",
+            "db_name"
+          ]
         }
       }
     },
@@ -353,7 +509,9 @@
       "items": {
         "type": "object",
         "required": [
-          "chain_id"
+          "chain_id",
+          "entity_id",
+          "uniprot_accession"
         ],
         "properties": {
           "chain_id": {
