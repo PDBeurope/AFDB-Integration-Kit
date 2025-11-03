@@ -1,7 +1,9 @@
-import logging
-from pathlib import Path
-from typing import Dict, List, Optional, Set
 import json
+import logging
+from collections import defaultdict
+from importlib import resources
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Set
 
 import typer
 
@@ -17,12 +19,15 @@ from afdb_integration_kit.modelcif_replace.replace import replace_mmcif_with_jso
 from afdb_integration_kit.quality_assessment.naming import (
     parse_ids_file
 )
+import afdb_integration_kit.validation.validators  # noqa: F401
 from afdb_integration_kit.validation import (
-    ensure_default_validators,
-    list_validators,
+    REGISTERED_CHECKS,
+    Level,
+    ValidationResult,
     run_validations,
+    summarise,
+    write_results,
 )
-from afdb_integration_kit.validation.runner import ValidationResult
 
 # Set up logger
 logger = logging.getLogger("afdb_integration_kit")
@@ -31,23 +36,200 @@ logging.basicConfig(
 )
 
 app = typer.Typer()
+def _relative_path(path: Path, root: Optional[Path]) -> str:
+    if root is None:
+        return str(path)
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return str(path)
 
 
-def _format_validation_result(
-    result: ValidationResult,
+def _format_validation_results(
+    results: Sequence[ValidationResult],
+    root: Path,
     *,
-    errors_only: bool = False,
-    verbose: bool = False,
-    limit: int = 5,
+    include_info: bool = False,
 ) -> str:
-    if result.formatter is None:
-        return json.dumps(result.report, indent=2, sort_keys=True)
-    return result.formatter(
-        result.report,
-        errors_only=errors_only,
-        verbose=verbose,
-        limit=limit,
-    )
+    grouped: Dict[str, List[ValidationResult]] = defaultdict(list)
+    for res in results:
+        grouped[res.check].append(res)
+
+    lines: List[str] = []
+    for check in sorted(grouped):
+        lines.append(f"[{check}]")
+        check_results = grouped[check]
+        for res in check_results:
+            if res.level is Level.INFO and not include_info:
+                continue
+            location_bits = []
+            location_bits.append(_relative_path(res.file, root))
+            if res.location:
+                location_bits.append(res.location)
+            location_text = " | ".join(filter(None, location_bits))
+            lines.append(f"- {res.level.value}: {location_text} → {res.message}")
+            if res.suggested_fix and res.level is not Level.INFO:
+                lines.append(f"  fix: {res.suggested_fix}")
+            if res.metrics:
+                metrics_text = ", ".join(f"{k}={v:.2f}" for k, v in res.metrics.items())
+                lines.append(f"  metrics: {metrics_text}")
+        lines.append("")
+
+    return "\n".join(line for line in lines if line).strip()
+
+
+def _format_validation_summary(
+    results: Sequence[ValidationResult],
+    root: Path,
+    *,
+    include_info: bool = False,
+    top_codes: int = 3,
+) -> str:
+    if not results:
+        return ""
+
+    filtered: List[ValidationResult] = [
+        res for res in results if include_info or res.level is not Level.INFO
+    ]
+    if not filtered:
+        filtered = list(results)
+
+    by_file: Dict[str, List[ValidationResult]] = defaultdict(list)
+    for res in filtered:
+        key = _relative_path(res.file, root)
+        by_file[key].append(res)
+
+    if not by_file:
+        return ""
+
+    level_order = {Level.ERROR.value: 0, Level.WARN.value: 1, Level.INFO.value: 2}
+    lines: List[str] = []
+    lines.append(f"Files with findings: {len(by_file)}")
+
+    for file_name in sorted(by_file):
+        file_results = by_file[file_name]
+        counts: Dict[str, int] = defaultdict(int)
+        code_counts: Dict[str, int] = defaultdict(int)
+
+        for res in file_results:
+            counts[res.level.value] += 1
+            if res.level is not Level.INFO:
+                code_counts[res.code] += 1
+
+        counts_text = ", ".join(
+            f"{level}={counts[level]}"
+            for level in sorted(counts, key=lambda lvl: level_order.get(lvl, 99))
+        )
+        lines.append(f"{file_name} → {counts_text}")
+
+        if code_counts:
+            sorted_codes = sorted(code_counts.items(), key=lambda item: (-item[1], item[0]))
+            if top_codes > 0:
+                sorted_codes = sorted_codes[:top_codes]
+            codes_text = ", ".join(f"{code}x{count}" for code, count in sorted_codes)
+            lines.append(f"  top codes: {codes_text}")
+
+    return "\n".join(lines)
+
+
+def _parse_scalar_token(value: str) -> Any:
+    lowered = value.lower()
+    if lowered in {"", "null", "none", "~"}:
+        return None
+    if lowered in {"true", "false"}:
+        return lowered == "true"
+    try:
+        if "." in value:
+            return float(value)
+        return int(value)
+    except ValueError:
+        if (value.startswith("\"") and value.endswith("\"")) or (
+            value.startswith("'") and value.endswith("'")
+        ):
+            return value[1:-1]
+        return value
+
+
+def _parse_simple_yaml(text: str) -> Dict[str, Any]:
+    result: Dict[str, Any] = {}
+    current_key: Optional[str] = None
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
+        if not line or line.lstrip().startswith("#"):
+            continue
+        if line[0] not in " \t":
+            key, _, value = line.partition(":")
+            key = key.strip()
+            value = value.strip()
+            if value:
+                result[key] = _parse_scalar_token(value)
+                current_key = None
+            else:
+                current_key = key
+                result[key] = []
+            continue
+
+        if current_key is None:
+            continue
+
+        stripped = line.lstrip()
+        if stripped.startswith("- "):
+            container = result.get(current_key)
+            if not isinstance(container, list):
+                container = []
+                result[current_key] = container
+            container.append(_parse_scalar_token(stripped[2:].strip()))
+        else:
+            container = result.get(current_key)
+            if not isinstance(container, dict):
+                container = {}
+                result[current_key] = container
+            sub_key, _, sub_value = stripped.partition(":")
+            container[sub_key.strip()] = _parse_scalar_token(sub_value.strip())
+
+    return result
+
+
+def _parse_yaml_text(text: str) -> Dict[str, Any]:
+    try:
+        import yaml  # type: ignore
+
+        data = yaml.safe_load(text) or {}
+        if not isinstance(data, dict):
+            raise ValueError("Configuration must be a mapping")
+        return data
+    except ModuleNotFoundError:
+        return _parse_simple_yaml(text)
+
+
+def _load_default_config() -> Dict[str, Any]:
+    defaults_path = resources.files("afdb_integration_kit.validation").joinpath("defaults.yaml")
+    text = defaults_path.read_text(encoding="utf-8")
+    return _parse_yaml_text(text)
+
+
+def _load_config_file(path: Path) -> Dict[str, Any]:
+    text = path.read_text(encoding="utf-8")
+    if path.suffix.lower() == ".json":
+        data = json.loads(text)
+        if not isinstance(data, dict):
+            raise ValueError("JSON config must be an object")
+        return data
+    return _parse_yaml_text(text)
+
+
+def _merge_dicts(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    merged: Dict[str, Any] = dict(base)
+    for key, value in override.items():
+        if (
+            key in merged
+            and isinstance(merged[key], dict)
+            and isinstance(value, dict)
+        ):
+            merged[key] = _merge_dicts(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
 
 
 @app.command()
@@ -72,15 +254,12 @@ def test():
 @app.command(name="list-validations")
 def list_validations_cmd() -> None:
     """List the validation checks that are available to run."""
-    ensure_default_validators()
-    hooks = list_validators()
-    if not hooks:
-        typer.echo("No validations registered.")
+    if not REGISTERED_CHECKS:
+        typer.echo("No validations are registered.")
         return
 
-    for hook in hooks:
-        suffix = f" - {hook.description}" if hook.description else ""
-        typer.echo(f"{hook.name}{suffix}")
+    for name in sorted(REGISTERED_CHECKS):
+        typer.echo(name)
 
 
 @app.command()
@@ -356,26 +535,50 @@ def run_validation_suite(
         readable=True,
         resolve_path=True,
     ),
-    check: List[str] = typer.Option(
+    checks: List[str] = typer.Option(
         None,
+        "--checks",
         "--check",
         "-c",
-        help="Validation name to run. Repeat for multiple; defaults to all registered.",
+        help="Validation names to run. Defaults to config enabled list or all registered checks.",
     ),
-    output: Path = typer.Option(
+    config_path: Optional[Path] = typer.Option(
         None,
+        "--config",
+        help="Optional YAML or JSON configuration file overriding defaults.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    out: Optional[Path] = typer.Option(
+        None,
+        "--out",
         "--output",
         "-o",
-        help="Optional path to write the combined human-readable report.",
+        help="Write machine-readable validation results to this path.",
         file_okay=True,
         dir_okay=False,
         writable=True,
         resolve_path=True,
     ),
-    json_output: Path = typer.Option(
+    output_format: Optional[str] = typer.Option(
+        None,
+        "--format",
+        help="Output format for --out (json, jsonl, or txt). Defaults to json.",
+        case_sensitive=False,
+    ),
+    fail_on: str = typer.Option(
+        "error",
+        "--fail-on",
+        help="Exit with code 1 on 'error' (default), 'warn', or 'none'.",
+        case_sensitive=False,
+    ),
+    json_output: Optional[Path] = typer.Option(
         None,
         "--json-output",
-        help="Optional path to write an aggregate JSON report.",
+        help="Compatibility alias for --out when emitting JSON.",
         file_okay=True,
         dir_okay=False,
         writable=True,
@@ -384,77 +587,136 @@ def run_validation_suite(
     errors_only: bool = typer.Option(
         False,
         "--errors-only",
-        help="Print only failing entries for each validation report.",
+        help="Show only ERROR findings in the human-readable summary.",
+    ),
+    details: bool = typer.Option(
+        False,
+        "--details",
+        help="Force detailed findings in the human-readable output.",
     ),
     verbose: bool = typer.Option(
         False,
         "--verbose",
-        help="Print all entries for each validation report.",
+        help="Include INFO-level findings in the human-readable summary.",
     ),
-    limit: int = typer.Option(
-        5,
-        "--limit",
-        min=1,
-        help="Limit example entries in summaries when not in verbose mode.",
+    summary: bool = typer.Option(
+        False,
+        "--summary",
+        help="Show a condensed per-file summary instead of detailed findings.",
+    ),
+    summary_limit: int = typer.Option(
+        3,
+        "--summary-limit",
+        min=0,
+        help="Maximum number of top error/warn codes to display per file when using --summary (0 for all).",
     ),
 ):
     """Run one or more validation checks via the shared validation runner."""
-    ensure_default_validators()
-    hooks = {hook.name: hook for hook in list_validators()}
-    if not hooks:
-        logger.error("No validations are registered.")
+
+    defaults = _load_default_config()
+    user_config: Dict[str, Any] = {}
+    if config_path is not None:
+        try:
+            user_config = _load_config_file(config_path)
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.error("Failed to load config %s: %s", config_path, exc)
+            raise typer.Exit(code=1)
+
+    config = _merge_dicts(defaults, user_config)
+
+    requested = [c for c in checks if c] if checks else []
+    if not requested:
+        default_checks = config.get("enabled_checks")
+        if isinstance(default_checks, Sequence):
+            requested = [str(c) for c in default_checks]
+
+    checks_arg: Optional[Sequence[str]]
+    if not requested or requested == ["all"]:
+        checks_arg = None
+    else:
+        unknown = [name for name in requested if name not in REGISTERED_CHECKS]
+        if unknown:
+            available = ", ".join(sorted(REGISTERED_CHECKS)) or "<none>"
+            raise typer.BadParameter(
+                f"Unknown validation(s): {', '.join(unknown)}. Available: {available}",
+                param_hint="--checks/-c",
+            )
+        checks_arg = requested
+
+    try:
+        results = run_validations(root, checks=checks_arg, config=config)
+    except FileNotFoundError:
+        logger.error("Dataset root does not exist: %s", root)
+        raise typer.Exit(code=1)
+    except ValueError as exc:
+        logger.error(str(exc))
         raise typer.Exit(code=1)
 
-    selected = check or list(hooks.keys())
-    unknown = [name for name in selected if name not in hooks]
-    if unknown:
-        available = ", ".join(sorted(hooks))
-        raise typer.BadParameter(
-            f"Unknown validation(s): {', '.join(unknown)}. Available: {available}",
-            param_hint="--check/-c",
+    if summary and details:
+        raise typer.BadParameter("Cannot combine --summary with --details.", param_hint="--summary/--details")
+
+    display_results = results
+    if errors_only:
+        display_results = [res for res in results if res.level is Level.ERROR]
+
+    display_block = display_results if display_results else results
+
+    human_text = _format_validation_results(
+        display_block,
+        root,
+        include_info=verbose,
+    )
+    if not human_text:
+        human_text = "No validation findings."
+
+    rendered_text = human_text
+    if summary:
+        summary_text = _format_validation_summary(
+            display_block,
+            root,
+            include_info=verbose,
+            top_codes=summary_limit,
         )
+        if not summary_text:
+            summary_text = "No validation findings."
+        rendered_text = summary_text
 
-    ok, results = run_validations(root, checks=selected)
+    typer.echo(rendered_text)
 
-    human_output = ""
-    if results:
-        chunks = [
-            _format_validation_result(
-                result,
-                errors_only=errors_only,
-                verbose=verbose,
-                limit=limit,
-            )
-            for result in results
-        ]
-        human_output = "\n\n".join(chunks)
-        typer.echo(human_output)
-    else:
-        typer.echo("No validation results produced.")
-
-    aggregate = {
-        "dataset_root": str(Path(root).resolve()),
-        "overall_ok": ok,
-        "results": {
-            result.name: {
-                "ok": result.ok,
-                "description": result.description,
-                "options": result.options,
-                "report": result.report,
-            }
-            for result in results
-        },
-    }
-
-    if output is not None and human_output:
-        output.write_text(human_output + "\n", encoding="utf-8")
-        logger.info(f"Wrote report: {output}")
+    summary = summarise(results)
+    level_counts = summary.get("levels", {})
+    if level_counts:
+        counts_line = ", ".join(f"{lvl}={cnt}" for lvl, cnt in level_counts.items())
+        typer.echo(f"Level counts: {counts_line}")
 
     if json_output is not None:
-        json_output.write_text(json.dumps(aggregate, indent=2) + "\n", encoding="utf-8")
-        logger.info(f"Wrote JSON report: {json_output}")
+        if out is not None and out != json_output:
+            raise typer.BadParameter("--json-output and --out point to different files.")
+        out = json_output
+        output_format = output_format or "json"
 
-    raise typer.Exit(code=0 if ok else 1)
+    if out is not None:
+        fmt = (output_format or "json").lower()
+        if fmt not in {"json", "jsonl", "txt"}:
+            raise typer.BadParameter("--format must be 'json', 'jsonl', or 'txt'.")
+        if fmt == "txt":
+            out.write_text(rendered_text + "\n", encoding="utf-8")
+            logger.info("Wrote TXT report to %s", out)
+        else:
+            write_results(results, out, fmt)  # type: ignore[arg-type]
+            logger.info("Wrote %s report to %s", fmt.upper(), out)
+
+    threshold = fail_on.lower()
+    if threshold not in {"error", "warn", "none"}:
+        raise typer.BadParameter("--fail-on must be one of: error, warn, none")
+
+    exit_code = 0
+    if threshold == "error" and any(res.level is Level.ERROR for res in results):
+        exit_code = 1
+    elif threshold == "warn" and any(res.level in {Level.ERROR, Level.WARN} for res in results):
+        exit_code = 1
+
+    raise typer.Exit(code=exit_code)
 
 
 @app.command()
@@ -510,40 +772,37 @@ def run_naming_check(
     Check AFDB naming conventions and required-file presence for a dataset directory.
     Default output is a HUMAN-READABLE summary. Exit code 0 on PASS, 1 if any issue is found.
     """
-    ids_pairs = None
-    ids_afids = None
     if ids_file is not None:
         ids_pairs, ids_afids = parse_ids_file(ids_file)
+        if ids_pairs or ids_afids:
+            logger.warning("Filtering by IDs is not currently supported; running all entries.")
 
-    overrides: Dict[str, Dict[str, object]] = {}
-    selection_args: Dict[str, object] = {}
-    if ids_pairs:
-        selection_args["ids_pairs"] = ids_pairs
-    if ids_afids:
-        selection_args["ids_afids"] = ids_afids
-    if selection_args:
-        overrides["naming"] = selection_args
-
-    ok, results = run_validations(root, checks=["naming"], overrides=overrides)
-    if not results:
-        logger.error("Validator 'naming' is not registered.")
+    try:
+        results = run_validations(root, checks=["naming"], config={})
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.error("Naming validator failed: %s", exc)
         raise typer.Exit(code=1)
 
-    result = results[0]
-    text = _format_validation_result(
-        result,
-        errors_only=errors_only,
-        verbose=verbose,
-        limit=limit,
+    display = results
+    if errors_only:
+        display = [res for res in results if res.level is Level.ERROR]
+
+    summary_text = _format_validation_results(
+        display if display else results,
+        root,
+        include_info=verbose,
     )
-    print(text)
+    if not summary_text:
+        summary_text = "No validation findings."
+
+    typer.echo(summary_text)
 
     if out is not None:
-        out.write_text(text + "\n", encoding="utf-8")
+        out.write_text(summary_text + "\n", encoding="utf-8")
         logger.info(f"Wrote report: {out}")
 
-    if not ok:
-        raise typer.Exit(code=1)
+    has_error = any(res.level is Level.ERROR for res in results)
+    raise typer.Exit(code=1 if has_error else 0)
 
 
 @app.command("modelcif-replace")
@@ -653,60 +912,36 @@ def run_plddt_check(
     """
     Validate pLDDT JSON files and summarise results.
     """
-    # parse --ids / --ids-file into filters
-    ids_pairs: Set[tuple[str, str]] = set()
-    ids_afids: Set[str] = set()
+    if ids or ids_file:
+        logger.warning("Filtering pLDDT checks by IDs is not currently supported; inspecting all files.")
+    if skip_pae or with_structure:
+        logger.warning("Structure/PAE cross-check flags are not yet implemented in the new validator.")
 
-    def parse_token(tok: str) -> Optional[tuple[str, str]]:
-        # Accept tokens like AF-<16>-vN
-        import re
-        m = re.match(r"^(AF-\d{16})-(v\d+)$", tok.strip())
-        return (m.group(1), m.group(2)) if m else None
-
-    if ids:
-        for t in ids:
-            pv = parse_token(t)
-            if pv:
-                ids_pairs.add(pv)
-    if ids_file:
-        for line in ids_file.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            pv = parse_token(line)
-            if pv:
-                ids_pairs.add(pv)
-
-    overrides: Dict[str, Dict[str, object]] = {
-        "plddt": {
-            "skip_pae": skip_pae,
-            "bfactor_tolerance": bfactor_tolerance,
-            "with_structure": with_structure,
-        }
-    }
-    if ids_pairs:
-        overrides["plddt"]["ids_pairs"] = ids_pairs
-    if ids_afids:
-        overrides["plddt"]["ids_afids"] = ids_afids
-
-    ok, results = run_validations(root, checks=["plddt"], overrides=overrides)
-    if not results:
-        logger.error("Validator 'plddt' is not registered.")
+    try:
+        results = run_validations(root, checks=["plddt"], config={})
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.error("pLDDT validator failed: %s", exc)
         raise typer.Exit(code=1)
 
-    result = results[0]
-    text = _format_validation_result(
-        result,
-        errors_only=errors_only,
-        verbose=verbose,
-        limit=limit,
+    display = results
+    if errors_only:
+        display = [res for res in results if res.level is Level.ERROR]
+
+    summary_text = _format_validation_results(
+        display if display else results,
+        root,
+        include_info=verbose,
     )
-    print(text)
+    if not summary_text:
+        summary_text = "No validation findings."
+
+    typer.echo(summary_text)
     if output:
-        output.write_text(text + "\n", encoding="utf-8")
+        output.write_text(summary_text + "\n", encoding="utf-8")
         logger.info("Wrote report: %s", output)
 
-    raise typer.Exit(code=0 if ok else 1)
+    has_error = any(res.level is Level.ERROR for res in results)
+    raise typer.Exit(code=1 if has_error else 0)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,41 @@
+[metadata]
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000001_v1_1: field 'geneSynonyms' is required when isUniProt is true.
+  fix: Populate the 'geneSynonyms' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000001_v1_1: field 'organismCommonNames' is required when isUniProt is true.
+  fix: Populate the 'organismCommonNames' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000001_v1_1: field 'proteinShortNames' is required when isUniProt is true.
+  fix: Populate the 'proteinShortNames' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000001_v1_1: field 'keywords' is required when isUniProt is true.
+  fix: Populate the 'keywords' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000001_v1_1: field 'taxonomyLineage' is required when isUniProt is true.
+  fix: Populate the 'taxonomyLineage' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000001_v1_1: field 'functions' is required when isUniProt is true.
+  fix: Populate the 'functions' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000001_v1_1: field 'alternativeNames' is required when isUniProt is true.
+  fix: Populate the 'alternativeNames' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000001_v1_1: field 'catalyticActivities' is required when isUniProt is true.
+  fix: Populate the 'catalyticActivities' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000002_v1_1: field 'proteinShortNames' is required when isUniProt is true.
+  fix: Populate the 'proteinShortNames' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000002_v1_1: field 'keywords' is required when isUniProt is true.
+  fix: Populate the 'keywords' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000002_v1_1: field 'taxonomyLineage' is required when isUniProt is true.
+  fix: Populate the 'taxonomyLineage' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000002_v1_1: field 'functions' is required when isUniProt is true.
+  fix: Populate the 'functions' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000002_v1_1: field 'alternativeNames' is required when isUniProt is true.
+  fix: Populate the 'alternativeNames' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000002_v1_1: field 'catalyticActivities' is required when isUniProt is true.
+  fix: Populate the 'catalyticActivities' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000003_v1_1: field 'proteinShortNames' is required when isUniProt is true.
+  fix: Populate the 'proteinShortNames' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000003_v1_1: field 'keywords' is required when isUniProt is true.
+  fix: Populate the 'keywords' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000003_v1_1: field 'taxonomyLineage' is required when isUniProt is true.
+  fix: Populate the 'taxonomyLineage' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000003_v1_1: field 'functions' is required when isUniProt is true.
+  fix: Populate the 'functions' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000003_v1_1: field 'alternativeNames' is required when isUniProt is true.
+  fix: Populate the 'alternativeNames' field for UniProt-sourced entries.
+- ERROR: AF-metadata-1-of-1.json → AF-0000000000000003_v1_1: field 'catalyticActivities' is required when isUniProt is true.
+  fix: Populate the 'catalyticActivities' field for UniProt-sourced entries.

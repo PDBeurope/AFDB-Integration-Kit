@@ -1,0 +1,38 @@
+[
+  {
+    "check": "plddt",
+    "file": "/home/mitsenkov/src/AFDB-Integration-Kit/examples/AF-0000000000000001-confidence_v1.json",
+    "level": "INFO",
+    "code": "plddt_summary",
+    "message": "pLDDT metrics calculated.",
+    "metrics": {
+      "mean": 92.18857421875,
+      "length": 512.0,
+      "pct_ge_70": 92.96875
+    }
+  },
+  {
+    "check": "plddt",
+    "file": "/home/mitsenkov/src/AFDB-Integration-Kit/examples/AF-0000000000000002-confidence_v1.json",
+    "level": "INFO",
+    "code": "plddt_summary",
+    "message": "pLDDT metrics calculated.",
+    "metrics": {
+      "mean": 81.37972677595629,
+      "length": 549.0,
+      "pct_ge_70": 83.24225865209472
+    }
+  },
+  {
+    "check": "plddt",
+    "file": "/home/mitsenkov/src/AFDB-Integration-Kit/examples/AF-0000000000000003-confidence_v1.json",
+    "level": "INFO",
+    "code": "plddt_summary",
+    "message": "pLDDT metrics calculated.",
+    "metrics": {
+      "mean": 76.46901673640168,
+      "length": 478.0,
+      "pct_ge_70": 67.36401673640168
+    }
+  }
+]

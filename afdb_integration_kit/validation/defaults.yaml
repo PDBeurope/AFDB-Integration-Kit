@@ -1,0 +1,17 @@
+enabled_checks:
+  - naming
+  - plddt
+naming:
+  required_types:
+    - plddt
+    - pae
+    - msa
+plddt:
+  min_score: 0.0
+  max_score: 100.0
+  enforce_length_match: true
+  enforce_categories: true
+  enforce_decimal_places: true
+pae:
+  max_value: 35.0
+  enforce_decimal_places: true

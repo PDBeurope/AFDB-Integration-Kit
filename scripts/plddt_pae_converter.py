@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 import argparse
 import os
-from typing import TypedDict, List, Dict, Any
+from decimal import Decimal, ROUND_HALF_UP
+from typing import Any, Dict, List, TypedDict
 
 
 def _categorise_confidence(score: float) -> str:
@@ -26,6 +27,11 @@ def _categorise_confidence(score: float) -> str:
     return "D"
 
 
+def _round_two_dp(value: float) -> float:
+    """Round to two decimal places using bankers-safe decimal arithmetic."""
+    return float(Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+
 def plddt_to_ingest(plddt: List[float]) -> Dict[str, Any]:
     """Build the AFDB pLDDT payload."""
     n = len(plddt)
@@ -33,7 +39,7 @@ def plddt_to_ingest(plddt: List[float]) -> Dict[str, Any]:
     categories = [_categorise_confidence(x) for x in plddt]
     return {
         "residueNumber": residue_numbers,
-        "confidenceScore": [float(x) for x in plddt],
+        "confidenceScore": [_round_two_dp(x) for x in plddt],
         "confidenceCategory": categories,
     }
 
@@ -48,8 +54,8 @@ def pae_to_ingest(pae: list[list[float]], max_pae: float) -> list[PAEItem]:
     if not pae or any(len(row) != len(pae) for row in pae):
         raise ValueError("PAE must be a non-empty square matrix (NxN).")
     return [{
-        "predicted_aligned_error": [[float(v) for v in row] for row in pae],
-        "max_predicted_aligned_error": float(max_pae),
+        "predicted_aligned_error": [[_round_two_dp(v) for v in row] for row in pae],
+        "max_predicted_aligned_error": _round_two_dp(max_pae),
     }]
 
 

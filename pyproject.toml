@@ -13,6 +13,20 @@ dependencies = [
     "typer>=0.16.0",
 ]
 
+[tool.setuptools.package-data]
+"afdb_integration_kit.validation" = ["defaults.yaml"]
+
+[tool.setuptools.packages.find]
+include = ["afdb_integration_kit*"]
+exclude = [
+  "tests*",
+  "examples*",
+  "resources*",
+  "workflow*",
+  "dssp*",
+  "test_examples*",
+]
+
 [dependency-groups]
 dev = [
     "coverage>=7.9.2",

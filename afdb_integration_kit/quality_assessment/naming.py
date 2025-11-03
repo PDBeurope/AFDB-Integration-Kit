@@ -4,16 +4,34 @@ import re
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Iterable, Set
 
-from afdb_integration_kit.validation.registry import ValidationHook, register_validator
+try:  # Backwards compatibility: new validation registry no longer exposes these
+    from afdb_integration_kit.validation.registry import ValidationHook, register_validator  # type: ignore
+except ImportError:  # pragma: no cover
+    class ValidationHook:  # type: ignore[no-redef]
+        def __init__(self, name, run, formatter=None, description=None, default_kwargs=None):
+            self.name = name
+            self.run = run
+            self.formatter = formatter
+            self.description = description
+            self.default_kwargs = default_kwargs or {}
+
+        def build_kwargs(self, overrides=None):
+            data = dict(self.default_kwargs)
+            if overrides:
+                data.update(overrides)
+            return data
+
+    def register_validator(hook):  # type: ignore[no-redef]
+        return None
 
 # Canonical per-entry patterns
 PATTERNS = {
-    "pdb":   re.compile(r"^(AF-\d{16})-model-(v\d+)\.pdb$"),
-    "cif":   re.compile(r"^(AF-\d{16})-model-(v\d+)\.cif$"),
-    "bcif":  re.compile(r"^(AF-\d{16})-model-(v\d+)\.bcif$"),
-    "plddt": re.compile(r"^(AF-\d{16})-confidence-(v\d+)\.json$"),
-    "pae":   re.compile(r"^(AF-\d{16})-predicted_aligned_error-(v\d+)\.json$"),
-    "msa":   re.compile(r"^(AF-\d{16})-msa-(v\d+)\.a3m$"),
+    "pdb":   re.compile(r"^(AF-\d{16})-model_(v\d+)\.pdb$"),
+    "cif":   re.compile(r"^(AF-\d{16})-model_(v\d+)\.cif$"),
+    "bcif":  re.compile(r"^(AF-\d{16})-model_(v\d+)\.bcif$"),
+    "plddt": re.compile(r"^(AF-\d{16})-confidence_(v\d+)\.json$"),
+    "pae":   re.compile(r"^(AF-\d{16})-predicted_aligned_error_(v\d+)\.json$"),
+    "msa":   re.compile(r"^(AF-\d{16})-msa_(v\d+)\.a3m$"),
     # Dataset-level model metadata batches
     "model_batch": re.compile(r"^AF-metadata-(\d+)-of-(\d+)\.json$"),
 }

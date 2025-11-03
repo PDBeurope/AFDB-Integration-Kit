@@ -6,7 +6,25 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 # Reuse naming patterns so we discover sibling files by AFID/version
 from .naming import PATTERNS, REQUIRED_TYPES, RE_AFID_ANYWHERE
-from afdb_integration_kit.validation.registry import ValidationHook, register_validator
+try:  # Backwards compatibility with legacy validation registry
+    from afdb_integration_kit.validation.registry import ValidationHook, register_validator  # type: ignore
+except ImportError:  # pragma: no cover
+    class ValidationHook:  # type: ignore[no-redef]
+        def __init__(self, name, run, formatter=None, description=None, default_kwargs=None):
+            self.name = name
+            self.run = run
+            self.formatter = formatter
+            self.description = description
+            self.default_kwargs = default_kwargs or {}
+
+        def build_kwargs(self, overrides=None):
+            data = dict(self.default_kwargs)
+            if overrides:
+                data.update(overrides)
+            return data
+
+    def register_validator(hook):  # type: ignore[no-redef]
+        return None
 
 # Try to import gemmi for structure residue counts and B-factor checks.
 # If not available, we degrade gracefully.
