@@ -28,8 +28,14 @@ mdurl==0.1.2
     # via markdown-it-py
 numpy==2.3.1
     # via afdb-toolkit
+duckdb==1.1.3
+    # via afdb-toolkit
 pygments==2.19.1
     # via rich
+pyarrow==17.0.0
+    # via afdb-toolkit
+tqdm==4.66.5
+    # via afdb-toolkit
 referencing==0.36.2
     # via
     #   jsonschema

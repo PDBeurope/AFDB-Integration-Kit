@@ -52,6 +52,7 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
 - **Binary CIF Conversion**: Efficient conversion from mmCIF to Binary CIF (BCIF) format
 - **Secondary Structure Assignment**: DSSP-based secondary structure annotation
 - **Metadata Schema Validation**: Validate model and provider metadata JSONs against AFDB-defined schemas
+- **UniProt Metadata Tooling**: Streamline UniProt subset extraction and AF metadata generation (see [uniprot/README.md](uniprot/README.md))
 - **Automated Workflows**: Nextflow-based end-to-end processing pipelines
 - **Docker Support**: Containerized execution for reproducible results
 - **Validation Tools**: Built-in testing and validation utilities

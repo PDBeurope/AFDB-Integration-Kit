@@ -42,6 +42,7 @@ npm-debug.log
 .nextflow.log*
 .nextflow/
 nf_workspace/
+work/
 
 # Input/Output directories
 input/
@@ -51,3 +52,7 @@ data/
 
 # Tooling artifacts
 dssp/
+# UniProt outputs
+uniprot/outputs/db/*.duckdb
+uniprot/outputs/per_accession/*.json
+uniprot/outputs/batches/*.json
