@@ -329,6 +329,11 @@ def run_modelcif_gen(
         help="Optionally validate the output CIF file against a ModelCIF dictionary."
         "If used as a flag without a path, it defaults to 'mmcif_ma.dic'.",
     ),
+    fetch_uniprot: bool = typer.Option(
+        False,
+        "--fetch-uniprot",
+        help="Optionally fetch UniProt data for the chains in the PDB file.",
+    ),
 ):
     """
     Enrich a PDB file with metadata to produce a feature-rich mmCIF file.
@@ -347,7 +352,7 @@ def run_modelcif_gen(
         validate_path = "mmcif_ma.dic"
 
     # Call main logic (assuming main is imported or defined elsewhere)
-    generate(str(pdb), str(metadata), str(output), validate_path)
+    generate(str(pdb), str(metadata), str(output), validate_path, fetch_uniprot)
 
 @app.command()
 def run_modelpdb_gen(
