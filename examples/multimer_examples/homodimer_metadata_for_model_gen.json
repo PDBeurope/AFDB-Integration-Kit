@@ -131,12 +131,11 @@
       "pdbx_db_accession": ["P35354"]
     },
     "_struct_ref_seq": {
-      "align_id": [1, 2],
-      "ref_id": ["1", "1"],
-      "pdbx_PDB_id_code": ["AF-0000000000000004", "AF-0000000000000004"],
-      "pdbx_strand_id": ["A", "B"],
-      "seq_align_beg": ["1", "1"],
-      #########  I AM NOT DONE #################################################################################
+      "align_id": [1],
+      "ref_id": ["1"],
+      "pdbx_PDB_id_code": ["AF-0000000000000004"],
+      "pdbx_strand_id": ["A"],
+      "seq_align_beg": [1],
       "db_align_beg": [1],
       "db_align_end": [604],
       "seq_align_end": [604]
@@ -169,7 +168,7 @@
     },
     {
       "chain_id": "B",
-      "entity_id": "1",
+      "entity_id": "2",
       "uniprot_accession": "P35354"
     }
   ]
