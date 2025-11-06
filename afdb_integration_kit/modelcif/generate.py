@@ -517,7 +517,7 @@ def validate_with_gemmi(cif_path: str, dict_path: str):
 
 # --- Main Orchestration ---
 def generate(
-    pdb_file: str, metadata_file: str, output_file: str, validate_dict_path: str
+    pdb_file: str, metadata_file: str, output_file: str, validate_dict_path: str, fetch_uniprot: bool = False
 ):
     """Main function to orchestrate the PDB to mmCIF conversion and enrichment."""
     # 1. Load initial data
@@ -555,23 +555,28 @@ def generate(
                 logger.warning("Different softwares found in JSON file. Consider adding versions for all softwares you have mentioned.")
         cif_data.set_item(CAT_SOFTWARE, "version", versions)
 
-    # 4. Fetch and process external data (UniProt)
-    uniprot_details = defaultdict(list)
-    with requests.Session() as session:
-        api_client = UniprotAPIClient(session)
-        for i, chain_info in enumerate(input_metadata.get("chains", [])):
-            if uniprot_accession := chain_info.get("uniprot_accession"):
-                response_data = api_client.fetch_metadata(uniprot_accession)
-                processed_data = process_uniprot_response(response_data)
-                for key, value in processed_data.items():
-                    uniprot_details[key].append(value)
-                # for multiple chains entity_id will always be present.
-                # For single chain it is assumed 1.
-                entity_id = chain_info.get("entity_id", i + 1)
-                uniprot_details["target_entity_id"].append(str(entity_id))
 
-    if uniprot_details:
-        cif_data.set_items(CAT_TARGET_REF_DB, dict(uniprot_details))
+    # 4. Fetch and process external data (UniProt)
+    if fetch_uniprot:
+        uniprot_details = defaultdict(list)
+        with requests.Session() as session:
+            api_client = UniprotAPIClient(session)
+            for i, chain_info in enumerate(input_metadata.get("chains", [])):
+                if uniprot_accession := chain_info.get("uniprot_accession"):
+                    if chain_info.get("entity_id") in uniprot_details.get("target_entity_id", []):
+                        logger.debug("Multiple chains found for the same entity_id. Skipping.")
+                        continue
+                    response_data = api_client.fetch_metadata(uniprot_accession)
+                    processed_data = process_uniprot_response(response_data)
+                    for key, value in processed_data.items():
+                        uniprot_details[key].append(value)
+                    # for multiple chains entity_id will be autoincrementing.
+                    # For single chain it is assumed 1.
+                    entity_id = chain_info.get("entity_id", i + 1)
+                    uniprot_details["target_entity_id"].append(str(entity_id))
+
+        if uniprot_details:
+            cif_data.set_items(CAT_TARGET_REF_DB, dict(uniprot_details))
 
     # 5. Compute metrics from atomic data
     atom_site_data = cif_data.get_data().get(CAT_ATOM_SITE, {})
