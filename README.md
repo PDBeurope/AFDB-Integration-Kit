@@ -201,9 +201,9 @@ Converts PDB files to mmCIF format with integrated metadata.
 **Requirements:**
 - Input PDB file
 - Metadata JSON file conforming to the schema: `afdb_integration_kit/modelcif/resources/schema.json`
-- mmCIF dictionary file (mmcif_ma.dic) in the project directory
+- Optional: ModelCIF dictionary (`mmcif_ma.dic`) if you intend to run `--validate`
 
-**Important:** For local installations, ensure you have downloaded the mmCIF dictionary:
+**Optional validation dictionary:** Only needed when you pass `--validate` (or `--validate ""`, which defaults to `mmcif_ma.dic`). Download it once and keep it in the project directory:
 ```bash
 curl -o mmcif_ma.dic https://raw.githubusercontent.com/ihmwg/ModelCIF/refs/heads/master/dist/mmcif_ma.dic
 ```
@@ -217,6 +217,30 @@ uv run main.py run-modelcif-gen -p <pdb_file> -m <metadata_json> -o <output_cif>
 - `-p, --pdb`: Input PDB file path
 - `-m, --metadata`: Metadata JSON file path
 - `-o, --output`: Output mmCIF file path
+
+### ModelPDB Generator
+
+Adds AFDB-specific header information from the generated mmCIF back into the PDB file (so downstream consumers get consistent metadata in both formats).
+
+**Requirements:**
+- Input mmCIF file (from `run-modelcif-gen`)
+- Input PDB file containing ATOM coordinates
+- Provider metadata JSON file (`provider.json`) describing who generated the entry
+
+**Command:**
+```bash
+uv run main.py run-modelpdb-gen \
+    -c <input_cif> \
+    -p <input_pdb> \
+    -r <provider_json> \
+    -o <output_pdb>
+```
+
+**Parameters:**
+- `-c, --cif`: Input mmCIF file path
+- `-p, --pdb`: Input PDB file path
+- `-r, --provider`: Provider metadata JSON path
+- `-o, --output`: Output PDB file path with enriched headers
 
 ### CIF to BCIF Converter
 
@@ -244,7 +268,11 @@ uv run main.py run-dssp -i <input_cif> -o <output_cif>
 - `-i, --input`: Input mmCIF file path
 - `-o, --output`: Output annotated mmCIF file path
 
-### Metadata Schema Validation
+### Validation Toolkit
+
+Use these commands to sanity-check individual artifacts or entire datasets before handing results to collaborators.
+
+#### Schema Validation
 
 Validate metadata JSON files (`model` or `provider`) against the required JSON schemas to ensure data consistency and compliance.
 
@@ -271,9 +299,39 @@ uv run main.py run-schema-validation -i model.json -t model
 uv run main.py run-schema-validation -i provider.json -t provider
 ```
 
-### Single-File Validation Commands
+#### Dataset-Level Validators
 
-Run targeted validations on individual output files—ideal for workflow steps (e.g., Nextflow processes) that generate one artifact at a time:
+Run multiple checks across an input directory (the same layout expected by the workflow):
+
+```bash
+# Run all enabled validators using defaults.yaml
+uv run main.py run-validations --root input/
+
+# Run a subset with custom config and JSON output
+uv run main.py run-validations \
+    --root input/ \
+    --checks naming plddt pae \
+    --config my-validations.yaml \
+    --out reports/validation.json
+```
+
+- `run-validations` respects `validation/defaults.yaml` but you can override settings via `--config`.
+- Use `--summary`, `--errors-only`, and `--fail-on warn` to tailor CLI output/exit codes.
+- `run-naming-check` provides a lightweight naming/required-file audit with simplified flags:
+
+```bash
+uv run main.py run-naming-check --root input/ --errors-only
+```
+
+- `plddt-check` focuses on pLDDT JSONs (value ranges, counts, optional structure cross-checks):
+
+```bash
+uv run main.py plddt-check --root input/ --verbose
+```
+
+#### Single-File Validators
+
+Ideal for workflow steps (e.g., Nextflow processes) that emit one artifact at a time:
 
 ```bash
 # Metadata (batch or per-accession JSON)
