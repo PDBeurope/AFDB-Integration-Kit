@@ -1,163 +1,419 @@
 {
   "metadata": {
     "version": "3.1",
-    "model_type": "Multimer"
+    "model_type": "Monomer"
   },
   "categories": {
     "_audit_conform": {
-      "dict_name": ["mmcif_ma.dic"],
-      "dict_version": ["1.3.9"],
+      "dict_name": [
+        "mmcif_ma.dic"
+      ],
+      "dict_version": [
+        "1.3.9"
+      ],
       "dict_location": [
         "https://raw.githubusercontent.com/ihmwg/ModelCIF/master/dist/mmcif_ma.dic"
       ]
     },
     "_pdbx_data_usage": {
-      "id": ["1", "2"],
-      "type": ["license", "disclaimer"],
+      "id": [
+        "1",
+        "2"
+      ],
+      "type": [
+        "license",
+        "disclaimer"
+      ],
       "details": [
         "Data in this file is available under a CC-BY-4.0 license.",
-        "RESOURCE DATA, COPYRIGHT (2025) COMPANY LIMITED.\\nTHE INFORMATION PROVIDED IS THEORETICAL MODELLING ONLY AND CAUTION SHOULD BE\\nEXERCISED IN ITS USE. IT IS PROVIDED \\\"AS-IS\\\" WITHOUT ANY WARRANTY OF ANY KIND,\\nWHETHER EXPRESSED OR IMPLIED. NO WARRANTY IS GIVEN THAT USE OF THE INFORMATION\\nSHALL NOT INFRINGE THE RIGHTS OF ANY THIRD PARTY. DISCLAIMER: THE INFORMATION IS\\nNOT INTENDED TO BE A SUBSTITUTE FOR PROFESSIONAL MEDICAL ADVICE, DIAGNOSIS, OR\\nTREATMENT, AND DOES NOT CONSTITUTE MEDICAL OR OTHER PROFESSIONAL ADVICE. IT IS\\nAVAILABLE FOR ACADEMIC AND COMMERCIAL PURPOSES, UNDER CC-BY 4.0 LICENCE."
+        "RESOURCE DATA, COPYRIGHT (2025) COMPANY LIMITED.\\nTHE INFORMATION PROVIDED IS THEORETICAL MODELLING ONLY AND CAUTION SHOULD BE\\nEXERCISED IN ITS USE. IT IS PROVIDED \"AS-IS\" WITHOUT ANY WARRANTY OF ANY KIND,\\nWHETHER EXPRESSED OR IMPLIED. NO WARRANTY IS GIVEN THAT USE OF THE INFORMATION\\nSHALL NOT INFRINGE THE RIGHTS OF ANY THIRD PARTY. DISCLAIMER: THE INFORMATION IS\\nNOT INTENDED TO BE A SUBSTITUTE FOR PROFESSIONAL MEDICAL ADVICE, DIAGNOSIS, OR\\nTREATMENT, AND DOES NOT CONSTITUTE MEDICAL OR OTHER PROFESSIONAL ADVICE. IT IS\\nAVAILABLE FOR ACADEMIC AND COMMERCIAL PURPOSES, UNDER CC-BY 4.0 LICENCE."
       ],
       "url": [
         "https://creativecommons.org/licenses/by/4.0/",
         "?"
       ],
-      "name": ["CC-BY-4.0", "?"]
+      "name": [
+        "CC-BY-4.0",
+        "?"
+      ]
     },
     "_citation": {
-      "id": [1],
-      "title": ["Homodimer modelling of PTGS2"],
-      "journal_full": ["Journal of Structural Biology"],
-      "journal_volume": ["231"],
-      "page_first": ["101"],
-      "page_last": ["118"],
-      "year": ["2025"],
-      "journal_id_ASTM": ["JSBO"],
-      "country": ["USA"],
-      "journal_id_ISSN": ["1047-8477"],
-      "journal_id_CSD": ["?"],
-      "book_publisher": ["?"],
-      "pdbx_database_id_PubMed": ["98765432"],
-      "pdbx_database_id_DOI": ["10.1234/example.doi.ptgs2"]
+      "id": [
+        1
+      ],
+      "title": [
+        "Placeholder citation title"
+      ],
+      "journal_full": [
+        "Journal"
+      ],
+      "journal_volume": [
+        "1"
+      ],
+      "page_first": [
+        "1"
+      ],
+      "page_last": [
+        "10"
+      ],
+      "year": [
+        "2025"
+      ],
+      "journal_id_ASTM": [
+        "?"
+      ],
+      "country": [
+        "?"
+      ],
+      "journal_id_ISSN": [
+        "?"
+      ],
+      "journal_id_CSD": [
+        "?"
+      ],
+      "book_publisher": [
+        "?"
+      ],
+      "pdbx_database_id_PubMed": [
+        "?"
+      ],
+      "pdbx_database_id_DOI": [
+        "10.0000/placeholder"
+      ]
     },
     "_ma_data": {
-      "id": ["1"],
-      "name": ["PTGS2 homodimer model"],
-      "content_type": ["model coordinates"]
+      "id": [
+        "1"
+      ],
+      "name": [
+        "Model"
+      ],
+      "content_type": [
+        "model coordinates"
+      ]
     },
     "_ma_model_list": {
-      "ordinal_id": ["1"],
-      "model_id": ["1"],
-      "model_group_id": ["1"],
-      "model_name": ["Top ranked homodimer model"],
-      "data_id": ["1"],
-      "model_type": ["AlphaFold-Multimer model"]
+      "ordinal_id": [
+        "1"
+      ],
+      "model_id": [
+        "1"
+      ],
+      "model_group_id": [
+        "1"
+      ],
+      "model_name": [
+        "Top ranked model"
+      ],
+      "data_id": [
+        "1"
+      ],
+      "model_type": [
+        "AlphaFold model"
+      ]
     },
     "_software": {
-      "pdbx_ordinal": ["1"],
-      "name": ["AlphaFold"],
-      "type": ["package"],
-      "description": ["Structure prediction"],
-      "classification": ["other"],
-      "date": ["2025-06-18"]
+      "pdbx_ordinal": [
+        "1"
+      ],
+      "name": [
+        "AlphaFold"
+      ],
+      "type": [
+        "package"
+      ],
+      "description": [
+        "Structure prediction"
+      ],
+      "classification": [
+        "other"
+      ],
+      "date": [
+        "?"
+      ]
     },
     "_ma_software_group": {
-      "ordinal_id": ["1"],
-      "group_id": ["1"],
-      "software_id": ["1"]
+      "ordinal_id": [
+        "1"
+      ],
+      "group_id": [
+        "1"
+      ],
+      "software_id": [
+        "1"
+      ]
     },
     "_ma_protocol_step": {
-      "ordinal_id": ["1", "2", "3"],
-      "protocol_id": ["1", "1", "1"],
-      "step_id": ["1", "2", "3"],
-      "method_type": ["coevolution MSA", "template search", "modeling"]
+      "ordinal_id": [
+        "1",
+        "2",
+        "3"
+      ],
+      "protocol_id": [
+        "1",
+        "1",
+        "1"
+      ],
+      "step_id": [
+        "1",
+        "2",
+        "3"
+      ],
+      "method_type": [
+        "coevolution MSA",
+        "template search",
+        "modeling"
+      ]
     },
     "_ma_qa_metric": {
-      "id": ["1", "2"],
-      "name": ["pTM", "pLDDT"],
-      "type": ["pTM", "pLDDT"],
-      "mode": ["global", "local"],
-      "software_group_id": ["1", "1"]
+      "id": [
+        "1",
+        "2"
+      ],
+      "name": [
+        "pLDDT",
+        "pLDDT"
+      ],
+      "type": [
+        "pLDDT",
+        "pLDDT"
+      ],
+      "mode": [
+        "global",
+        "local"
+      ],
+      "software_group_id": [
+        "1",
+        "1"
+      ]
     },
     "_ma_qa_metric_global": {
-      "ordinal_id": ["1"],
-      "model_id": ["1"],
-      "metric_id": ["1"]
+      "ordinal_id": [
+        "1"
+      ],
+      "model_id": [
+        "1"
+      ],
+      "metric_id": [
+        "1"
+      ]
+    },
+    "_database_2": {
+      "database_id": [
+        "AlphaFoldDB"
+      ],
+      "database_code": [
+        "AF-0000000000000004"
+      ]
+    },
+    "_pdbx_database_status": {
+      "status_code": [
+        "REL"
+      ],
+      "entry_id": [
+        "AF-0000000000000004"
+      ],
+      "recvd_initial_deposition_date": [
+        "2025-01-01"
+      ]
+    },
+    "_pdbx_audit_revision_history": {
+      "ordinal": [
+        1
+      ],
+      "data_content_type": [
+        "Structure model"
+      ],
+      "major_revision": [
+        1
+      ],
+      "minor_revision": [
+        0
+      ],
+      "revision_date": [
+        "2025-01-01"
+      ]
+    },
+    "_pdbx_audit_revision_details": {
+      "ordinal": [
+        1
+      ],
+      "revision_ordinal": [
+        1
+      ],
+      "data_content_type": [
+        "Structure model"
+      ],
+      "provider": [
+        "repository"
+      ],
+      "type": [
+        "Initial release"
+      ]
+    },
+    "_audit_author": {
+      "pdbx_ordinal": [
+        1
+      ],
+      "name": [
+        "Placeholder Author"
+      ]
+    },
+    "_citation_author": {
+      "citation_id": [
+        1
+      ],
+      "name": [
+        "Placeholder Author"
+      ],
+      "ordinal": [
+        1
+      ]
+    },
+    "_ma_target_ref_db_details": {
+      "target_entity_id": [
+        "1"
+      ],
+      "db_name": [
+        "UNP"
+      ],
+      "db_accession": [
+        "P35354"
+      ],
+      "db_code": [
+        "PGH2_HUMAN"
+      ],
+      "gene_name": [
+        "PTGS2"
+      ],
+      "ncbi_taxonomy_id": [
+        "9606"
+      ],
+      "organism_scientific": [
+        "Homo sapiens"
+      ],
+      "seq_db_align_begin": [
+        1
+      ],
+      "seq_db_align_end": [
+        604
+      ],
+      "seq_db_isoform": [
+        "?"
+      ],
+      "seq_db_sequence_checksum": [
+        "08897497F7A2A4D7"
+      ],
+      "seq_db_sequence_version_date": [
+        "1998-12-15"
+      ]
     },
     "_ma_target_entity": {
-      "data_id": ["1"],
-      "entity_id": ["1"],
-      "origin": ["reference database"]
+      "data_id": [
+        "1"
+      ],
+      "entity_id": [
+        "1"
+      ],
+      "origin": [
+        "reference database"
+      ]
     },
     "_ma_target_entity_instance": {
-      "asym_id": ["A", "B"],
+      "asym_id": [
+        "A",
+        "B"
+      ],
       "details": [
         "Chain A from UniProt P35354",
         "Chain B from UniProt P35354"
       ],
-      "entity_id": ["1", "1"]
+      "entity_id": [
+        "1",
+        "1"
+      ]
     },
     "_entity": {
-      "id": ["1"],
-      "type": ["polymer"],
-      "src_method": ["man"],
-      "pdbx_description": ["Prostaglandin G/H synthase 2"]
+      "id": [
+        "1"
+      ],
+      "type": [
+        "polymer"
+      ],
+      "src_method": [
+        "man"
+      ],
+      "pdbx_description": [
+        "Prostaglandin G/H synthase 2"
+      ]
     },
     "_entity_poly": {
-      "entity_id": ["1"],
-      "nstd_linkage": ["no"],
-      "nstd_monomer": ["no"],
-      "pdbx_seq_one_letter_code": ["MLARALLLCAVLALSHTANPCCSHPCQNRGVCMSVGFDQYKCDCTRTGFYGENCSTPEFLTRIKLFLKPTPNTVHYILTHFKGFWNVVNNIPFLRNAIMSYVLTSRSHLIDSPPTYNADYGYKSWEAFSNLSYYTRALPPVPDDCPTPLGVKGKKQLPDSNEIVEKLLLRRKFIPDPQGSNMMFAFFAQHFTHQFFKTDHKRGPAFTNGLGHGVDLNHIYGETLARQRKLRLFKDGKMKYQIIDGEMYPPTVKDTQAEMIYPPQVPEHLRFAVGQEVFGLVPGLMMYATIWLREHNRVCDVLKQEHPEWGDEQLFQTSRLILIGETIKIVIEDYVQHLSGYHFKLKFDPELLFNKQFQYQNRIAAEFNTLYHWHPLLPDTFQIHDQKYNYQQFIYNNSILLEHGITQFVESFTRQIAGRVAGGRNVPPAVQKVSQASIDQSRQMKYQSFNEYRKRFMLKPYESFEELTGEKEMSAELEALYGDIDAVELYPALLVEKPRPDAIFGETMVEVGAPFSLKGLMGNVICSPAYWKPSTFGGEVGFQIINTASIQSLICNNVKGCPFTSFSVPDPELIKTVTINASSSRSGLDDINPTVLLKERSTEL"],
-      "type": ["polypeptide(L)"]
-    },
-    "_audit_author": {
-      "pdbx_ordinal": [1],
-      "name": ["Alex Researcher"]
-    },
-    "_citation_author": {
-      "citation_id": [1],
-      "name": ["Alex Researcher"],
-      "ordinal": [1]
-    },
-    "_database_2": {
-      "database_id": ["AlphaFoldDB"],
-      "database_code": ["AF-0000000000000004"]
+      "entity_id": [
+        "1"
+      ],
+      "nstd_linkage": [
+        "no"
+      ],
+      "nstd_monomer": [
+        "no"
+      ],
+      "pdbx_seq_one_letter_code": [
+        "MLARALLLCAVLALSHTANPCCSHPCQNRGVCMSVGFDQYKCDCTRTGFYGENCSTPEFLTRIKLFLKPTPNTVHYILTHFKGFWNVVNNIPFLRNAIMSYVLTSRSHLIDSPPTYNADYGYKSWEAFSNLSYYTRALPPVPDDCPTPLGVKGKKQLPDSNEIVEKLLLRRKFIPDPQGSNMMFAFFAQHFTHQFFKTDHKRGPAFTNGLGHGVDLNHIYGETLARQRKLRLFKDGKMKYQIIDGEMYPPTVKDTQAEMIYPPQVPEHLRFAVGQEVFGLVPGLMMYATIWLREHNRVCDVLKQEHPEWGDEQLFQTSRLILIGETIKIVIEDYVQHLSGYHFKLKFDPELLFNKQFQYQNRIAAEFNTLYHWHPLLPDTFQIHDQKYNYQQFIYNNSILLEHGITQFVESFTRQIAGRVAGGRNVPPAVQKVSQASIDQSRQMKYQSFNEYRKRFMLKPYESFEELTGEKEMSAELEALYGDIDAVELYPALLVEKPRPDAIFGETMVEVGAPFSLKGLMGNVICSPAYWKPSTFGGEVGFQIINTASIQSLICNNVKGCPFTSFSVPDPELIKTVTINASSSRSGLDDINPTVLLKERSTEL"
+      ],
+      "type": [
+        "polypeptide(L)"
+      ]
     },
     "_struct_ref": {
-      "db_code": ["PGH2_HUMAN"],
-      "db_name": ["UNP"],
-      "entity_id": ["1"],
-      "id": [1],
-      "pdbx_db_accession": ["P35354"]
+      "id": [
+        1
+      ],
+      "db_code": [
+        "PGH2_HUMAN"
+      ],
+      "db_name": [
+        "UNP"
+      ],
+      "entity_id": [
+        "1"
+      ],
+      "pdbx_db_accession": [
+        "P35354"
+      ]
     },
     "_struct_ref_seq": {
-      "align_id": [1],
-      "ref_id": ["1"],
-      "pdbx_PDB_id_code": ["AF-0000000000000004"],
-      "pdbx_strand_id": ["A"],
-      "seq_align_beg": [1],
-      "db_align_beg": [1],
-      "db_align_end": [604],
-      "seq_align_end": [604]
-    },
-    "_pdbx_database_status": {
-      "status_code": ["REL"],
-      "entry_id": ["AF-0000000000000004"],
-      "recvd_initial_deposition_date": ["2025-06-18"]
-    },
-    "_pdbx_audit_revision_history": {
-      "ordinal": [1],
-      "data_content_type": ["Structure model"],
-      "major_revision": [1],
-      "minor_revision": [0],
-      "revision_date": ["2025-06-18"]
-    },
-    "_pdbx_audit_revision_details": {
-      "ordinal": [1],
-      "revision_ordinal": [1],
-      "data_content_type": ["Structure model"],
-      "provider": ["repository"],
-      "type": ["Initial release"]
+      "align_id": [
+        1,
+        2
+      ],
+      "ref_id": [
+        "1",
+        "1"
+      ],
+      "pdbx_PDB_id_code": [
+        "AF-0000000000000004",
+        "AF-0000000000000004"
+      ],
+      "pdbx_strand_id": [
+        "A",
+        "B"
+      ],
+      "seq_align_beg": [
+        1,
+        1
+      ],
+      "seq_align_end": [
+        604,
+        604
+      ],
+      "db_align_beg": [
+        1,
+        1
+      ],
+      "db_align_end": [
+        604,
+        604
+      ]
     }
   },
   "chains": [
@@ -168,7 +424,7 @@
     },
     {
       "chain_id": "B",
-      "entity_id": "2",
+      "entity_id": "1",
       "uniprot_accession": "P35354"
     }
   ]
