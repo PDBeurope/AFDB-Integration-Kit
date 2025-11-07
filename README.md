@@ -271,6 +271,31 @@ uv run main.py run-schema-validation -i model.json -t model
 uv run main.py run-schema-validation -i provider.json -t provider
 ```
 
+### Single-File Validation Commands
+
+Run targeted validations on individual output files—ideal for workflow steps (e.g., Nextflow processes) that generate one artifact at a time:
+
+```bash
+# Metadata (batch or per-accession JSON)
+uv run main.py validate-metadata-file --file path/to/metadata.json
+
+# pLDDT confidence JSON
+uv run main.py validate-plddt-file --file path/to/AF-...-confidence_v1.json
+
+# PAE JSON
+uv run main.py validate-pae-file --file path/to/AF-...-predicted_aligned_error_v1.json
+
+# Check a matching pLDDT/PAE pair
+uv run main.py validate-relationships-pair \
+    --plddt-file path/to/AF-...-confidence_v1.json \
+    --pae-file path/to/AF-...-predicted_aligned_error_v1.json
+
+# FASTA sequences file
+uv run main.py validate-sequences-file --file path/to/sequences.fasta
+```
+
+Each command exits with code `1` if it encounters validation errors, making them easy to embed in automated pipelines.
+
 ## Docker Usage
 
 ### Use Prebuilt Docker Image (Recommended)

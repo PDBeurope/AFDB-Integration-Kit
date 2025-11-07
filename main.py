@@ -24,6 +24,7 @@ from afdb_integration_kit.validation import (
     REGISTERED_CHECKS,
     Level,
     ValidationResult,
+    run_validation_check,
     run_validations,
     summarise,
     write_results,
@@ -77,6 +78,19 @@ def _format_validation_results(
         lines.append("")
 
     return "\n".join(line for line in lines if line).strip()
+
+
+def _emit_single_validation_results(
+    results: Sequence[ValidationResult],
+    root: Path,
+) -> None:
+    text = _format_validation_results(results, root, include_info=True)
+    if text:
+        typer.echo(text)
+    else:
+        typer.echo("No validation findings.")
+    has_error = any(res.level is Level.ERROR for res in results)
+    raise typer.Exit(code=1 if has_error else 0)
 
 
 def _format_validation_summary(
@@ -288,6 +302,145 @@ def run_schema_validation(
     """
 
     validate_against_schema(input_file, type)
+
+
+@app.command("validate-metadata-file")
+def validate_metadata_file(
+    metadata_file: Path = typer.Option(
+        ...,
+        "--file",
+        "-f",
+        help="Metadata JSON file to validate.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+):
+    """
+    Validate a single metadata JSON file (batch or per-accession).
+    """
+    require_non_empty_file(metadata_file, description="Metadata JSON file")
+    results = run_validation_check(
+        "metadata",
+        [metadata_file],
+        config={"metadata": {"allow_single_file": True}},
+    )
+    _emit_single_validation_results(results, metadata_file.parent)
+
+
+@app.command("validate-plddt-file")
+def validate_plddt_file(
+    plddt_file: Path = typer.Option(
+        ...,
+        "--file",
+        "-f",
+        help="pLDDT confidence JSON file to validate.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+):
+    """
+    Validate a single pLDDT confidence JSON file.
+    """
+    require_non_empty_file(plddt_file, description="pLDDT confidence JSON file")
+    results = run_validation_check(
+        "plddt",
+        [plddt_file],
+        config={"plddt": {"allow_any_name": True}},
+    )
+    _emit_single_validation_results(results, plddt_file.parent)
+
+
+@app.command("validate-pae-file")
+def validate_pae_file(
+    pae_file: Path = typer.Option(
+        ...,
+        "--file",
+        "-f",
+        help="PAE JSON file to validate.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+):
+    """
+    Validate a single PAE JSON file.
+    """
+    require_non_empty_file(pae_file, description="PAE JSON file")
+    results = run_validation_check(
+        "pae",
+        [pae_file],
+        config={"pae": {"allow_any_name": True}},
+    )
+    _emit_single_validation_results(results, pae_file.parent)
+
+
+@app.command("validate-relationships-pair")
+def validate_relationships_pair(
+    plddt_file: Path = typer.Option(
+        ...,
+        "--plddt-file",
+        help="pLDDT confidence JSON file.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    pae_file: Path = typer.Option(
+        ...,
+        "--pae-file",
+        help="PAE JSON file.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+):
+    """
+    Validate a matching pLDDT/PAE pair for consistency.
+    """
+    require_non_empty_file(plddt_file, description="pLDDT confidence JSON file")
+    require_non_empty_file(pae_file, description="PAE JSON file")
+    results = run_validation_check(
+        "relationships",
+        [plddt_file, pae_file],
+    )
+    _emit_single_validation_results(results, plddt_file.parent)
+
+
+@app.command("validate-sequences-file")
+def validate_sequences_file(
+    fasta_file: Path = typer.Option(
+        ...,
+        "--file",
+        "-f",
+        help="Sequences FASTA file to validate.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+):
+    """
+    Validate a single sequences.fasta/.fa file.
+    """
+    require_non_empty_file(fasta_file, description="Sequences FASTA file")
+    results = run_validation_check(
+        "sequences",
+        [fasta_file],
+        config={"sequences": {"allow_any_name": True}},
+    )
+    _emit_single_validation_results(results, fasta_file.parent)
 
 
 @app.command()

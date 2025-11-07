@@ -24,12 +24,8 @@ def _files_for_check(check: str, files: Sequence[Path]) -> List[Path]:
         return list(files)
     if lower in {"plddt", "pae"}:
         return [p for p in files if p.suffix.lower() == ".json"]
-    if lower == "mmcif":
-        return [p for p in files if p.suffix.lower() == ".cif"]
     if lower == "pdb":
         return [p for p in files if p.suffix.lower() == ".pdb"]
-    if lower == "bcif":
-        return [p for p in files if p.suffix.lower() == ".bcif"]
     return []
 
 
@@ -110,6 +106,27 @@ def run_validations(
     return ordered
 
 
+def run_validation_check(
+    check: str,
+    files: Sequence[Path],
+    config: Optional[Dict] = None,
+) -> List[ValidationResult]:
+    if check not in REGISTERED_CHECKS:
+        available = ", ".join(sorted(REGISTERED_CHECKS)) or "<none>"
+        raise ValueError(f"Unknown validation check '{check}'. Available: {available}")
+    resolved_files = [Path(path).resolve() for path in files]
+    if not resolved_files:
+        raise ValueError("files must not be empty")
+    logger = logging.getLogger("afdb_integration_kit.validation")
+    ctx = ValidationContext(
+        root=resolved_files[0].parent,
+        config=dict(config or {}),
+        selected_checks={check},
+        logger=logger,
+    )
+    return _run_single_check(check, resolved_files, ctx)
+
+
 def summarise(results: Sequence[ValidationResult]) -> Dict[str, Dict[str, int]]:
     counts_by_level: Dict[str, int] = defaultdict(int)
     counts_by_check: Dict[str, Dict[str, int]] = {}
@@ -145,4 +162,4 @@ def write_results(results: Sequence[ValidationResult], path: Path, fmt: Literal[
     raise ValueError(f"Unsupported format: {fmt}")
 
 
-__all__ = ["run_validations", "summarise", "write_results"]
+__all__ = ["run_validation_check", "run_validations", "summarise", "write_results"]
