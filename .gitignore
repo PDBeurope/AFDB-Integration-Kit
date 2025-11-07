@@ -56,3 +56,8 @@ dssp/
 uniprot/outputs/db/*.duckdb
 uniprot/outputs/per_accession/*.json
 uniprot/outputs/batches/*.json
+uniprot/outputs/parquet/
+
+# Generated ModelCIF metadata
+examples/complexes/modelcif_metadata/
+examples/multimer_examples/*.test.cif

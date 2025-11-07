@@ -18,6 +18,8 @@ uniprot/
   outputs/
     parquet/                  # Parquet subset extracted from UniProt
     db/                       # DuckDB cache built from the parquet subset
+  templates/
+    modelcif_metadata.json    # Starter template for ModelCIF metadata exports
   scripts/
     extract_subset.py         # Stream UniProt releases into entry.parquet
     build_duckdb.py           # Materialise entry.parquet inside DuckDB
@@ -85,14 +87,70 @@ your data lives elsewhere.
    `<prefix>-N-of-M.json`.
 
 
-5. **Run the Nextflow workflow (optional)**
+5. **Produce ModelCIF generator metadata**
 
    ```bash
-   nextflow run workflow/af_metadata.nf --db uniprot/outputs/db/uniprot_2025_03.duckdb --config /path/to/dataset_config.json --mapping /path/to/uniprot_afid_mapping.csv --per_outdir /path/to/per_accession --batch_outdir /path/to/batches -w "$PWD/work"
+   python3 uniprot/scripts/export_modelcif_input.py \
+     --model-id AF-0000000000000004 \
+     --manifest examples/complexes/config/subset_uniprot_afid_mapping.csv \
+     --db uniprot/outputs/db/uniprot_2025_03.duckdb \
+     --template uniprot/templates/modelcif_metadata.json \
+     --out examples/multimer_examples/homodimer_metadata_for_model_gen.json
    ```
 
+   The manifest is a CSV with one row per chain:
+
+   ```
+   model_entity_id,entity_id,chain_id,uniprot_ac
+   AF-0000000000000003,1,A,Q9TVL3   # monomer
+   AF-0000000000000004,1,A,Q9TVL3   # homodimer
+   AF-0000000000000004,1,B,Q9TVL3
+   AF-0000000000000005,1,A,P12345   # heterotrimer example
+   AF-0000000000000005,2,B,Q98765
+   AF-0000000000000005,2,C,Q98765
+   ```
+
+   Entities that share the same UniProt accession reuse the same `entity_id`.
+   The exporter deduplicates `_ma_target_ref_db_details` per entity while still
+   emitting a `_ma_target_entity_instance` row for every chain.
+
+   Copy `uniprot/templates/modelcif_metadata.json` to your workspace if you need
+   to customise provider details, data-usage statements, or software fields
+   before running large batches.
+
+
+6. **Run the Nextflow workflows**
+
    Nextflow requires Java (e.g. `sudo apt-get install -y openjdk-17-jre`) and a
-   local Nextflow installation (`curl -s https://get.nextflow.io | bash`).
+   local Nextflow installation (`curl -s https://get.nextflow.io | bash`). We
+   provide two entry points:
+
+   _AF metadata batches (per-accession + combine):_
+
+   ```bash
+   nextflow run workflow/af_metadata.nf \
+     --db uniprot/outputs/db/uniprot_2025_03.duckdb \
+     --config /path/to/dataset_config.json \
+     --mapping /path/to/uniprot_afid_mapping.csv \
+     --per_outdir /path/to/per_accession \
+     --batch_outdir /path/to/batches \
+     -w "$PWD/work"
+   ```
+
+   _ModelCIF generator metadata (complex submissions):_
+
+   ```bash
+   nextflow run workflow/modelcif_metadata.nf \
+     --db uniprot/outputs/db/uniprot_2025_03.duckdb \
+     --manifest examples/complexes/config/subset_uniprot_afid_mapping.csv \
+     --template uniprot/templates/modelcif_metadata.json \
+     --output_dir examples/complexes/modelcif_metadata \
+     -w "$PWD/work/modelcif"
+   ```
+
+   The ModelCIF workflow consumes the same manifest used by
+   `export_modelcif_input.py` and writes one JSON file per model into the
+   requested output directory.
 
 ## Notes
 - The subset extractor caches the target accessions in memory only—no UniProt
