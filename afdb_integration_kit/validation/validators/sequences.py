@@ -15,7 +15,16 @@ ALLOWED_AMINO_ACIDS = set("ACDEFGHIKLMNPQRSTVWY")
 @register_check("sequences")
 def run(files: List[Path], ctx: ValidationContext) -> List[ValidationResult]:
     results: List[ValidationResult] = []
-    sequences_files = [p for p in files if p.name.lower() in {"sequences.fasta", "sequences.fa"}]
+    cfg = ctx.config.get("sequences", {})
+    allow_any_name = bool(cfg.get("allow_any_name"))
+    allowed_names = {"sequences.fasta", "sequences.fa"}
+
+    sequences_files: List[Path] = []
+    for path in files:
+        if allow_any_name:
+            sequences_files.append(path)
+        elif path.name.lower() in allowed_names:
+            sequences_files.append(path)
 
     if not sequences_files:
         return results

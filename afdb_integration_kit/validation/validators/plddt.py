@@ -228,10 +228,16 @@ def _allowed_categories_for_score(score: float) -> set[str]:
 def run(files: List[Path], ctx: ValidationContext) -> List[ValidationResult]:
     results: List[ValidationResult] = []
 
-    pattern = PATTERNS.get("plddt")
-    candidates = [p for p in files if pattern and pattern.match(p.name)]
-
     cfg = ctx.config.get("plddt", {})
+    allow_any_name = bool(cfg.get("allow_any_name"))
+    pattern = PATTERNS.get("plddt")
+    candidates: List[Path] = []
+    for path in files:
+        if allow_any_name:
+            candidates.append(path)
+        elif pattern and pattern.match(path.name):
+            candidates.append(path)
+
     min_score = float(cfg.get("min_score", 0.0))
     max_score = float(cfg.get("max_score", 100.0))
     enforce_length_match = _as_bool(cfg.get("enforce_length_match", True), True)

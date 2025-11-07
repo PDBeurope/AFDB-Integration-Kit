@@ -5,6 +5,8 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Iterable, List, Sequence
 
+from afdb_integration_kit.quality_assessment.naming import PATTERNS
+
 from ..context import ValidationContext
 from ..registry import register_check
 from ..results import Level, ValidationResult
@@ -15,12 +17,18 @@ PAE_KEYS = {"predicted_aligned_error", "max_predicted_aligned_error"}
 @register_check("pae")
 def run(files: List[Path], ctx: ValidationContext) -> List[ValidationResult]:
     results: List[ValidationResult] = []
-    pattern = ctx.config.get("pae_pattern")
 
     cfg = ctx.config.get("pae", {})
+    allow_any_name = bool(cfg.get("allow_any_name"))
     enforce_decimal_places = _as_bool(cfg.get("enforce_decimal_places", True), True)
 
-    candidates = [p for p in files if p.name.endswith("-predicted_aligned_error_v1.json")]
+    pattern = PATTERNS.get("pae")
+    candidates: List[Path] = []
+    for path in files:
+        if allow_any_name:
+            candidates.append(path)
+        elif pattern and pattern.match(path.name):
+            candidates.append(path)
 
     for path in sorted(candidates):
         try:

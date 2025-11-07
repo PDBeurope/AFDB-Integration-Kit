@@ -99,7 +99,15 @@ UNIPROT_REQUIRED_FIELDS = {
 @register_check("metadata")
 def run(files: List[Path], ctx: ValidationContext) -> List[ValidationResult]:
     results: List[ValidationResult] = []
-    metadata_files = [p for p in files if METADATA_PATTERN.match(p.name)]
+    cfg = ctx.config.get("metadata", {})
+    allow_single_file = bool(cfg.get("allow_single_file"))
+
+    metadata_files: List[Path] = []
+    for path in files:
+        if METADATA_PATTERN.match(path.name):
+            metadata_files.append(path)
+        elif allow_single_file and path.suffix.lower() == ".json":
+            metadata_files.append(path)
 
     for metadata_path in sorted(metadata_files):
         results.extend(_validate_metadata_file(metadata_path))
@@ -138,7 +146,12 @@ def _validate_metadata_file(path: Path) -> List[ValidationResult]:
         )
         return results
 
-    if not isinstance(payload, list) or not payload:
+    if isinstance(payload, dict):
+        payload_list: List[dict] = [payload]
+    else:
+        payload_list = payload
+
+    if not isinstance(payload_list, list) or not payload_list:
         results.append(
             ValidationResult(
                 check="metadata",
@@ -154,7 +167,7 @@ def _validate_metadata_file(path: Path) -> List[ValidationResult]:
     seen_unique_ids: Set[str] = set()
     entry_count = 0
 
-    for index, entry in enumerate(payload, start=1):
+    for index, entry in enumerate(payload_list, start=1):
         if not isinstance(entry, dict):
             results.append(
                 ValidationResult(
