@@ -475,23 +475,30 @@ This will process all the model files in the `input` directory and place the out
 ### Workflow Structure
 
 ```mermaid
+---
+config:
+  layout: elk
+---
 flowchart TD
-    A[".pdb file"] --> C[ModelCIF Generator]
+    A[".pdb file"] --> C["ModelCIF Generator"] & J["ModelPDB Generator"]
     B["CIF metadata JSON"] --> C
     C --> D[".cif file (mmCIF)"]
-    D --> E[DSSP]
+    D --> E["DSSP"]
     E --> F[".cif file (mmCIF, with DSSP annotations)"]
-    F --> G[CIF to BCIF Generator]
+    F --> J & G["CIF to BCIF Generator"]
+    I["Provider JSON"] --> J
+    J --> K[".pdb file (with AFDB headers)"]
     G --> H[".bcif file (Binary CIF)"]
-
-    style A fill:#e1f5fe
+    style A fill:#fff3e0
+    style C fill:#f3e5f5
+    style J fill:#f3e5f5
     style B fill:#e1f5fe
     style D fill:#fff3e0
-    style F fill:#fff3e0
-    style H fill:#e8f5e8
-    style C fill:#f3e5f5
     style E fill:#f3e5f5
+    style F fill:#e8f5e8
     style G fill:#f3e5f5
+    style K fill:#e8f5e8
+    style H fill:#e8f5e8
 ```
 
 ### Schema Validation
