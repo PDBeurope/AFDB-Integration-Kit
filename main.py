@@ -14,8 +14,8 @@ from afdb_integration_kit.cif2bcif.convert import run_cif2bcif as cif2bcif_helpe
 from afdb_integration_kit.dssp.dssp import run_dssp as dssp_helper
 from afdb_integration_kit.metadata.validator import validate_against_schema
 from afdb_integration_kit.modelcif.generate import generate
-from afdb_integration_kit.modelpdb.generate import generate_pdb_headers
 from afdb_integration_kit.modelcif_replace.replace import replace_mmcif_with_json as replace_mmcif_with_json
+from afdb_integration_kit.modelpdb.generate import generate_pdb_headers
 from afdb_integration_kit.quality_assessment.naming import (
     parse_ids_file
 )
@@ -28,6 +28,7 @@ from afdb_integration_kit.validation import (
     summarise,
     write_results,
 )
+from afdb_integration_kit.utils.file_guard import require_non_empty_file
 
 # Set up logger
 logger = logging.getLogger("afdb_integration_kit")
@@ -339,17 +340,18 @@ def run_modelcif_gen(
     Enrich a PDB file with metadata to produce a feature-rich mmCIF file.
     """
     # Pre-flight checks
-    if not pdb.is_file():
-        logger.error(f"Input PDB file not found: {pdb}")
-        raise typer.Exit(code=1)
-    if not metadata.is_file():
-        logger.error(f"Input metadata JSON file not found: {metadata}")
-        raise typer.Exit(code=1)
+    require_non_empty_file(pdb, description="Input PDB file")
+    require_non_empty_file(metadata, description="Input metadata JSON file")
 
     # If validate is passed as a flag (True but no value), default to 'mmcif_ma.dic'
     validate_path = validate if validate else None
     if validate is not None and validate == "":
         validate_path = "mmcif_ma.dic"
+    if validate_path:
+        require_non_empty_file(
+            Path(validate_path),
+            description="ModelCIF dictionary (--validate)",
+        )
 
     # Call main logic (assuming main is imported or defined elsewhere)
     generate(str(pdb), str(metadata), str(output), validate_path, fetch_uniprot)
@@ -404,15 +406,9 @@ def run_modelpdb_gen(
     Enrich a PDB file with header information from a mmCIF file.
     """
     # Pre-flight checks
-    if not cif.is_file():
-        logger.error(f"Input mmCIF file not found: {cif}")
-        raise typer.Exit(code=1)
-    if not pdb.is_file():
-        logger.error(f"Input PDB file not found: {pdb}")
-        raise typer.Exit(code=1)
-    if not provider.is_file():
-        logger.error(f"Input provider JSON file not found: {provider}")
-        raise typer.Exit(code=1)
+    require_non_empty_file(cif, description="Input mmCIF file")
+    require_non_empty_file(pdb, description="Input PDB file")
+    require_non_empty_file(provider, description="Input provider JSON file")
 
     # Call main logic
     generate_pdb_headers(str(cif), str(pdb), str(output), str(provider))
@@ -447,6 +443,7 @@ def run_dssp(
     """
     Run DSSP on a CIF file to generate secondary structure information.
     """
+    require_non_empty_file(input_file, description="DSSP input CIF file")
     logger.info(f"Converting {input_file} to {output_file}")
     dssp_helper(input_file, output_file)
     logger.info("Conversion complete.")
@@ -481,6 +478,7 @@ def run_cif2bcif(
     """
     Convert CIF to BinaryCIF or BinaryCIF.GZ
     """
+    require_non_empty_file(input_file, description="cif2bcif input CIF file")
     logger.info(f"Converting {input_file} to {output_file}")
     cif2bcif_helper(input_file, output_file)
     logger.info("Conversion complete.")
