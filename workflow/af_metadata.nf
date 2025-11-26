@@ -1,73 +1,153 @@
 nextflow.enable.dsl=2
 
-params.db            = params.db            ?: 'uniprot/outputs/db/uniprot_2025_03.duckdb'
-params.config        = params.config        ?: 'uniprot/config/dataset_config.json'
-params.mapping       = params.mapping       ?: 'uniprot/config/uniprot_afid_mapping.csv'
-params.per_outdir    = params.per_outdir    ?: 'uniprot/outputs/per_accession'
-params.batch_outdir  = params.batch_outdir  ?: 'uniprot/outputs/batches'
-params.chunk_size    = params.chunk_size    ?: 10_000
-params.output_prefix = params.output_prefix ?: 'AF-metadata'
-params.python_cmd    = params.python_cmd    ?: 'python3'
+def defaultParams = [
+    db                 : 'uniprot/outputs/db/uniprot_2025_03.duckdb',
+    config             : 'uniprot/config/dataset_config.json',
+    mapping            : 'uniprot/config/uniprot_afid_mapping.csv',
+    model_manifest     : 'uniprot/config/uniprot_model_metadata.csv',
+    chunk_size         : 10_000,
+    output_prefix      : 'AF-metadata',
+    chain_output_prefix: 'AF-chain-metadata',
+    python_cmd         : 'python3'
+]
 
-Channel
-    .fromPath(params.mapping)
-    .map { file -> file.newReader().withCloseable { reader ->
-            reader.readLines()
-                  .drop(1)
-                  .collect { line ->
-                      def cells = line.split(',')
-                      cells.size() > 1 ? cells[1].trim() : null
-                  }
-        }
+defaultParams.each { key, value ->
+    if( !params.containsKey(key) || params.get(key) == null || params.get(key).toString().trim() == '' ) {
+        params[key] = value
     }
-    .flatten()
-    .filter { it }
-    .unique()
-    .set { accession_ch }
+}
 
-process EXPORT_METADATA {
-    tag { accession }
+def repoDir = projectDir.parent ?: projectDir
+def mappingPath = file(params.mapping)
+def configDir = mappingPath?.parent
+def datasetDir = configDir?.parent ?: repoDir
 
-    publishDir params.per_outdir, mode: 'copy', overwrite: true
+if( !params.containsKey('per_model_outdir') || params.per_model_outdir == null || params.per_model_outdir.toString().trim() == '' ) {
+    params.per_model_outdir = datasetDir.resolve('per_accession/models').toString()
+}
+
+if( !params.containsKey('per_chain_outdir') || params.per_chain_outdir == null || params.per_chain_outdir.toString().trim() == '' ) {
+    params.per_chain_outdir = datasetDir.resolve('per_accession/chains').toString()
+}
+
+if( !params.containsKey('batch_model_outdir') || params.batch_model_outdir == null || params.batch_model_outdir.toString().trim() == '' ) {
+    params.batch_model_outdir = datasetDir.resolve('batches/models').toString()
+}
+
+if( !params.containsKey('batch_chain_outdir') || params.batch_chain_outdir == null || params.batch_chain_outdir.toString().trim() == '' ) {
+    params.batch_chain_outdir = datasetDir.resolve('batches/chains').toString()
+}
+
+def buildModelChannel() {
+    Channel
+        .fromPath(params.mapping)
+        .splitCsv(header: true)
+        .map { row ->
+            def normalized = row.collectEntries { k, v ->
+                [(k?.toString()?.toLowerCase()): v]
+            }
+            def modelId = normalized['model_entity_id'] ?: normalized['model_id']
+            modelId?.toString()?.trim()
+        }
+        .filter { it }
+        .unique()
+}
+
+process EXPORT_MODEL_METADATA {
+    tag { model_id }
+
+    publishDir params.per_model_outdir, mode: 'copy', overwrite: true
 
     input:
-    val accession from accession_ch
+    val model_id
 
     output:
-    path "${accession}.json"
+    path "${model_id}.json"
 
     script:
     """
-    ${params.python_cmd} ${launchDir}/uniprot/scripts/export_metadata.py \
-      --accession ${accession} \
+    ${params.python_cmd} ${repoDir}/uniprot/scripts/export_model_metadata.py \
+      --model-entity-id ${model_id} \
       --db ${file(params.db)} \
       --config ${file(params.config)} \
       --mapping ${file(params.mapping)} \
-      --out ${accession}.json
+      --model-manifest ${file(params.model_manifest)} \
+      --out ${model_id}.json
     """
 }
 
-process COMBINE_METADATA {
-    publishDir params.batch_outdir, mode: 'copy', overwrite: true
+process EXPORT_CHAIN_METADATA {
+    tag { model_id }
+
+    publishDir params.per_chain_outdir, mode: 'copy', overwrite: true
 
     input:
-    val ready from EXPORT_METADATA.out.collect()
+    val model_id
+
+    output:
+    path "${model_id}.json"
+
+    script:
+    """
+    ${params.python_cmd} ${repoDir}/uniprot/scripts/export_chain_metadata.py \
+      --model-entity-id ${model_id} \
+      --db ${file(params.db)} \
+      --config ${file(params.config)} \
+      --mapping ${file(params.mapping)} \
+      --model-manifest ${file(params.model_manifest)} \
+      --out ${model_id}.json
+    """
+}
+
+process COMBINE_MODEL_METADATA {
+    publishDir params.batch_model_outdir, mode: 'copy', overwrite: true
+
+    input:
+    val metadata_files
 
     output:
     path "${params.output_prefix}-*.json"
 
     script:
     """
-    ${params.python_cmd} ${launchDir}/uniprot/scripts/combine_metadata.py \
-      --input-dir ${file(params.per_outdir)} \
+    ${params.python_cmd} ${repoDir}/uniprot/scripts/combine_metadata.py \
+      --input-dir ${file(params.per_model_outdir)} \
       --output-dir ./ \
       --output-prefix ${params.output_prefix} \
       --chunk-size ${params.chunk_size}
     """
 }
 
+process COMBINE_CHAIN_METADATA {
+    publishDir params.batch_chain_outdir, mode: 'copy', overwrite: true
+
+    input:
+    val metadata_files
+
+    output:
+    path "${params.chain_output_prefix}-*.json"
+
+    script:
+    """
+    ${params.python_cmd} ${repoDir}/uniprot/scripts/combine_metadata.py \
+      --input-dir ${file(params.per_chain_outdir)} \
+      --output-dir ./ \
+      --output-prefix ${params.chain_output_prefix} \
+      --chunk-size ${params.chunk_size}
+    """
+}
+
 workflow {
     main:
-        EXPORT_METADATA(accession_ch)
-        COMBINE_METADATA()
+        def model_for_models = buildModelChannel()
+        def model_for_chains = buildModelChannel()
+
+        def model_exports = EXPORT_MODEL_METADATA(model_for_models)
+        def chain_exports = EXPORT_CHAIN_METADATA(model_for_chains)
+
+        def combine_model_ready = model_exports.collect()
+        def combine_chain_ready = chain_exports.collect()
+
+        COMBINE_MODEL_METADATA(combine_model_ready)
+        COMBINE_CHAIN_METADATA(combine_chain_ready)
 }

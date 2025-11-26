@@ -23,7 +23,8 @@ uniprot/
   scripts/
     extract_subset.py         # Stream UniProt releases into entry.parquet
     build_duckdb.py           # Materialise entry.parquet inside DuckDB
-    export_metadata.py        # Emit a single metadata JSON entry
+    export_model_metadata.py  # Emit one model-level JSON document (per model)
+    export_chain_metadata.py  # Emit per-chain JSON documents (one per chain)
     combine_metadata.py       # Combine metadata JSON entries into batches
 ```
 
@@ -62,20 +63,37 @@ your data lives elsewhere.
    ```
 
 
-3. **Export per-accession metadata records**
+3. **Export per-model metadata records (model-level Solr schema)**
 
    ```bash
-   python3 uniprot/scripts/export_metadata.py --accession O00400 --db uniprot/outputs/db/uniprot_2025_03.duckdb --config /path/to/dataset_config.json --mapping /path/to/uniprot_afid_mapping.csv --out /path/to/per_accession/O00400.json
+   python3 uniprot/scripts/export_model_metadata.py \
+     --model-entity-id AF-0000000000000004 \
+     --db uniprot/outputs/db/uniprot_2025_03.duckdb \
+     --config /path/to/dataset_config.json \
+     --mapping /path/to/uniprot_afid_mapping.csv \
+     --model-manifest /path/to/uniprot_model_metadata.csv \
+     --out /path/to/per_accession/models/AF-0000000000000004.json
    ```
 
+   - `--mapping` (chain manifest): `model_entity_id,entity_id,chain_id,uniprot_ac,sequence_start,sequence_end,is_fragment,is_isoform,entity_type,average_plddt,fraction_plddt_very_low,fraction_plddt_low,fraction_plddt_confident,fraction_plddt_very_high`
+   - `--model-manifest` (model manifest, optional): `model_entity_id,ipTM,average_plddt,complexName,isAMdata`
+   - Output: one JSON document per model.
 
-   This command joins UniProt data from DuckDB with the AF-ID mapping and dataset
-   defaults to emit one JSON entry.  Run it once per accession (or in parallel
-   via Nextflow) to populate `per_accession/` with the full set of metadata
-   snippets.
+4. **Export per-chain metadata records (chain-level Solr schema)**
 
+   ```bash
+   python3 uniprot/scripts/export_chain_metadata.py \
+     --model-entity-id AF-0000000000000004 \
+     --db uniprot/outputs/db/uniprot_2025_03.duckdb \
+     --config /path/to/dataset_config.json \
+     --mapping /path/to/uniprot_afid_mapping.csv \
+     --model-manifest /path/to/uniprot_model_metadata.csv \
+     --out /path/to/per_accession/chains/AF-0000000000000004.json
+   ```
 
-4. **Combine per-accession JSON files**
+   Output: an array of JSON documents, one per chain for the requested model.
+
+5. **Combine per-accession JSON files**
 
    ```bash
    python3 uniprot/scripts/combine_metadata.py --input-dir /path/to/per_accession --output-dir /path/to/batches --output-prefix AF-metadata
@@ -128,13 +146,14 @@ your data lives elsewhere.
    _AF metadata batches (per-accession + combine):_
 
    ```bash
-   nextflow run workflow/af_metadata.nf \
-     --db uniprot/outputs/db/uniprot_2025_03.duckdb \
-     --config /path/to/dataset_config.json \
-     --mapping /path/to/uniprot_afid_mapping.csv \
-     --per_outdir /path/to/per_accession \
-     --batch_outdir /path/to/batches \
-     -w "$PWD/work"
+  nextflow run workflow/af_metadata.nf \
+    --db uniprot/outputs/db/uniprot_2025_03.duckdb \
+    --config /path/to/dataset_config.json \
+    --mapping /path/to/uniprot_afid_mapping.csv \
+    --model_manifest /path/to/uniprot_model_metadata.csv \
+    --per_outdir /path/to/per_accession/models \
+    --batch_outdir /path/to/batches \
+    -w "$PWD/work"
    ```
 
    _ModelCIF generator metadata (complex submissions):_

@@ -188,17 +188,22 @@ def parse_de_sections(lines: Sequence[str]) -> tuple[List[str], List[str]]:
     return full_names, short_names
 
 
-def parse_organism(raw: str) -> tuple[Optional[str], List[str]]:
+def parse_organism(raw: str) -> tuple[Optional[str], List[str], List[str]]:
+    """Parse OS lines into scientific name, common names, and synonyms."""
+
     value = raw.strip()
     if not value:
-        return None, []
+        return None, [], []
     value = value.rstrip(".")
-    common_names = [match.strip().rstrip(".") for match in re.findall(r"\(([^)]+)\)", value)]
-    if "(" in value:
-        main = value.split("(", 1)[0].strip()
+    paren_values = [match.strip().rstrip(".") for match in re.findall(r"\(([^)]+)\)", value)]
+    main = value.split("(", 1)[0].strip() if "(" in value else value.strip()
+    if paren_values:
+        common_names = [paren_values[0]] if paren_values[0] else []
+        synonyms = [name for name in paren_values[1:] if name]
     else:
-        main = value.strip()
-    return main or None, [name for name in common_names if name]
+        common_names = []
+        synonyms = []
+    return main or None, common_names, synonyms
 
 
 class ParquetBufferWriter:
@@ -244,14 +249,30 @@ def build_entry_payload(
     protein_full_names, protein_short_names = parse_de_sections(lines)
     gene_name: Optional[str] = None
     gene_synonyms: List[str] = []
+    gene_ordered_locus_names: List[str] = []
+    gene_orf_names: List[str] = []
     organism: Optional[str] = None
     organism_common_names: List[str] = []
+    organism_synonyms: List[str] = []
     taxid: Optional[int] = None
     length: Optional[int] = None
     sequence_version_date: Optional[str] = None
     is_reference_proteome = False
     seq_chunks: List[str] = []
     in_sequence = False
+    gn_lines: List[str] = []
+    os_lines: List[str] = []
+
+    def flush_gene_block(
+        name: Optional[str],
+        synonyms: List[str],
+        locus_names: List[str],
+        orf_names: List[str],
+    ) -> tuple[Optional[str], List[str], List[str], List[str]]:
+        primary = name or (synonyms[0] if synonyms else None) or (
+            locus_names[0] if locus_names else (orf_names[0] if orf_names else None)
+        )
+        return primary, synonyms, locus_names, orf_names
 
     for line in lines:
         prefix = line[:2]
@@ -260,25 +281,9 @@ def build_entry_payload(
             if remainder:
                 entry_name = remainder.split()[0]
         elif prefix == GN_PREFIX:
-            content = line[5:].strip()
-            if not content:
-                continue
-            tokens = [token.strip() for token in content.split(";") if token.strip()]
-            for token in tokens:
-                if token.startswith("Name=") and gene_name is None:
-                    gene_name_candidate = strip_annotations(token.split("=", 1)[1])
-                    if gene_name_candidate:
-                        gene_name = gene_name_candidate
-                elif token.startswith("Synonyms="):
-                    synonym_blob = token.split("=", 1)[1]
-                    for raw_synonym in synonym_blob.split(","):
-                        synonym = strip_annotations(raw_synonym)
-                        if synonym and synonym not in gene_synonyms:
-                            gene_synonyms.append(synonym)
-        elif prefix == OS_PREFIX and organism is None:
-            org_value, common_names = parse_organism(line[5:])
-            organism = org_value
-            organism_common_names = common_names
+            gn_lines.append(line[5:].strip())
+        elif prefix == OS_PREFIX:
+            os_lines.append(line[5:].strip())
         elif prefix == OX_PREFIX and taxid is None:
             match = RE_TAXID.search(line)
             if match:
@@ -304,6 +309,54 @@ def build_entry_payload(
             if aa_only:
                 seq_chunks.append(aa_only)
 
+    if gn_lines:
+        current_name: Optional[str] = None
+        current_synonyms: List[str] = []
+        current_locus: List[str] = []
+        current_orf: List[str] = []
+        tokens = []
+        for raw in gn_lines:
+            raw_clean = raw.rstrip(".")
+            tokens.extend([token.strip() for token in raw_clean.split(";") if token.strip()])
+        for token in tokens:
+            if token.lower() == "and":
+                gene_name, gene_synonyms, gene_ordered_locus_names, gene_orf_names = flush_gene_block(
+                    current_name, current_synonyms, current_locus, current_orf
+                )
+                current_name, current_synonyms, current_locus, current_orf = None, [], [], []
+                continue
+            if "=" not in token:
+                continue
+            key, value = token.split("=", 1)
+            key = key.strip()
+            values = [strip_annotations(val) for val in value.split(",")]
+            values = [val for val in values if val]
+            if key == "Name":
+                if current_name is None and values:
+                    current_name = values[0]
+            elif key == "Synonyms":
+                for synonym in values:
+                    if synonym and synonym not in current_synonyms:
+                        current_synonyms.append(synonym)
+            elif key == "OrderedLocusNames":
+                for locus in values:
+                    if locus and locus not in current_locus:
+                        current_locus.append(locus)
+            elif key == "ORFNames":
+                for orf in values:
+                    if orf and orf not in current_orf:
+                        current_orf.append(orf)
+        if gene_name is None:
+            gene_name, gene_synonyms, gene_ordered_locus_names, gene_orf_names = flush_gene_block(
+                current_name, current_synonyms, current_locus, current_orf
+            )
+
+    if os_lines:
+        organism_value, common_names, synonyms = parse_organism(" ".join(os_lines))
+        organism = organism or organism_value
+        organism_common_names = common_names
+        organism_synonyms = synonyms
+
     seq_str = "".join(seq_chunks) if seq_chunks else None
     seq_md5 = hashlib.md5(seq_str.encode("utf-8")).hexdigest() if seq_str else None
     primary_ac = accessions[0]
@@ -315,8 +368,11 @@ def build_entry_payload(
         "protein_short_names": protein_short_names or None,
         "gene_names": gene_name,
         "gene_synonyms": gene_synonyms or None,
+        "gene_ordered_locus_names": gene_ordered_locus_names or None,
+        "gene_orf_names": gene_orf_names or None,
         "organism": organism,
-        "organisme_common_names": organism_common_names or None,
+        "organism_common_names": organism_common_names or None,
+        "organism_synonyms": organism_synonyms or None,
         "taxid": taxid,
         "length": length,
         "sequence_version_date": sequence_version_date,
@@ -382,8 +438,11 @@ def get_entry_schema() -> pa.Schema:
             ("protein_short_names", pa.list_(pa.string())),
             ("gene_names", pa.string()),
             ("gene_synonyms", pa.list_(pa.string())),
+            ("gene_ordered_locus_names", pa.list_(pa.string())),
+            ("gene_orf_names", pa.list_(pa.string())),
             ("organism", pa.string()),
-            ("organisme_common_names", pa.list_(pa.string())),
+            ("organism_common_names", pa.list_(pa.string())),
+            ("organism_synonyms", pa.list_(pa.string())),
             ("taxid", pa.int64()),
             ("length", pa.int32()),
             ("sequence_version_date", pa.string()),

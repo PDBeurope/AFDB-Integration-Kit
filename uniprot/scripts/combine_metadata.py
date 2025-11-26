@@ -84,7 +84,10 @@ def load_records(paths: List[Path]) -> List[dict]:
     for path in paths:
         with path.open("r", encoding="utf-8") as handle:
             data = json.load(handle)
-        records.append(data)
+        if isinstance(data, list):
+            records.extend(data)
+        else:
+            records.append(data)
     return records
 
 

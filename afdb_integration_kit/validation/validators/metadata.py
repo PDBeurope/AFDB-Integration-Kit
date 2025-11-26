@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Iterable, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set
 
 from ..context import ValidationContext
 from ..registry import register_check
@@ -12,8 +12,8 @@ from ..results import Level, ValidationResult
 METADATA_PATTERN = re.compile(r"^AF-metadata-\d+-of-\d+\.json$")
 ISO_DATETIME_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 MD5_PATTERN = re.compile(r"^[a-f0-9]{32}$", re.IGNORECASE)
-UNIQUE_ID_PATTERN = re.compile(r"^(AF-\d{16})_v(\d+)_([1-9]\d*)$")
-COMPLEX_COMPONENT_PATTERN = re.compile(r"^[0-9A-Fa-f]{16}_[1-9]\d*(?:,[0-9A-Fa-f]{16}_[1-9]\d*)*$")
+UNIQUE_ID_PATTERN = re.compile(r"^(AF-\d{16})_v(\d+)$")
+COMPLEX_COMPONENT_PATTERN = re.compile(r"^[A-Z0-9-]+_[1-9]\d*$")
 
 FLOAT_FIELDS_0_1 = [
     "fractionPlddtVeryLow",
@@ -22,77 +22,53 @@ FLOAT_FIELDS_0_1 = [
     "fractionPlddtVeryHigh",
 ]
 
-REQUIRED_FIELDS = {
+TRI_STATE_VALUES = {"all", "none", "mixed"}
+ASSEMBLY_TYPES = {"Homo", "Hetero"}
+OLIGOMERIC_STATES = {
+    "monomer",
+    "dimer",
+    "trimer",
+    "tetramer",
+    "pentamer",
+    "hexamer",
+    "heptamer",
+    "octamer",
+    "nonamer",
+    "decamer",
+    "oligomer",
+}
+
+REQUIRED_SCALAR_FIELDS = {
     "uniqueId": str,
     "toolUsed": str,
     "modelCreatedDate": str,
     "modelEntityId": str,
     "providerId": str,
-    "entityType": str,
-    "sequence": str,
-    "sequenceChecksum": str,
-    "sequenceStart": int,
-    "sequenceEnd": int,
-    "isUniProt": bool,
-    "globalMetricValue": (int, float),
-    "fractionPlddtVeryLow": (int, float),
-    "fractionPlddtLow": (int, float),
-    "fractionPlddtConfident": (int, float),
-    "fractionPlddtVeryHigh": (int, float),
+    "isComplex": bool,
+    "organismScientificName": str,
+    "isFragment": str,
+    "isUniProt": str,
+    "globalMetricValue": (int, float, type(None)),
+    "fractionPlddtVeryLow": (int, float, type(None)),
+    "fractionPlddtLow": (int, float, type(None)),
+    "fractionPlddtConfident": (int, float, type(None)),
+    "fractionPlddtVeryHigh": (int, float, type(None)),
     "latestVersion": int,
     "allVersions": list,
-    "stoichiometry": int,
 }
 
-OPTIONAL_FIELD_TYPES = {
-    "complexName": str,
-    "complexComposition": str,
-    "uniprotAccession": str,
-    "uniprotId": str,
-    "uniprotDescription": str,
-    "geneSynonyms": list,
-    "gene": str,
-    "isUniProtReferenceProteome": bool,
-    "isUniProtReviewed": bool,
-    "taxId": int,
-    "organismScientificName": str,
-    "otherTaxIds": list,
-    "otherOrganismScientificNames": list,
-    "ipTM": (int, float),
-    "ipSAE": (int, float),
-    "sequenceVersionDate": str,
-    "organismCommonNames": list,
-    "organismSynonyms": list,
-    "proteinFullNames": list,
-    "proteinShortNames": list,
-    "keywords": list,
-    "taxonomyLineage": list,
-    "functions": list,
-    "alternativeNames": list,
-    "catalyticActivities": list,
-    "organismScientificNameT": str,
-}
-
-UNIPROT_REQUIRED_FIELDS = {
-    field: OPTIONAL_FIELD_TYPES[field]
-    for field in (
-        "uniprotId",
-        "uniprotDescription",
-        "geneSynonyms",
-        "gene",
-        "isUniProtReviewed",
-        "taxId",
-        "organismScientificName",
-        "sequenceVersionDate",
-        "organismCommonNames",
-        "proteinFullNames",
-        "proteinShortNames",
-        "keywords",
-        "taxonomyLineage",
-        "functions",
-        "alternativeNames",
-        "catalyticActivities",
-    )
+LIST_FIELD_TYPES = {
+    "accession": (str,),
+    "uniprotId": (str,),
+    "description": (str,),
+    "taxId": (int, type(None)),
+    "sequence": (str,),
+    "sequenceChecksum": (str,),
+    "sequenceVersionDate": (str, type(None)),
+    "sequenceStart": (int,),
+    "sequenceEnd": (int,),
+    "entityType": (str,),
+    "isIsoform": (bool,),
 }
 
 
@@ -210,8 +186,9 @@ def _validate_entry(
     results: List[ValidationResult] = []
     location = entry.get("uniqueId") or f"entry_{index}"
 
-    # Required fields presence and type
-    for field, expected_type in REQUIRED_FIELDS.items():
+    list_field_values: Dict[str, List[object]] = {}
+
+    for field, expected_type in REQUIRED_SCALAR_FIELDS.items():
         if field not in entry:
             results.append(
                 ValidationResult(
@@ -224,7 +201,8 @@ def _validate_entry(
                 )
             )
             continue
-        if not isinstance(entry[field], expected_type):
+        value = entry[field]
+        if not isinstance(value, expected_type):
             results.append(
                 ValidationResult(
                     check="metadata",
@@ -236,33 +214,86 @@ def _validate_entry(
                 )
             )
 
-    # Optional types
-    for field, expected_type in OPTIONAL_FIELD_TYPES.items():
-        if field in entry and not isinstance(entry[field], expected_type):
+    for field, element_types in LIST_FIELD_TYPES.items():
+        value = entry.get(field)
+        if not isinstance(value, list) or not value:
             results.append(
                 ValidationResult(
                     check="metadata",
                     file=path,
                     level=Level.ERROR,
                     code="metadata_invalid_type",
-                    message=f"{location}: field '{field}' must be of type {type_name(expected_type)}.",
-                    suggested_fix=f"Ensure '{field}' is stored as {type_name(expected_type)} when present.",
+                    message=f"{location}: field '{field}' must be a non-empty list.",
+                    suggested_fix=f"Populate '{field}' with one entry per complex component.",
                 )
             )
-
-    if entry.get("isUniProt") is True:
-        for field in UNIPROT_REQUIRED_FIELDS:
-            if field not in entry:
+            continue
+        list_field_values[field] = value
+        for item in value:
+            if item is None and type(None) in element_types:
+                continue
+            if not isinstance(item, element_types):
                 results.append(
                     ValidationResult(
                         check="metadata",
                         file=path,
                         level=Level.ERROR,
-                        code="metadata_missing_uniprot_field",
-                        message=f"{location}: field '{field}' is required when isUniProt is true.",
-                        suggested_fix=f"Populate the '{field}' field for UniProt-sourced entries.",
+                        code="metadata_invalid_type",
+                        message=f"{location}: field '{field}' must contain values of type {type_name(element_types)}.",
+                        suggested_fix=f"Ensure every '{field}' entry matches {type_name(element_types)}.",
                     )
                 )
+                break
+
+    is_complex = entry.get("isComplex")
+    assembly_value = entry.get("assemblyType")
+    oligomer_value = entry.get("oligomericState")
+    if is_complex is True:
+        if not isinstance(assembly_value, str) or assembly_value not in ASSEMBLY_TYPES:
+            results.append(
+                ValidationResult(
+                    check="metadata",
+                    file=path,
+                    level=Level.ERROR,
+                    code="metadata_invalid_assembly_type",
+                    message=f"{location}: assemblyType must be one of {sorted(ASSEMBLY_TYPES)} when isComplex is true.",
+                    suggested_fix="Set assemblyType to 'Homo' or 'Hetero'.",
+                )
+            )
+        if not isinstance(oligomer_value, str) or oligomer_value not in OLIGOMERIC_STATES:
+            results.append(
+                ValidationResult(
+                    check="metadata",
+                    file=path,
+                    level=Level.ERROR,
+                    code="metadata_invalid_oligomeric_state",
+                    message=f"{location}: oligomericState must be one of {sorted(OLIGOMERIC_STATES)} when isComplex is true.",
+                    suggested_fix="Use the Latin oligomeric names (e.g., dimer, trimer, ...).",
+                )
+            )
+    else:
+        if assembly_value is not None and (not isinstance(assembly_value, str) or assembly_value not in ASSEMBLY_TYPES):
+            results.append(
+                ValidationResult(
+                    check="metadata",
+                    file=path,
+                    level=Level.ERROR,
+                    code="metadata_invalid_assembly_type",
+                    message=f"{location}: assemblyType must be one of {sorted(ASSEMBLY_TYPES)} when provided.",
+                    suggested_fix="Set assemblyType to 'Homo' or 'Hetero'.",
+                )
+            )
+        if oligomer_value is not None and (not isinstance(oligomer_value, str) or oligomer_value not in OLIGOMERIC_STATES):
+            results.append(
+                ValidationResult(
+                    check="metadata",
+                    file=path,
+                    level=Level.ERROR,
+                    code="metadata_invalid_oligomeric_state",
+                    message=f"{location}: oligomericState must be one of {sorted(OLIGOMERIC_STATES)} when provided.",
+                    suggested_fix="Use the Latin oligomeric names (e.g., dimer, trimer, ...).",
+                )
+            )
 
     # Unique ID format
     unique_id = entry.get("uniqueId")
@@ -276,8 +307,8 @@ def _validate_entry(
                     file=path,
                     level=Level.ERROR,
                     code="metadata_invalid_unique_id",
-                    message=f"{location}: uniqueId must follow '<modelEntityId>_v<version>_<ordinal>' format.",
-                    suggested_fix="Construct uniqueId as modelEntityId + '_v' + version + '_' + ordinal.",
+                    message=f"{location}: uniqueId must follow '<modelEntityId>_v<version>' format.",
+                    suggested_fix="Construct uniqueId as modelEntityId + '_v' + version.",
                 )
             )
         elif unique_id in seen_unique_ids:
@@ -293,13 +324,26 @@ def _validate_entry(
             )
         else:
             seen_unique_ids.add(unique_id)
-    else:
-        unique_id = None
 
     # Date formats
-    for field in ("modelCreatedDate", "sequenceVersionDate"):
-        if field in entry and entry[field] is not None:
-            value = entry[field]
+    model_created = entry.get("modelCreatedDate")
+    if isinstance(model_created, str) and not ISO_DATETIME_PATTERN.match(model_created):
+        results.append(
+            ValidationResult(
+                check="metadata",
+                file=path,
+                level=Level.ERROR,
+                code="metadata_invalid_datetime",
+                message=f"{location}: field 'modelCreatedDate' must be an ISO 8601 date (YYYY-MM-DDT00:00:00Z).",
+                suggested_fix="Format 'modelCreatedDate' as YYYY-MM-DDT00:00:00Z.",
+            )
+        )
+
+    seq_dates = list_field_values.get("sequenceVersionDate")
+    if seq_dates:
+        for idx, value in enumerate(seq_dates, start=1):
+            if value is None:
+                continue
             if not isinstance(value, str) or not ISO_DATETIME_PATTERN.match(value):
                 results.append(
                     ValidationResult(
@@ -307,56 +351,105 @@ def _validate_entry(
                         file=path,
                         level=Level.ERROR,
                         code="metadata_invalid_datetime",
-                        message=f"{location}: field '{field}' must be an ISO 8601 date (YYYY-MM-DDT00:00:00Z).",
-                        suggested_fix=f"Format '{field}' as YYYY-MM-DDT00:00:00Z.",
+                        message=f"{location}: sequenceVersionDate entry #{idx} must be an ISO 8601 date (YYYY-MM-DDT00:00:00Z).",
+                        suggested_fix="Format each sequenceVersionDate as YYYY-MM-DDT00:00:00Z or use null when unavailable.",
                     )
                 )
 
-    # MD5 checksum
-    checksum = entry.get("sequenceChecksum")
-    if isinstance(checksum, str) and not MD5_PATTERN.match(checksum):
-        results.append(
-            ValidationResult(
-                check="metadata",
-                file=path,
-                level=Level.ERROR,
-                code="metadata_invalid_checksum",
-                message=f"{location}: sequenceChecksum must be a 32-character hexadecimal MD5.",
-                suggested_fix="Compute the MD5 checksum of the sequence and store it as lowercase hexadecimal.",
-            )
-        )
-
-    # Sequence length and residue bounds
-    sequence = entry.get("sequence")
-    seq_start = entry.get("sequenceStart")
-    seq_end = entry.get("sequenceEnd")
-    if isinstance(sequence, str) and isinstance(seq_start, int) and isinstance(seq_end, int):
-        if seq_start < 1 or seq_end < seq_start:
-            results.append(
-                ValidationResult(
-                    check="metadata",
-                    file=path,
-                    level=Level.ERROR,
-                    code="metadata_invalid_sequence_bounds",
-                    message=f"{location}: sequenceStart must be >=1 and <= sequenceEnd.",
-                    suggested_fix="Check the reported residue range for this sequence.",
-                )
-            )
-        else:
-            expected_length = seq_end - seq_start + 1
-            if len(sequence) != expected_length:
+    # MD5 checksums
+    checksums = list_field_values.get("sequenceChecksum")
+    if checksums:
+        for idx, checksum in enumerate(checksums, start=1):
+            if not isinstance(checksum, str) or not MD5_PATTERN.match(checksum):
                 results.append(
                     ValidationResult(
                         check="metadata",
                         file=path,
                         level=Level.ERROR,
-                        code="metadata_sequence_length_mismatch",
-                        message=f"{location}: sequence length ({len(sequence)}) does not match sequenceStart/sequenceEnd ({expected_length}).",
-                        suggested_fix="Ensure sequenceStart, sequenceEnd, and sequence length are consistent.",
+                        code="metadata_invalid_checksum",
+                        message=f"{location}: sequenceChecksum entry #{idx} must be a 32-character hexadecimal MD5.",
+                        suggested_fix="Compute the MD5 checksum of each sequence and store it as lowercase hexadecimal.",
                     )
                 )
 
-    # Fractions between 0 and 1
+    # Sequence value checks
+    sequences = list_field_values.get("sequence")
+    if sequences:
+        for idx, seq in enumerate(sequences, start=1):
+            if not isinstance(seq, str) or not seq:
+                results.append(
+                    ValidationResult(
+                        check="metadata",
+                        file=path,
+                        level=Level.ERROR,
+                        code="metadata_invalid_sequence",
+                        message=f"{location}: sequence entry #{idx} must be a non-empty string.",
+                        suggested_fix="Populate each sequence with the residues for that component.",
+                    )
+                )
+
+    accession_values = list_field_values.get("accession")
+    if accession_values:
+        expected_len = len(accession_values)
+        for field, values in list_field_values.items():
+            if field == "accession":
+                continue
+            if len(values) != expected_len:
+                results.append(
+                    ValidationResult(
+                        check="metadata",
+                        file=path,
+                        level=Level.ERROR,
+                        code="metadata_list_length_mismatch",
+                        message=f"{location}: field '{field}' must contain {expected_len} entries (found {len(values)}).",
+                        suggested_fix="Ensure every per-component list aligns with the accession list.",
+                    )
+                )
+        sequence_starts = list_field_values.get("sequenceStart")
+        sequence_ends = list_field_values.get("sequenceEnd")
+        if sequence_starts and sequence_ends and len(sequence_starts) == len(sequence_ends) == expected_len:
+            for idx, (start, end) in enumerate(zip(sequence_starts, sequence_ends), start=1):
+                if not isinstance(start, int) or not isinstance(end, int):
+                    continue
+                if start < 1 or end < start:
+                    results.append(
+                        ValidationResult(
+                            check="metadata",
+                            file=path,
+                            level=Level.ERROR,
+                            code="metadata_invalid_sequence_bounds",
+                            message=f"{location}: sequenceStart/sequenceEnd for component #{idx} are inconsistent.",
+                            suggested_fix="Ensure sequenceStart >= 1 and sequenceEnd >= sequenceStart for every component.",
+                        )
+                    )
+                elif sequences and len(sequences) == expected_len:
+                    seq_value = sequences[idx - 1]
+                    if isinstance(seq_value, str) and len(seq_value) != end - start + 1:
+                        results.append(
+                            ValidationResult(
+                                check="metadata",
+                                file=path,
+                                level=Level.ERROR,
+                                code="metadata_sequence_length_mismatch",
+                                message=f"{location}: sequence #{idx} length does not match the reported residue range.",
+                                suggested_fix="Align each sequence with its sequenceStart/sequenceEnd window.",
+                            )
+                        )
+
+    for field in ("isFragment", "isUniProt"):
+        value = entry.get(field)
+        if isinstance(value, str) and value not in TRI_STATE_VALUES:
+            results.append(
+                ValidationResult(
+                    check="metadata",
+                    file=path,
+                    level=Level.ERROR,
+                    code="metadata_invalid_tri_state",
+                    message=f"{location}: field '{field}' must be one of {sorted(TRI_STATE_VALUES)}.",
+                    suggested_fix=f"Set '{field}' to 'all', 'none', or 'mixed'.",
+                )
+            )
+
     for field in FLOAT_FIELDS_0_1:
         value = entry.get(field)
         if value is not None:
@@ -386,7 +479,6 @@ def _validate_entry(
                 )
             )
 
-    # allVersions consistency
     latest_version = entry.get("latestVersion")
     all_versions = entry.get("allVersions")
     if isinstance(latest_version, int) and latest_version < 1:
@@ -401,18 +493,7 @@ def _validate_entry(
             )
         )
     if isinstance(all_versions, list):
-        if not all(isinstance(val, int) for val in all_versions):
-            results.append(
-                ValidationResult(
-                    check="metadata",
-                    file=path,
-                    level=Level.ERROR,
-                    code="metadata_invalid_all_versions",
-                    message=f"{location}: allVersions must be a list of integers.",
-                    suggested_fix="Populate allVersions with integer version numbers.",
-                )
-            )
-        elif not all_versions:
+        if not all_versions:
             results.append(
                 ValidationResult(
                     check="metadata",
@@ -420,10 +501,21 @@ def _validate_entry(
                     level=Level.ERROR,
                     code="metadata_invalid_all_versions",
                     message=f"{location}: allVersions must not be empty.",
-                    suggested_fix="Populate allVersions with at least one version number.",
+                    suggested_fix="Provide at least one version number.",
                 )
             )
-        elif latest_version not in all_versions:
+        elif not all(isinstance(val, int) and val >= 1 for val in all_versions):
+            results.append(
+                ValidationResult(
+                    check="metadata",
+                    file=path,
+                    level=Level.ERROR,
+                    code="metadata_invalid_all_versions",
+                    message=f"{location}: allVersions must contain positive integers.",
+                    suggested_fix="Populate allVersions with positive integer version numbers.",
+                )
+            )
+        elif isinstance(latest_version, int) and latest_version not in all_versions:
             results.append(
                 ValidationResult(
                     check="metadata",
@@ -435,96 +527,71 @@ def _validate_entry(
                 )
             )
 
-    # optional lists should contain strings or ints
-    _validate_string_list(entry, "geneSynonyms", path, location, results)
-    _validate_string_list(entry, "organismCommonNames", path, location, results)
-    _validate_string_list(entry, "organismSynonyms", path, location, results)
-    _validate_string_list(entry, "proteinFullNames", path, location, results)
-    _validate_string_list(entry, "proteinShortNames", path, location, results)
-    _validate_string_list(entry, "keywords", path, location, results)
-    _validate_string_list(entry, "taxonomyLineage", path, location, results)
-    _validate_string_list(entry, "functions", path, location, results)
-    _validate_string_list(entry, "alternativeNames", path, location, results)
-    _validate_string_list(entry, "catalyticActivities", path, location, results)
-    _validate_int_list(entry, "otherTaxIds", path, location, results)
-    _validate_string_list(entry, "otherOrganismScientificNames", path, location, results)
-
-    if "otherTaxIds" in entry and "otherOrganismScientificNames" in entry:
-        tax_ids = entry.get("otherTaxIds")
-        other_names = entry.get("otherOrganismScientificNames")
-        if isinstance(tax_ids, list) and isinstance(other_names, list) and len(tax_ids) != len(other_names):
+    complex_composition = entry.get("complexComposition")
+    is_complex = entry.get("isComplex")
+    if is_complex is True:
+        if not isinstance(complex_composition, list) or not complex_composition:
             results.append(
                 ValidationResult(
                     check="metadata",
                     file=path,
                     level=Level.ERROR,
-                    code="metadata_other_lists_mismatch",
-                    message=f"{location}: otherTaxIds and otherOrganismScientificNames must have the same number of entries.",
-                    suggested_fix="Align the otherOrganismScientificNames list with otherTaxIds.",
+                    code="metadata_missing_complex_composition",
+                    message=f"{location}: complexComposition is required for complex entries.",
+                    suggested_fix="Provide a list of '<accession>_<stoichiometry>' entries.",
                 )
             )
-
-    complex_composition = entry.get("complexComposition")
-    if isinstance(complex_composition, str) and complex_composition and not COMPLEX_COMPONENT_PATTERN.match(complex_composition):
-        results.append(
-            ValidationResult(
-                check="metadata",
-                file=path,
-                level=Level.ERROR,
-                code="metadata_invalid_complex_composition",
-                message=f"{location}: complexComposition must be comma-separated '<checksum>_<stoichiometry>' pairs.",
-                suggested_fix="Format complexComposition as comma-separated hex checksum plus underscore stoichiometry values.",
+        else:
+            if accession_values and len(complex_composition) != len(accession_values):
+                results.append(
+                    ValidationResult(
+                        check="metadata",
+                        file=path,
+                        level=Level.ERROR,
+                        code="metadata_complex_length_mismatch",
+                        message=f"{location}: complexComposition must describe every component.",
+                        suggested_fix="Include one complexComposition token per accession.",
+                    )
+                )
+            for token in complex_composition:
+                if not isinstance(token, str) or not COMPLEX_COMPONENT_PATTERN.match(token):
+                    results.append(
+                        ValidationResult(
+                            check="metadata",
+                            file=path,
+                            level=Level.ERROR,
+                            code="metadata_invalid_complex_composition",
+                            message=f"{location}: complexComposition entries must follow '<accession>_<stoichiometry>'.",
+                            suggested_fix="Format each complexComposition entry as UniProtAccession_Stoichiometry.",
+                        )
+                    )
+    elif complex_composition:
+        if not isinstance(complex_composition, list):
+            results.append(
+                ValidationResult(
+                    check="metadata",
+                    file=path,
+                    level=Level.ERROR,
+                    code="metadata_invalid_complex_composition",
+                    message=f"{location}: complexComposition must be a list of strings.",
+                    suggested_fix="Store complexComposition as a list if provided.",
+                )
             )
-        )
-
-    stoichiometry = entry.get("stoichiometry")
-    if isinstance(stoichiometry, int) and stoichiometry < 1:
-        results.append(
-            ValidationResult(
-                check="metadata",
-                file=path,
-                level=Level.ERROR,
-                code="metadata_invalid_stoichiometry",
-                message=f"{location}: stoichiometry must be a positive integer.",
-                suggested_fix="Ensure stoichiometry reflects the number of copies (>= 1).",
-            )
-        )
+        else:
+            for token in complex_composition:
+                if not isinstance(token, str) or not COMPLEX_COMPONENT_PATTERN.match(token):
+                    results.append(
+                        ValidationResult(
+                            check="metadata",
+                            file=path,
+                            level=Level.ERROR,
+                            code="metadata_invalid_complex_composition",
+                            message=f"{location}: complexComposition entries must follow '<accession>_<stoichiometry>'.",
+                            suggested_fix="Format each complexComposition entry as UniProtAccession_Stoichiometry.",
+                        )
+                    )
 
     return results
-
-
-def _validate_string_list(entry: dict, field: str, path: Path, location: str, results: List[ValidationResult]) -> None:
-    value = entry.get(field)
-    if value is None:
-        return
-    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-        results.append(
-            ValidationResult(
-                check="metadata",
-                file=path,
-                level=Level.ERROR,
-                code="metadata_invalid_type",
-                message=f"{location}: field '{field}' must be a list of strings.",
-                suggested_fix=f"Ensure '{field}' is an array of strings.",
-            )
-        )
-
-
-def _validate_int_list(entry: dict, field: str, path: Path, location: str, results: List[ValidationResult]) -> None:
-    value = entry.get(field)
-    if value is None:
-        return
-    if not isinstance(value, list) or not all(isinstance(item, int) for item in value):
-        results.append(
-            ValidationResult(
-                check="metadata",
-                file=path,
-                level=Level.ERROR,
-                code="metadata_invalid_type",
-                message=f"{location}: field '{field}' must be a list of integers.",
-                suggested_fix=f"Ensure '{field}' is an array of integers.",
-            )
-        )
 
 
 def type_name(expected: object) -> str:

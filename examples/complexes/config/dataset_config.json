@@ -8,10 +8,5 @@
   "versionTag": "v1",
   "ordinal": 1,
   "latestVersion": 1,
-  "allVersions": [1],
-  "globalMetricValue": null,
-  "fractionPlddtVeryLow": null,
-  "fractionPlddtLow": null,
-  "fractionPlddtConfident": null,
-  "fractionPlddtVeryHigh": null
+  "allVersions": [1]
 }
