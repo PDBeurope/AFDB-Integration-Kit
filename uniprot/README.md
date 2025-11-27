@@ -21,11 +21,14 @@ uniprot/
   templates/
     modelcif_metadata.json    # Starter template for ModelCIF metadata exports
   scripts/
+    shard_uniprot.py          # Split UniProt releases into shards for parallel runs
     extract_subset.py         # Stream UniProt releases into entry.parquet
+    merge_parquet_shards.py   # Merge shard-level parquet outputs into one file
     build_duckdb.py           # Materialise entry.parquet inside DuckDB
     export_model_metadata.py  # Emit one model-level JSON document (per model)
     export_chain_metadata.py  # Emit per-chain JSON documents (one per chain)
     combine_metadata.py       # Combine metadata JSON entries into batches
+  (Programmatic wrappers live under `afdb_integration_kit.uniprot.*`)
 ```
 
 All files produced by these utilities are ignored by git; users are expected to
@@ -43,23 +46,68 @@ generate them locally.
 The `data/` directory contains symlinks to the UniProt releases.  Update them if
 your data lives elsewhere.
 
+## Optional: shard releases for parallel extraction
+
+For large TrEMBL runs, pre-shard the release once so you can process shards in
+parallel later.  Shards are stable by accession (md5 hash modulo the shard
+count) and keep valid UniProt flat-file syntax. Examples below use the 2025_04
+release, but older releases work the same as long as you keep the original
+Swiss-Prot/TrEMBL `.dat.gz` files.
+
+```bash
+python3 uniprot/scripts/shard_uniprot.py \
+  -o uniprot/outputs/shards \
+  -r 2025_04 \
+  --shard-count 8 \
+  uniprot/data/uniprot_sprot.dat.gz
+```
+
+Outputs land under `uniprot/outputs/shards/<release>/<source>/` with filenames
+that include `sprot`/`trembl` for downstream `reviewed` detection.  Repeat the
+command for TrEMBL and choose a higher `--shard-count` if needed.  Run this once
+per release.
+
 ## Typical workflow
 
 1. **Extract the UniProt subset**
 
    ```bash
-   python3 uniprot/scripts/extract_subset.py --mapping /path/to/uniprot_afid_mapping.csv -o uniprot/outputs/parquet -r 2025_03 uniprot/data/uniprot_sprot.dat.gz uniprot/data/uniprot_trembl.dat.gz
+   python3 uniprot/scripts/extract_subset.py --mapping /path/to/uniprot_afid_mapping.csv -o uniprot/outputs/parquet -r 2025_04 uniprot/data/uniprot_sprot.dat.gz uniprot/data/uniprot_trembl.dat.gz
    ```
 
    The command streams both flat files, writes the matching entries into
    `uniprot/outputs/parquet/entry.parquet`, shows a running count of matched
    accessions, and stops as soon as every accession in the mapping is found.
 
+   Shard-aware (run one command per shard, ideally in parallel):
+
+   ```bash
+   python3 uniprot/scripts/extract_subset.py \
+     --mapping /path/to/uniprot_afid_mapping.csv \
+     --shard-count 8 \
+     --shard-index 0 \
+     -o uniprot/outputs/parquet/shard-00 \
+     -r 2025_04 \
+     uniprot/outputs/shards/2025_04/sprot/sprot-shard-00.dat.gz
+   ```
+
+   Repeat for each shard index and source (sprot/trembl). Concatenate the shard
+   Parquet files afterward (e.g., `duckdb` or `pyarrow` can append
+   `uniprot/outputs/parquet/shard-*/entry.parquet` into a single dataset).
+
+
+   CLI entrypoints (after `pip install -e .`):
+
+   - `afdb-uniprot-shard -o uniprot/outputs/shards -r 2025_04 --shard-count 8 uniprot/data/uniprot_sprot.dat.gz`
+   - `afdb-uniprot-extract --mapping /path/to/uniprot_afid_mapping.csv --shard-count 8 --shard-index 0 -o uniprot/outputs/parquet/sprot-shard-00 -r 2025_04 uniprot/outputs/shards/2025_04/sprot/sprot-shard-00.dat.gz`
+   - `afdb-uniprot-merge -o uniprot/outputs/parquet/entry.parquet uniprot/outputs/parquet/sprot-shard-*/entry.parquet`
+   - `afdb-uniprot-build-db --parquet-dir uniprot/outputs/parquet --db uniprot/outputs/db/uniprot_2025_04.duckdb --force`
+
 
 2. **Build the DuckDB cache**
 
    ```bash
-   python3 uniprot/scripts/build_duckdb.py --parquet-dir uniprot/outputs/parquet --db uniprot/outputs/db/uniprot_2025_03.duckdb --force
+   python3 uniprot/scripts/build_duckdb.py --parquet-dir uniprot/outputs/parquet --db uniprot/outputs/db/uniprot_2025_04.duckdb --force
    ```
 
 
@@ -68,7 +116,7 @@ your data lives elsewhere.
    ```bash
    python3 uniprot/scripts/export_model_metadata.py \
      --model-entity-id AF-0000000000000004 \
-     --db uniprot/outputs/db/uniprot_2025_03.duckdb \
+    --db uniprot/outputs/db/uniprot_2025_04.duckdb \
      --config /path/to/dataset_config.json \
      --mapping /path/to/uniprot_afid_mapping.csv \
      --model-manifest /path/to/uniprot_model_metadata.csv \
@@ -84,7 +132,7 @@ your data lives elsewhere.
    ```bash
    python3 uniprot/scripts/export_chain_metadata.py \
      --model-entity-id AF-0000000000000004 \
-     --db uniprot/outputs/db/uniprot_2025_03.duckdb \
+    --db uniprot/outputs/db/uniprot_2025_04.duckdb \
      --config /path/to/dataset_config.json \
      --mapping /path/to/uniprot_afid_mapping.csv \
      --model-manifest /path/to/uniprot_model_metadata.csv \
@@ -111,7 +159,7 @@ your data lives elsewhere.
    python3 uniprot/scripts/export_modelcif_input.py \
      --model-id AF-0000000000000004 \
      --manifest examples/complexes/config/subset_uniprot_afid_mapping.csv \
-     --db uniprot/outputs/db/uniprot_2025_03.duckdb \
+   --db uniprot/outputs/db/uniprot_2025_04.duckdb \
      --template uniprot/templates/modelcif_metadata.json \
      --out examples/multimer_examples/homodimer_metadata_for_model_gen.json
    ```
@@ -147,7 +195,7 @@ your data lives elsewhere.
 
    ```bash
   nextflow run workflow/af_metadata.nf \
-    --db uniprot/outputs/db/uniprot_2025_03.duckdb \
+    --db uniprot/outputs/db/uniprot_2025_04.duckdb \
     --config /path/to/dataset_config.json \
     --mapping /path/to/uniprot_afid_mapping.csv \
     --model_manifest /path/to/uniprot_model_metadata.csv \
@@ -159,8 +207,8 @@ your data lives elsewhere.
    _ModelCIF generator metadata (complex submissions):_
 
    ```bash
-   nextflow run workflow/modelcif_metadata.nf \
-     --db uniprot/outputs/db/uniprot_2025_03.duckdb \
+  nextflow run workflow/modelcif_metadata.nf \
+    --db uniprot/outputs/db/uniprot_2025_04.duckdb \
      --manifest examples/complexes/config/subset_uniprot_afid_mapping.csv \
      --template uniprot/templates/modelcif_metadata.json \
      --output_dir examples/complexes/modelcif_metadata \
