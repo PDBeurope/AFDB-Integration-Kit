@@ -14,7 +14,11 @@ dependencies = [
     "tqdm>=4.66.5",
     "requests>=2.32.4",
     "typer>=0.16.0",
+    "orjson>=3.11.4",
 ]
+
+[project.scripts]
+afdb-colabfold-convert = "afdb_integration_kit.colabfold.converter:main"
 
 [tool.setuptools.package-data]
 "afdb_integration_kit.validation" = ["defaults.yaml"]
