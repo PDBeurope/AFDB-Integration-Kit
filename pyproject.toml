@@ -16,11 +16,20 @@ dependencies = [
     "typer>=0.16.0",
 ]
 
+[project.scripts]
+afdb-uniprot-shard = "uniprot.scripts.shard_uniprot:main"
+afdb-uniprot-extract = "uniprot.scripts.extract_subset:main"
+afdb-uniprot-merge = "uniprot.scripts.merge_parquet_shards:main"
+afdb-uniprot-build-db = "uniprot.scripts.build_duckdb:main"
+afdb-uniprot-export-model = "uniprot.scripts.export_model_metadata:main"
+afdb-uniprot-export-chain = "uniprot.scripts.export_chain_metadata:main"
+afdb-uniprot-combine = "uniprot.scripts.combine_metadata:main"
+
 [tool.setuptools.package-data]
 "afdb_integration_kit.validation" = ["defaults.yaml"]
 
 [tool.setuptools.packages.find]
-include = ["afdb_integration_kit*"]
+include = ["afdb_integration_kit*", "uniprot*"]
 exclude = [
   "tests*",
   "examples*",

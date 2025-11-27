@@ -33,6 +33,11 @@ RE_TAXID = re.compile(r"NCBI_TaxID=(\d+)")
 RE_SQ_LEN = re.compile(r"(\d+)\s+AA;")
 
 
+def stable_shard_for_accession(accession: str, shard_count: int) -> int:
+    digest = hashlib.md5(accession.encode("utf-8")).digest()
+    return int.from_bytes(digest[:8], "big") % shard_count
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Filter UniProt flat-files by accession list and emit Parquet tables."
@@ -80,6 +85,16 @@ def parse_args() -> argparse.Namespace:
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Logging verbosity.",
+    )
+    parser.add_argument(
+        "--shard-count",
+        type=int,
+        help="Total shard count used to partition accessions (pairs with --shard-index).",
+    )
+    parser.add_argument(
+        "--shard-index",
+        type=int,
+        help="Shard index (0-based) to process when running over sharded inputs.",
     )
     return parser.parse_args()
 
@@ -460,15 +475,50 @@ def main() -> int:
         level=getattr(logging, args.log_level),
         format="%(levelname)s %(message)s",
     )
+    if (args.shard_count is None) ^ (args.shard_index is None):
+        logging.error("Provide both --shard-count and --shard-index to enable shard filtering.")
+        return 1
+    if args.shard_count is not None and args.shard_count < 1:
+        logging.error("--shard-count must be at least 1.")
+        return 1
+    if args.shard_index is not None and args.shard_index < 0:
+        logging.error("--shard-index must be non-negative.")
+        return 1
+
     targets: set[str] = set()
     if args.targets:
         targets |= load_targets(args.targets)
     if args.mapping:
         targets |= load_targets_from_mapping(args.mapping)
-
-    if not targets:
+    initial_target_count = len(targets)
+    if initial_target_count == 0:
         logging.error("No accessions provided. Use --targets and/or --mapping.")
         return 1
+
+    if args.shard_count is not None and args.shard_index is not None:
+        if args.shard_index >= args.shard_count:
+            logging.error("--shard-index must be less than --shard-count.")
+            return 1
+        targets = {
+            ac for ac in targets if stable_shard_for_accession(ac, args.shard_count) == args.shard_index
+        }
+        logging.info(
+            "Filtered targets to shard %d of %d (%d of %d accessions).",
+            args.shard_index,
+            args.shard_count,
+            len(targets),
+            initial_target_count,
+        )
+        if not targets:
+            ensure_output_dir(args.outdir)
+            entry_writer = ParquetBufferWriter(args.outdir / "entry.parquet", get_entry_schema(), args.batch_size)
+            entry_writer.close()
+            logging.info(
+                "No targets fall into shard %d of %d; wrote empty parquet and exiting.",
+                args.shard_index,
+                args.shard_count,
+            )
+            return 0
 
     logging.info("Loaded %d unique target accessions.", len(targets))
     ensure_output_dir(args.outdir)
