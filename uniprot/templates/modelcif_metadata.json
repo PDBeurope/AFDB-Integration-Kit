@@ -51,7 +51,7 @@
       "model_group_id": ["1"],
       "model_name": ["Top ranked model"],
       "data_id": ["1"],
-      "model_type": ["AlphaFold model"]
+      "model_type": ["Ab initio model"]
     },
     "_software": {
       "pdbx_ordinal": ["1"],
@@ -83,6 +83,9 @@
       "ordinal_id": ["1"],
       "model_id": ["1"],
       "metric_id": ["1"]
+    },
+    "_entry": {
+      "id": ["AF-PLACEHOLDER"]
     },
     "_database_2": {
       "database_id": ["AlphaFoldDB"],

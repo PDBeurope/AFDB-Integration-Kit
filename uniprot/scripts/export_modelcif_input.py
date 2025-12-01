@@ -375,6 +375,9 @@ def update_model_identifiers(template: Dict[str, object], model_id: str) -> None
     categories = template.get("categories")
     if not isinstance(categories, dict):
         return
+    entry = categories.get("_entry")
+    if isinstance(entry, dict):
+        entry["id"] = [model_id]
     database_2 = categories.get("_database_2")
     if isinstance(database_2, dict):
         database_2["database_code"] = [model_id]
