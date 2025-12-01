@@ -179,12 +179,30 @@ def _load_manifest_chains(
         uniprot_ac = _first_value(row, ["uniprot_ac", "uniprotAccession"])
         if not uniprot_ac:
             raise ValueError(f"Manifest row for chain {chain_id} is missing uniprot_ac.")
+        entity_id = (row.get("entity_id") or "").strip()
         chain_rows.append(
             {
                 "chain_id": chain_id,
                 "uniprot_ac": uniprot_ac,
+                "entity_id": entity_id,
             }
         )
+    # Assign entity_id per accession if missing; preserve any provided values
+    acc_to_entity: Dict[str, str] = {}
+    next_id = 1
+    # respect provided ids
+    for row in chain_rows:
+        acc = row["uniprot_ac"]
+        eid = row.get("entity_id")
+        if eid:
+            acc_to_entity.setdefault(acc, eid)
+    # assign missing
+    for row in chain_rows:
+        acc = row["uniprot_ac"]
+        if acc not in acc_to_entity:
+            acc_to_entity[acc] = str(next_id)
+            next_id += 1
+        row["entity_id"] = acc_to_entity[acc]
     return model_entity_id, chain_rows
 
 
@@ -252,6 +270,7 @@ def _load_chain_metadata_from_duckdb(
 
         chains: list[ChainMetadata] = []
         residue_numbers: list[int] = []
+        running_total = 0
         for chain in manifest_chains:
             acc = chain["uniprot_ac"]
             chain_id = chain["chain_id"]
@@ -266,8 +285,8 @@ def _load_chain_metadata_from_duckdb(
             seqlen = len(seq)
             if seqlen == 0:
                 raise ValueError(f"No sequence found in DuckDB entry table for accession {acc}.")
-            seq_start = 1
-            seq_end = seqlen
+            seq_start = running_total + 1
+            seq_end = running_total + seqlen
             chains.append(
                 {
                     "name": desc,
@@ -277,10 +296,100 @@ def _load_chain_metadata_from_duckdb(
                 }
             )
             residue_numbers.extend(range(seq_start, seq_end + 1))
+            running_total = seq_end
 
         return chains, residue_numbers
     finally:
         con.close()
+
+
+def _compute_plddt_metrics(
+    plddt: Sequence[float],
+    chains: list[ChainMetadata],
+    manifest_chains: list[dict[str, str]],
+) -> tuple[list[dict[str, Any]], float]:
+    """
+    Compute per-chain average pLDDT and model-level average.
+    Returns (chain_rows, model_avg_plddt).
+    """
+    acc_lookup = {c["chain_id"]: c["uniprot_ac"] for c in manifest_chains}
+    entity_lookup = {c["chain_id"]: c.get("entity_id", "") for c in manifest_chains}
+    chain_rows: list[dict[str, Any]] = []
+    total_sum = 0.0
+    total_count = 0
+    for chain in chains:
+        start = chain["sequenceStart"]
+        end = chain["sequenceEnd"]
+        length = end - start + 1
+        # chains are 1-based inclusive for global indices
+        values = plddt[start - 1 : end]
+        if not values:
+            raise ValueError(f"No pLDDT values found for chain {chain['label_asym_id']}.")
+        avg = round(sum(values) / len(values), 2)
+        total_sum += sum(values)
+        total_count += len(values)
+        fraction_plddt_very_low = round(sum(1 for v in values if v < 50.0) / len(values), 3)
+        fraction_plddt_low = round(sum(1 for v in values if 50.0 <= v < 70.0) / len(values), 3)
+        fraction_plddt_confident = round(sum(1 for v in values if 70.0 <= v <= 90.0) / len(values), 3)
+        fraction_plddt_very_high = round(sum(1 for v in values if v > 90.0) / len(values), 3)
+        chain_rows.append(
+            {
+                "model_entity_id": None,  # filled later
+                "entity_id": entity_lookup.get(chain["label_asym_id"]) or "",
+                "chain_id": chain["label_asym_id"],
+                "uniprot_ac": acc_lookup.get(chain["label_asym_id"]) or "",
+                "sequence_start": 1,
+                "sequence_end": length,
+                "average_plddt": avg,
+                "fraction_plddt_very_low": fraction_plddt_very_low,
+                "fraction_plddt_low": fraction_plddt_low,
+                "fraction_plddt_confident": fraction_plddt_confident,
+                "fraction_plddt_very_high": fraction_plddt_very_high,
+            }
+        )
+    model_avg = round(total_sum / total_count, 2) if total_count else 0.0
+    return chain_rows, model_avg
+
+
+def _write_manifest_csv(path: Path, fieldnames: list[str], rows: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+
+def _merge_manifest_csv(
+    path: Path,
+    base_fieldnames: list[str],
+    model_entity_id: str,
+    new_rows: list[dict[str, Any]],
+) -> None:
+    """
+    Merge manifest rows by replacing any existing rows for model_entity_id with new_rows.
+    Preserves other models and unions any extra columns present in the existing file.
+    """
+    existing_rows: list[dict[str, Any]] = []
+    existing_fields: list[str] = []
+    if path.exists():
+        with path.open("r", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            existing_fields = reader.fieldnames or []
+            for row in reader:
+                if (row.get("model_entity_id") or "") != model_entity_id:
+                    existing_rows.append(row)
+
+    merged_fields_set = set(base_fieldnames) | set(existing_fields)
+    merged_fieldnames = [fn for fn in base_fieldnames if fn in merged_fields_set] + [
+        fn for fn in existing_fields if fn not in base_fieldnames
+    ]
+
+    def _normalize(row: dict[str, Any]) -> dict[str, Any]:
+        return {fn: row.get(fn, "") for fn in merged_fieldnames}
+
+    normalized_rows = [_normalize(r) for r in existing_rows] + [_normalize(r) for r in new_rows]
+    _write_manifest_csv(path, merged_fieldnames, normalized_rows)
 
 
 def plddt_to_ingest(
@@ -329,6 +438,10 @@ def convert_file(
     manifest_path: str | None = None,
     model_entity_id: str | None = None,
     duckdb_path: str | None = None,
+    out_chain_manifest: str | None = None,
+    out_model_manifest: str | None = None,
+    chain_manifest_dir: str | None = None,
+    model_manifest_dir: str | None = None,
 ) -> Dict[str, str]:
     """
     Convert ColabFold score JSON + PDB into AFDB-format JSONs.
@@ -385,6 +498,21 @@ def convert_file(
     plddt_payload = plddt_to_ingest(plddt, chains, residue_numbers)
     pae_payload = pae_to_ingest(pae, max_pae, chains)
 
+    chain_manifest_rows: list[dict[str, Any]] | None = None
+    model_avg_plddt: float | None = None
+    if out_chain_manifest or out_model_manifest or chain_manifest_dir or model_manifest_dir:
+        if not manifest_chains:
+            raise ValueError("--manifest is required when writing pLDDT manifests.")
+        chain_manifest_rows, model_avg_plddt = _compute_plddt_metrics(plddt, chains, manifest_chains)
+        if model_entity_id:
+            for row in chain_manifest_rows:
+                row["model_entity_id"] = model_entity_id
+                row.setdefault("is_fragment", "")
+                row.setdefault("is_isoform", "")
+                row.setdefault("entity_type", "protein")
+        else:
+            raise ValueError("--model-entity-id is required when writing pLDDT manifests.")
+
     base_name = model_entity_id or scores_path.stem
     default_plddt_name = f"{base_name}-confidence_v1.json"
     default_pae_name = f"{base_name}-predicted_aligned_error_v1.json"
@@ -403,6 +531,91 @@ def convert_file(
 
     _dump(plddt_payload, out_plddt_path)
     _dump(pae_payload, out_pae_path)
+
+    if chain_manifest_rows is not None:
+        chain_manifest_path: Path | None = None
+        if chain_manifest_dir:
+            chain_manifest_path = Path(chain_manifest_dir) / f"{base_name}_afid_mapping.csv"
+            _write_manifest_csv(
+                chain_manifest_path,
+                [
+                    "model_entity_id",
+                    "entity_id",
+                    "chain_id",
+                    "uniprot_ac",
+                    "is_fragment",
+                    "is_isoform",
+                    "entity_type",
+                    "sequence_start",
+                    "sequence_end",
+                    "average_plddt",
+                    "fraction_plddt_very_low",
+                    "fraction_plddt_low",
+                    "fraction_plddt_confident",
+                    "fraction_plddt_very_high",
+                ],
+                chain_manifest_rows,
+            )
+        elif out_chain_manifest:
+            _merge_manifest_csv(
+                Path(out_chain_manifest),
+                [
+                    "model_entity_id",
+                    "entity_id",
+                    "chain_id",
+                    "uniprot_ac",
+                    "is_fragment",
+                    "is_isoform",
+                    "entity_type",
+                    "sequence_start",
+                    "sequence_end",
+                    "average_plddt",
+                    "fraction_plddt_very_low",
+                    "fraction_plddt_low",
+                    "fraction_plddt_confident",
+                    "fraction_plddt_very_high",
+                ],
+                model_entity_id,
+                chain_manifest_rows,
+            )
+
+    if model_avg_plddt is not None:
+        model_manifest_path: Path | None = None
+        model_rows = [
+            {
+                "model_entity_id": model_entity_id,
+                "ipTM": data.get("iptm", data.get("ipTM", "")),
+                "average_plddt": model_avg_plddt,
+                "complexName": "",
+                "isAMdata": "",
+            }
+        ]
+        if model_manifest_dir:
+            model_manifest_path = Path(model_manifest_dir) / f"{base_name}_model_metadata.csv"
+            _write_manifest_csv(
+                model_manifest_path,
+                [
+                    "model_entity_id",
+                    "ipTM",
+                    "average_plddt",
+                    "complexName",
+                    "isAMdata",
+                ],
+                model_rows,
+            )
+        elif out_model_manifest:
+            _merge_manifest_csv(
+                Path(out_model_manifest),
+                [
+                    "model_entity_id",
+                    "ipTM",
+                    "average_plddt",
+                    "complexName",
+                    "isAMdata",
+                ],
+                model_entity_id,
+                model_rows,
+            )
 
     return {"plddt": out_plddt_path, "pae": out_pae_path}
 
@@ -434,6 +647,22 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument("--model-entity-id", help="Model entity ID to select rows from manifest when provided")
+    p.add_argument(
+        "--chain-manifest-out",
+        help="Optional output CSV for chain-level metrics (adds average_plddt). Requires --manifest and --model-entity-id.",
+    )
+    p.add_argument(
+        "--model-manifest-out",
+        help="Optional output CSV for model-level metrics (average_plddt). Requires --manifest and --model-entity-id.",
+    )
+    p.add_argument(
+        "--chain-manifest-dir",
+        help="Optional directory to write per-model chain manifests (<model_entity_id>_afid_mapping.csv).",
+    )
+    p.add_argument(
+        "--model-manifest-dir",
+        help="Optional directory to write per-model model manifests (<model_entity_id>_model_metadata.csv).",
+    )
     return p
 
 
@@ -448,6 +677,10 @@ def main(argv: List[str] | None = None) -> None:
         manifest_path=args.manifest,
         model_entity_id=args.model_entity_id,
         duckdb_path=args.duckdb,
+        out_chain_manifest=args.chain_manifest_out,
+        out_model_manifest=args.model_manifest_out,
+        chain_manifest_dir=args.chain_manifest_dir,
+        model_manifest_dir=args.model_manifest_dir,
     )
     print(orjson.dumps(paths, option=orjson.OPT_INDENT_2).decode())
 

@@ -194,6 +194,57 @@ uv run main.py run-dssp \
 
 ## Usage
 
+### ColabFold conversion
+
+Convert ColabFold score JSON + PDB to AFDB ingest JSONs (pLDDT/PAE) and optional UniProt-style manifests.
+
+Requirements: `orjson`, `duckdb`, a chain manifest (`model_entity_id,entity_id,chain_id,uniprot_ac` at minimum), and a DuckDB built from the UniProt subset.
+
+Example (per model, safer for many parallel jobs):
+
+```
+afdb-colabfold-convert \
+  /path/to/<AC>_scores_rank_001_alphafold2_multimer_v3_model_1_seed_000.json \
+  /path/to/<AC>_unrelaxed_rank_001_alphafold2_multimer_v3_model_1_seed_000.pdb \
+  --manifest /mnt/disks/data/sample/config/uniprot_afid_mapping.csv \
+  --duckdb /mnt/disks/data/sample/db/uniprot_2025_04.duckdb \
+  --model-entity-id AF-0000000000001201 \
+  --outdir /mnt/disks/data/sample/colabfold_output/<AC>-model_v4 \
+  --chain-manifest-dir /mnt/disks/data/sample/per_accession/manifests/chains \
+  --model-manifest-dir /mnt/disks/data/sample/per_accession/manifests/models
+```
+
+Outputs:
+- AFDB JSONs: `<model_entity_id>-confidence_v1.json` and `<model_entity_id>-predicted_aligned_error_v1.json` in `--outdir`.
+- Per-model manifests:
+  - Chains: `<model_entity_id>_afid_mapping.csv` with pLDDT averages/fractions and local 1..N residue ranges.
+  - Models: `<model_entity_id>_model_metadata.csv` with average pLDDT and ipTM (if present in scores JSON).
+
+Merge per-model manifests when needed (keep the header, append rows):
+
+```
+# Chain manifest (uniprot_afid_mapping.csv)
+head -n1 /mnt/disks/data/sample/per_accession/manifests/chains/*_afid_mapping.csv \
+  > /mnt/disks/data/sample/config/uniprot_afid_mapping.csv
+tail -n +2 -q /mnt/disks/data/sample/per_accession/manifests/chains/*_afid_mapping.csv \
+  >> /mnt/disks/data/sample/config/uniprot_afid_mapping.csv
+
+# Model manifest (uniprot_model_metadata.csv)
+head -n1 /mnt/disks/data/sample/per_accession/manifests/models/*_model_metadata.csv \
+  > /mnt/disks/data/sample/config/uniprot_model_metadata.csv
+tail -n +2 -q /mnt/disks/data/sample/per_accession/manifests/models/*_model_metadata.csv \
+  >> /mnt/disks/data/sample/config/uniprot_model_metadata.csv
+```
+
+Build DuckDB (once per release) from the chain manifest and UniProt flat files:
+
+```
+afdb-uniprot-extract --mapping <chain_manifest.csv> -o <parquet_dir> -r 2025_04 \
+  uniprot/data/uniprot_sprot.dat.gz uniprot/data/uniprot_trembl.dat.gz
+
+afdb-uniprot-build-db --parquet-dir <parquet_dir> --db <db_path> --force
+```
+
 ### ModelCIF Generator
 
 Converts PDB files to mmCIF format with integrated metadata.
