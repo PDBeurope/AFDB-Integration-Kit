@@ -24,6 +24,7 @@ afdb-uniprot-build-db = "uniprot.scripts.build_duckdb:main"
 afdb-uniprot-export-model = "uniprot.scripts.export_model_metadata:main"
 afdb-uniprot-export-chain = "uniprot.scripts.export_chain_metadata:main"
 afdb-uniprot-combine = "uniprot.scripts.combine_metadata:main"
+afdb-colabfold-convert = "afdb_integration_kit.colabfold.converter:main"
 
 [tool.setuptools.package-data]
 "afdb_integration_kit.validation" = ["defaults.yaml"]
