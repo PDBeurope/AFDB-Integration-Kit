@@ -299,20 +299,17 @@ class PDBFileEditor:
         """
         cryst1 = f"CRYST1{a: >9.3f}{b: >9.3f}{c: >9.3f}{alpha: >7.2f}{beta: >7.2f}{gamma: >7.2f} P 1           1"
         self._header_lines_to_insert.append(f"{cryst1:<80}\n")
-        
-        origx1 = f"ORIGX1{1.000000: >10.6f}{0.000000: >10.6f}{0.000000: >10.6f}{0.00000: >15.5f}"
-        self._header_lines_to_insert.append(f"{origx1:<80}\n")
-        origx2 = f"ORIGX2{0.000000: >10.6f}{1.000000: >10.6f}{0.000000: >10.6f}{0.00000: >15.5f}"
-        self._header_lines_to_insert.append(f"{origx2:<80}\n")
-        origx3 = f"ORIGX3{0.000000: >10.6f}{0.000000: >10.6f}{1.000000: >10.6f}{0.00000: >15.5f}"
-        self._header_lines_to_insert.append(f"{origx3:<80}\n")
-        
-        scale1 = f"SCALE1{1.000000: >10.6f}{0.000000: >10.6f}{0.000000: >10.6f}{0.00000: >15.5f}"
-        self._header_lines_to_insert.append(f"{scale1:<80}\n")
-        scale2 = f"SCALE2{0.000000: >10.6f}{1.000000: >10.6f}{0.000000: >10.6f}{0.00000: >15.5f}"
-        self._header_lines_to_insert.append(f"{scale2:<80}\n")
-        scale3 = f"SCALE3{0.000000: >10.6f}{0.000000: >10.6f}{1.000000: >10.6f}{0.00000: >15.5f}"
-        self._header_lines_to_insert.append(f"{scale3:<80}\n")
+        # Fixed-width PDB formatting for ORIGX*/SCALE* (columns 1-6 name, 11-40 matrix, 46-55 translation)
+        origx_fmt = "ORIGX{row}    {m1:10.6f}{m2:10.6f}{m3:10.6f}     {v:10.5f}"
+        scale_fmt = "SCALE{row}    {m1:10.6f}{m2:10.6f}{m3:10.6f}     {v:10.5f}"
+
+        self._header_lines_to_insert.append(f"{origx_fmt.format(row=1, m1=1.0, m2=0.0, m3=0.0, v=0.0):<80}\n")
+        self._header_lines_to_insert.append(f"{origx_fmt.format(row=2, m1=0.0, m2=1.0, m3=0.0, v=0.0):<80}\n")
+        self._header_lines_to_insert.append(f"{origx_fmt.format(row=3, m1=0.0, m2=0.0, m3=1.0, v=0.0):<80}\n")
+
+        self._header_lines_to_insert.append(f"{scale_fmt.format(row=1, m1=1.0, m2=0.0, m3=0.0, v=0.0):<80}\n")
+        self._header_lines_to_insert.append(f"{scale_fmt.format(row=2, m1=0.0, m2=1.0, m3=0.0, v=0.0):<80}\n")
+        self._header_lines_to_insert.append(f"{scale_fmt.format(row=3, m1=0.0, m2=0.0, m3=1.0, v=0.0):<80}\n")
 
     def add_seqres(self, chain_id, sequence_list):
         """
