@@ -31,6 +31,8 @@ KW_PREFIX = "KW"
 RE_DE_FIELD = re.compile(r"(Full|Short)=([^;]+)")
 RE_TAXID = re.compile(r"NCBI_TaxID=(\d+)")
 RE_SQ_LEN = re.compile(r"(\d+)\s+AA;")
+RE_ISOFORM_ID = re.compile(r"IsoId=([^;]+)")
+RE_ISOFORM_SEQUENCE = re.compile(r"Sequence=([^;]+)")
 
 
 def stable_shard_for_accession(accession: str, shard_count: int) -> int:
@@ -161,6 +163,114 @@ def strip_annotations(value: str) -> str:
     return cleaned.rstrip(";").strip()
 
 
+def parse_alt_products(lines: Sequence[str]) -> Dict[str, List[str]]:
+    """
+    Extract isoform definitions from the CC ALTERNATIVE PRODUCTS block.
+
+    Returns a mapping of isoform accession -> list of VSP ids (or ["Displayed"]).
+    """
+
+    isoforms: Dict[str, List[str]] = {}
+    in_block = False
+    for raw in lines:
+        if not raw.startswith("CC"):
+            continue
+        content = raw[5:].strip()
+        if content.startswith("-!- ALTERNATIVE PRODUCTS:"):
+            in_block = True
+            continue
+        if in_block and content.startswith("-!- "):
+            # next CC subsection begins; stop parsing alternative products
+            break
+        if not in_block:
+            continue
+        iso_match = RE_ISOFORM_ID.search(content)
+        seq_match = RE_ISOFORM_SEQUENCE.search(content)
+        if not iso_match or not seq_match:
+            continue
+        iso_id = iso_match.group(1).strip()
+        seq_field = seq_match.group(1).strip()
+        if not iso_id or not seq_field:
+            continue
+        tokens = [token.strip() for token in seq_field.split(",") if token.strip()]
+        isoforms[iso_id] = tokens or []
+    return isoforms
+
+
+def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
+    """
+    Parse FT VAR_SEQ features into a mapping of VSP id -> (start, end, replacement).
+    """
+
+    varseqs: Dict[str, tuple[int, int, str]] = {}
+    total_lines = len(lines)
+    idx = 0
+    while idx < total_lines:
+        line = lines[idx]
+        if not line.startswith("FT"):
+            idx += 1
+            continue
+        content = line[5:].strip()
+        if not content.startswith("VAR_SEQ"):
+            idx += 1
+            continue
+        parts = content.split()
+        if len(parts) < 2:
+            idx += 1
+            continue
+        range_token = parts[1]
+        try:
+            start_str, end_str = range_token.split("..")
+            start, end = int(start_str), int(end_str)
+        except ValueError:
+            idx += 1
+            continue
+
+        replacement = ""
+        vsp_id: Optional[str] = None
+        idx += 1
+        while idx < total_lines:
+            cont = lines[idx]
+            if not cont.startswith("FT"):
+                break
+            cont_content = cont[5:].strip()
+            # New feature starts when column 6 is not space (continuation lines have a space here)
+            if cont_content and not cont[5].isspace():
+                break
+            if cont_content.startswith("/note="):
+                note = cont_content[len("/note="):].strip().strip('"')
+                if "->" in note:
+                    replacement = re.split(r"\s*\(", note.split("->", 1)[1].strip(), 1)[0].strip()
+                elif note.lower().startswith("missing"):
+                    replacement = ""
+                else:
+                    replacement = re.split(r"\s*\(", note, 1)[0].strip()
+            elif cont_content.startswith("/id="):
+                vsp_id = cont_content[len("/id="):].strip().strip('"')
+            idx += 1
+        if vsp_id:
+            varseqs[vsp_id] = (start, end, replacement)
+    return varseqs
+
+
+def apply_var_seq_edits(sequence: str, edits: List[tuple[int, int, str]]) -> str:
+    """
+    Apply a list of VAR_SEQ edits (start, end, replacement) to a sequence.
+
+    Edits are applied from highest start coordinate to lowest to avoid offset shifts.
+    """
+
+    if not edits:
+        return sequence
+    patched = sequence
+    for start, end, replacement in sorted(edits, key=lambda item: item[0], reverse=True):
+        # UniProt coordinates are 1-based inclusive
+        left = patched[: start - 1]
+        right = patched[end:]
+        patched = f"{left}{replacement}{right}"
+    return patched
+
+
 def parse_de_sections(lines: Sequence[str]) -> tuple[List[str], List[str]]:
     full_names: List[str] = []
     short_names: List[str] = []
@@ -259,7 +369,7 @@ def build_entry_payload(
     accessions: Sequence[str],
     release: str,
     reviewed: bool,
-) -> Dict[str, object]:
+) -> List[Dict[str, object]]:
     entry_name: Optional[str] = None
     protein_full_names, protein_short_names = parse_de_sections(lines)
     gene_name: Optional[str] = None
@@ -375,7 +485,7 @@ def build_entry_payload(
     seq_str = "".join(seq_chunks) if seq_chunks else None
     seq_md5 = hashlib.md5(seq_str.encode("utf-8")).hexdigest() if seq_str else None
     primary_ac = accessions[0]
-    entry_row: Dict[str, object] = {
+    base_row: Dict[str, object] = {
         "primary_ac": primary_ac,
         "entry_name": entry_name,
         "reviewed": reviewed,
@@ -395,8 +505,50 @@ def build_entry_payload(
         "md5": seq_md5,
         "sequence": seq_str,
         "release": release,
+        "is_isoform": False,
     }
-    return entry_row
+
+    rows: List[Dict[str, object]] = [base_row]
+
+    if not seq_str:
+        return rows
+
+    isoform_map = parse_alt_products(lines)
+    varseqs = parse_var_seq(lines)
+
+    for isoform_id, tokens in isoform_map.items():
+        if isoform_id == primary_ac:
+            continue
+        if not tokens:
+            continue
+        if len(tokens) == 1 and tokens[0].lower() == "displayed":
+            iso_seq = seq_str
+        else:
+            edits: List[tuple[int, int, str]] = []
+            missing_vsp: List[str] = []
+            for token in tokens:
+                vsp = token.strip()
+                if vsp not in varseqs:
+                    missing_vsp.append(vsp)
+                    continue
+                edits.append(varseqs[vsp])
+            if missing_vsp:
+                logging.debug(
+                    "Skipping isoform %s due to missing VSP ids: %s",
+                    isoform_id,
+                    ", ".join(missing_vsp),
+                )
+                continue
+            iso_seq = apply_var_seq_edits(seq_str, edits)
+        iso_row = dict(base_row)
+        iso_row["primary_ac"] = isoform_id
+        iso_row["sequence"] = iso_seq
+        iso_row["length"] = len(iso_seq)
+        iso_row["md5"] = hashlib.md5(iso_seq.encode("utf-8")).hexdigest()
+        iso_row["is_isoform"] = True
+        rows.append(iso_row)
+
+    return rows
 
 
 def process_inputs(
@@ -418,12 +570,15 @@ def process_inputs(
                 accessions = extract_accessions(record_lines)
                 if not accessions:
                     continue
-                matching = [ac for ac in accessions if ac in remaining]
+                isoform_ids = list(parse_alt_products(record_lines).keys())
+                candidate_ids = accessions + isoform_ids
+                matching = [ac for ac in candidate_ids if ac in remaining]
                 if not matching:
                     continue
                 kept += 1
-                entry_row = build_entry_payload(record_lines, accessions, release, reviewed)
-                entry_writer.append(entry_row)
+                entry_rows = build_entry_payload(record_lines, accessions, release, reviewed)
+                for row in entry_rows:
+                    entry_writer.append(row)
                 for ac in matching:
                     remaining.discard(ac)
                 if pbar:
@@ -465,6 +620,7 @@ def get_entry_schema() -> pa.Schema:
             ("md5", pa.string()),
             ("sequence", pa.string()),
             ("release", pa.string()),
+            ("is_isoform", pa.bool_()),
         ]
     )
 
