@@ -124,7 +124,7 @@ per release.
    ```
 
    - `--mapping` (chain manifest): `model_entity_id,entity_id,chain_id,uniprot_ac,sequence_start,sequence_end,is_fragment,is_isoform,entity_type,average_plddt,fraction_plddt_very_low,fraction_plddt_low,fraction_plddt_confident,fraction_plddt_very_high`
-   - `--model-manifest` (model manifest, optional): `model_entity_id,ipTM,average_plddt,complexName,isAMdata`
+   - `--model-manifest` (model manifest, optional): `model_entity_id,ipTM,average_plddt,name,isAMdata`
    - Output: one JSON document per model.
 
 4. **Export per-chain metadata records (chain-level Solr schema)**
@@ -158,22 +158,19 @@ per release.
    ```bash
    python3 uniprot/scripts/export_modelcif_input.py \
      --model-id AF-0000000000000004 \
-     --manifest examples/complexes/config/subset_uniprot_afid_mapping.csv \
+     --manifest examples/config/subset_uniprot_afid_mapping.csv \
    --db uniprot/outputs/db/uniprot_2025_04.duckdb \
      --template uniprot/templates/modelcif_metadata.json \
-     --out examples/multimer_examples/homodimer_metadata_for_model_gen.json
+     --out examples/AF-0000000000000004_model_gen.json
    ```
 
    The manifest is a CSV with one row per chain:
 
    ```
    model_entity_id,entity_id,chain_id,uniprot_ac
-   AF-0000000000000003,1,A,Q9TVL3   # monomer
-   AF-0000000000000004,1,A,Q9TVL3   # homodimer
-   AF-0000000000000004,1,B,Q9TVL3
-   AF-0000000000000005,1,A,P12345   # heterotrimer example
-   AF-0000000000000005,2,B,Q98765
-   AF-0000000000000005,2,C,Q98765
+   AF-0000000000000001,1,A,Q9TVL3
+   AF-0000000000000002,1,A,P12345
+   AF-0000000000000003,1,A,Q98765
    ```
 
    Entities that share the same UniProt accession reuse the same `entity_id`.
@@ -204,14 +201,14 @@ per release.
     -w "$PWD/work"
    ```
 
-   _ModelCIF generator metadata (complex submissions):_
+   _ModelCIF generator metadata:_
 
    ```bash
   nextflow run workflow/modelcif_metadata.nf \
     --db uniprot/outputs/db/uniprot_2025_04.duckdb \
-     --manifest examples/complexes/config/subset_uniprot_afid_mapping.csv \
+     --manifest examples/config/subset_uniprot_afid_mapping.csv \
      --template uniprot/templates/modelcif_metadata.json \
-     --output_dir examples/complexes/modelcif_metadata \
+     --output_dir examples/modelcif_metadata \
      -w "$PWD/work/modelcif"
    ```
 
@@ -224,7 +221,7 @@ per release.
   contents are loaded wholesale.  Memory usage therefore scales with the number
   of accessions, not the size of the release.
 - `dataset_config.json` should live alongside the model artefacts you intend to
-  package (e.g., one lives under `examples/complexes/` in this repo).  It holds
+  package (e.g., one lives under `examples/` in this repo).  It holds
   dataset-level values such as `toolUsed`, `modelCreatedDate`, version lists, and
   placeholder pLDDT fractions (initially `null` so you can fill them in after
   batching).
