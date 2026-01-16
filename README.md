@@ -198,27 +198,59 @@ uv run main.py run-dssp \
 
 Convert ColabFold score JSON + PDB to AFDB ingest JSONs (pLDDT/PAE) and optional UniProt-style manifests.
 
-Requirements: `orjson`, `duckdb`, a chain manifest (`model_entity_id,entity_id,chain_id,uniprot_ac` at minimum), and a DuckDB built from the UniProt subset.
+#### Included example data
 
-Example (per model, safer for many parallel jobs):
+Sample ColabFold outputs are bundled under `examples/colabfold-output/` as zipped result folders:
+
+- `ACATN_HUMAN_19de7.result.zip`
+- `C76C2_ARATH_6db51.result.zip`
+- `CDK9_CAEEL_5ca86.result.zip`
+
+Each archive contains the files produced by ColabFold (scores JSON, PAE JSON, per-model unrelaxed PDBs, `config.json`, run markers, etc.). Unpack one to inspect or test the converter:
+
+```bash
+unzip examples/colabfold-output/ACATN_HUMAN_19de7.result.zip -d /tmp/colabfold
+ls /tmp/colabfold/ACATN_HUMAN_19de7
+```
+
+#### Walkthrough using the bundled data
+
+Prerequisites for `afdb-colabfold-convert`:
+
+- Python deps: `orjson`, `duckdb` (install via `uv pip install -r requirements.txt` if you haven't already)
+- (Optional) AFDB chain manifest CSV with columns `model_entity_id,entity_id,chain_id,uniprot_ac` (see merge instructions below)
+- (Optional) DuckDB generated from UniProt flat files (built once per UniProt release with `afdb-uniprot-extract`/`afdb-uniprot-build-db`)
+
+The converter can emit pLDDT/PAE JSONs using just the ColabFold score JSON + PDB. Provide the manifest + DuckDB when you also need UniProt-aware chain metadata or want to write chain/model manifest CSVs.
+
+Run the converter on a sample ColabFold model by pointing to the unpacked score JSON and a PDB of your choice:
 
 ```
 afdb-colabfold-convert \
-  /path/to/<AC>_scores_rank_001_alphafold2_multimer_v3_model_1_seed_000.json \
-  /path/to/<AC>_unrelaxed_rank_001_alphafold2_multimer_v3_model_1_seed_000.pdb \
+  /tmp/colabfold/ACATN_HUMAN_19de7/ACATN_HUMAN_19de7_scores_rank_001_alphafold2_ptm_model_1_seed_000.json \
+  /tmp/colabfold/ACATN_HUMAN_19de7/ACATN_HUMAN_19de7_unrelaxed_rank_001_alphafold2_ptm_model_1_seed_000.pdb \
   --manifest /mnt/disks/data/sample/config/uniprot_afid_mapping.csv \
   --duckdb /mnt/disks/data/sample/db/uniprot_2025_04.duckdb \
   --model-entity-id AF-0000000000001201 \
-  --outdir /mnt/disks/data/sample/colabfold_output/<AC>-model_v4 \
+  --outdir /mnt/disks/data/sample/colabfold_output/ACATN_HUMAN_19de7-model_v4 \
   --chain-manifest-dir /mnt/disks/data/sample/per_accession/manifests/chains \
   --model-manifest-dir /mnt/disks/data/sample/per_accession/manifests/models
 ```
 
-Outputs:
-- AFDB JSONs: `<model_entity_id>-confidence_v1.json` and `<model_entity_id>-predicted_aligned_error_v1.json` in `--outdir`.
-- Per-model manifests:
-  - Chains: `<model_entity_id>_afid_mapping.csv` with pLDDT averages/fractions and local 1..N residue ranges.
-  - Models: `<model_entity_id>_model_metadata.csv` with average pLDDT and ipTM (if present in scores JSON).
+Drop the `--manifest`, `--duckdb`, `--chain-manifest-dir`, and `--model-manifest-dir` flags if you only need the AFDB JSON outputs; they are optional extras for UniProt-aware metadata.
+
+**What the manifest directories do:**
+
+- `--chain-manifest-dir`: writes `<model_entity_id>_afid_mapping.csv` per run containing chain-level averages/fractions (pLDDT bins, residue ranges) sourced from the manifest/DuckDB. These files mirror the schema expected by `uniprot_afid_mapping.csv` and live in a staging area until you merge them.
+- `--model-manifest-dir`: writes `<model_entity_id>_model_metadata.csv` per run with model-level averages (pLDDT only). These append into the global `uniprot_model_metadata.csv` referenced by other tooling.
+
+Use these directories when you want each ColabFold conversion to emit the per-model snippets that eventually roll up into the UniProt manifests; merge them later using the commands below once you finish processing a batch.
+
+Outputs from the walkthrough:
+
+- AFDB JSONs in `--outdir`: `<model_entity_id>-confidence_v1.json` (pLDDT) and `<model_entity_id>-predicted_aligned_error_v1.json` (PAE)
+- Per-model manifest CSVs (created inside the respective `--chain-manifest-dir` / `--model-manifest-dir` paths) for aggregating pLDDT summaries
+- Optional UniProt-style manifests can be merged across models as described next
 
 Merge per-model manifests when needed (keep the header, append rows):
 
