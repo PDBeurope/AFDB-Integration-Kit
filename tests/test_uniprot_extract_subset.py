@@ -1,4 +1,4 @@
-from uniprot.scripts.extract_subset import parse_de_sections
+from uniprot.scripts.extract_subset import build_entry_payload, parse_alt_products, parse_de_sections
 
 
 def test_parse_de_sections_includes_subname_full() -> None:
@@ -40,3 +40,43 @@ def test_parse_de_sections_includes_alt_special_name_fields() -> None:
 
     assert full_names == ["Api m 1", "Etanercept", "CD177", "Adalimumab"]
     assert short_names == []
+
+
+def test_parse_alt_products_splits_multiple_isoids() -> None:
+    lines = [
+        "CC   -!- ALTERNATIVE PRODUCTS:",
+        "CC       Event=Alternative splicing; Named isoforms=3;",
+        "CC         Name=1;",
+        "CC           IsoId=P12345-1, P12345-2; Sequence=Displayed;",
+        "CC         Name=2;",
+        "CC           IsoId=P12345-3; Sequence=VSP_000001, VSP_000002;",
+        "CC   -!- SUBCELLULAR LOCATION: Cytoplasm.",
+    ]
+
+    isoforms = parse_alt_products(lines)
+
+    assert isoforms["P12345-1"] == ["Displayed"]
+    assert isoforms["P12345-2"] == ["Displayed"]
+    assert isoforms["P12345-3"] == ["VSP_000001", "VSP_000002"]
+
+
+def test_build_entry_payload_skips_external_isoforms() -> None:
+    lines = [
+        "ID   TEST_HUMAN              Reviewed;         5 AA.",
+        "AC   P12345;",
+        "DE   RecName: Full=Test protein;",
+        "SQ   SEQUENCE   5 AA;  500 MW;  ABCDEF1234567890 CRC64;",
+        "     MTEST",
+        "CC   -!- ALTERNATIVE PRODUCTS:",
+        "CC       Event=Alternative splicing; Named isoforms=2;",
+        "CC         Name=1;",
+        "CC           IsoId=P12345-1; Sequence=Displayed;",
+        "CC         Name=2;",
+        "CC           IsoId=P12345-2; Sequence=External;",
+    ]
+
+    rows = build_entry_payload(lines, ["P12345"], "2025_04", reviewed=True)
+    accessions = [row["primary_ac"] for row in rows]
+
+    assert "P12345-1" in accessions
+    assert "P12345-2" not in accessions
