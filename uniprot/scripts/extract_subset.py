@@ -28,7 +28,7 @@ OX_PREFIX = "OX"
 SQ_PREFIX = "SQ"
 KW_PREFIX = "KW"
 
-RE_DE_FIELD = re.compile(r"(Full|Short)=([^;]+)")
+RE_DE_FIELD = re.compile(r"(Full|Short|Allergen|Biotech|CD_antigen|INN)=([^;]+)")
 RE_TAXID = re.compile(r"NCBI_TaxID=(\d+)")
 RE_SQ_LEN = re.compile(r"(\d+)\s+AA;")
 RE_ISOFORM_ID = re.compile(r"IsoId=([^;]+)")
@@ -272,10 +272,47 @@ def apply_var_seq_edits(sequence: str, edits: List[tuple[int, int, str]]) -> str
 
 
 def parse_de_sections(lines: Sequence[str]) -> tuple[List[str], List[str]]:
-    full_names: List[str] = []
-    short_names: List[str] = []
+    rec_full_names: List[str] = []
+    sub_full_names: List[str] = []
+    alt_full_names: List[str] = []
+    other_full_names: List[str] = []
+    rec_short_names: List[str] = []
+    sub_short_names: List[str] = []
+    alt_short_names: List[str] = []
+    other_short_names: List[str] = []
     current_section: Optional[str] = None
-    recname_captured_full = False
+
+    def append_name(kind: str, value: str, section: Optional[str]) -> None:
+        # Treat all descriptive name fields except Short as "full-style" names
+        # so downstream description selection can still surface them.
+        if kind != "Short":
+            if section == "RecName":
+                rec_full_names.append(value)
+            elif section == "SubName":
+                sub_full_names.append(value)
+            elif section == "AltName":
+                alt_full_names.append(value)
+            else:
+                other_full_names.append(value)
+        else:
+            if section == "RecName":
+                rec_short_names.append(value)
+            elif section == "SubName":
+                sub_short_names.append(value)
+            elif section == "AltName":
+                alt_short_names.append(value)
+            else:
+                other_short_names.append(value)
+
+    def unique(values: Sequence[str]) -> List[str]:
+        result: List[str] = []
+        seen: set[str] = set()
+        for value in values:
+            if value not in seen:
+                seen.add(value)
+                result.append(value)
+        return result
+
     for line in lines:
         if not line.startswith(DE_PREFIX):
             continue
@@ -283,7 +320,7 @@ def parse_de_sections(lines: Sequence[str]) -> tuple[List[str], List[str]]:
         if not content:
             continue
         content = content.lstrip()
-        section_match = re.match(r"(RecName|AltName)\s*:\s*(.*)", content)
+        section_match = re.match(r"(RecName|SubName|AltName)\s*:\s*(.*)", content)
         if section_match:
             current_section = section_match.group(1)
             content = section_match.group(2).strip()
@@ -298,18 +335,10 @@ def parse_de_sections(lines: Sequence[str]) -> tuple[List[str], List[str]]:
             value = strip_annotations(raw_val)
             if not value:
                 continue
-            if current_section == "RecName":
-                if kind == "Full":
-                    if not recname_captured_full:
-                        recname_captured_full = True
-                    full_names.append(value)
-                elif kind == "Short":
-                    short_names.append(value)
-            elif current_section == "AltName":
-                if kind == "Full":
-                    full_names.append(value)
-                elif kind == "Short":
-                    short_names.append(value)
+            append_name(kind, value, current_section)
+
+    full_names = unique(rec_full_names + sub_full_names + alt_full_names + other_full_names)
+    short_names = unique(rec_short_names + sub_short_names + alt_short_names + other_short_names)
     return full_names, short_names
 
 
