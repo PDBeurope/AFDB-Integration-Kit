@@ -31,8 +31,7 @@ KW_PREFIX = "KW"
 RE_DE_FIELD = re.compile(r"(Full|Short|Allergen|Biotech|CD_antigen|INN)=([^;]+)")
 RE_TAXID = re.compile(r"NCBI_TaxID=(\d+)")
 RE_SQ_LEN = re.compile(r"(\d+)\s+AA;")
-RE_ISOFORM_ID = re.compile(r"IsoId=([^;]+)")
-RE_ISOFORM_SEQUENCE = re.compile(r"Sequence=([^;]+)")
+RE_CC_FIELD = re.compile(r"([A-Za-z ]+)=([^;]+);")
 
 
 def stable_shard_for_accession(accession: str, shard_count: int) -> int:
@@ -172,6 +171,8 @@ def parse_alt_products(lines: Sequence[str]) -> Dict[str, List[str]]:
 
     isoforms: Dict[str, List[str]] = {}
     in_block = False
+    block_lines: List[str] = []
+
     for raw in lines:
         if not raw.startswith("CC"):
             continue
@@ -182,18 +183,27 @@ def parse_alt_products(lines: Sequence[str]) -> Dict[str, List[str]]:
         if in_block and content.startswith("-!- "):
             # next CC subsection begins; stop parsing alternative products
             break
-        if not in_block:
+        if in_block and content:
+            block_lines.append(content)
+
+    if not block_lines:
+        return isoforms
+
+    block_text = " ".join(block_lines)
+    pairs = [(match.group(1).strip(), match.group(2).strip()) for match in RE_CC_FIELD.finditer(block_text)]
+
+    current_isoids: List[str] = []
+    for key, value in pairs:
+        if key == "IsoId":
+            current_isoids = [token.strip() for token in value.split(",") if token.strip()]
             continue
-        iso_match = RE_ISOFORM_ID.search(content)
-        seq_match = RE_ISOFORM_SEQUENCE.search(content)
-        if not iso_match or not seq_match:
+        if key != "Sequence" or not current_isoids:
             continue
-        iso_id = iso_match.group(1).strip()
-        seq_field = seq_match.group(1).strip()
-        if not iso_id or not seq_field:
-            continue
-        tokens = [token.strip() for token in seq_field.split(",") if token.strip()]
-        isoforms[iso_id] = tokens or []
+        seq_tokens = [token.strip() for token in value.split(",") if token.strip()]
+        for isoid in current_isoids:
+            isoforms[isoid] = seq_tokens
+        current_isoids = []
+
     return isoforms
 
 
@@ -550,13 +560,23 @@ def build_entry_payload(
             continue
         if not tokens:
             continue
-        if len(tokens) == 1 and tokens[0].lower() == "displayed":
+        lowered_tokens = [token.lower() for token in tokens]
+        if len(tokens) == 1 and lowered_tokens[0] == "displayed":
             iso_seq = seq_str
+        elif any(token in {"external", "not described"} for token in lowered_tokens):
+            logging.debug(
+                "Skipping isoform %s with non-local sequence source: %s",
+                isoform_id,
+                ", ".join(tokens),
+            )
+            continue
         else:
             edits: List[tuple[int, int, str]] = []
             missing_vsp: List[str] = []
             for token in tokens:
                 vsp = token.strip()
+                if vsp.lower() == "displayed":
+                    continue
                 if vsp not in varseqs:
                     missing_vsp.append(vsp)
                     continue
