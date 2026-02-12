@@ -212,6 +212,21 @@ def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
     Parse FT VAR_SEQ features into a mapping of VSP id -> (start, end, replacement).
     """
 
+    def replacement_from_note(note: str) -> str:
+        normalized = " ".join(note.split())
+        if not normalized:
+            return ""
+        lowered = normalized.lower()
+        if lowered.startswith("missing"):
+            return ""
+        if "->" in normalized:
+            rhs = normalized.split("->", 1)[1].strip()
+            rhs = re.sub(r"\s*\(in isoform.*$", "", rhs, flags=re.IGNORECASE).strip()
+            rhs = re.sub(r"\s+", "", rhs)
+            return rhs
+        fallback = re.split(r"\s*\(", normalized, 1)[0].strip()
+        return re.sub(r"\s+", "", fallback)
+
     varseqs: Dict[str, tuple[int, int, str]] = {}
     total_lines = len(lines)
     idx = 0
@@ -238,6 +253,8 @@ def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
 
         replacement = ""
         vsp_id: Optional[str] = None
+        note_chunks: List[str] = []
+        capturing_note = False
         idx += 1
         while idx < total_lines:
             cont = lines[idx]
@@ -248,13 +265,26 @@ def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
             if cont_content and not cont[5].isspace():
                 break
             if cont_content.startswith("/note="):
-                note = cont_content[len("/note="):].strip().strip('"')
-                if "->" in note:
-                    replacement = re.split(r"\s*\(", note.split("->", 1)[1].strip(), 1)[0].strip()
-                elif note.lower().startswith("missing"):
-                    replacement = ""
-                else:
-                    replacement = re.split(r"\s*\(", note, 1)[0].strip()
+                raw_note = cont_content[len("/note="):].strip()
+                note_chunks = []
+                capturing_note = False
+                if raw_note.startswith('"'):
+                    raw_note = raw_note[1:]
+                    if raw_note.endswith('"'):
+                        raw_note = raw_note[:-1]
+                    else:
+                        capturing_note = True
+                note_chunks.append(raw_note)
+                if not capturing_note:
+                    replacement = replacement_from_note(" ".join(note_chunks))
+            elif capturing_note and not cont_content.startswith("/"):
+                chunk = cont_content
+                if chunk.endswith('"'):
+                    chunk = chunk[:-1]
+                    capturing_note = False
+                note_chunks.append(chunk)
+                if not capturing_note:
+                    replacement = replacement_from_note(" ".join(note_chunks))
             elif cont_content.startswith("/id="):
                 vsp_id = cont_content[len("/id="):].strip().strip('"')
             idx += 1

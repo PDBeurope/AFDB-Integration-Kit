@@ -1,4 +1,9 @@
-from uniprot.scripts.extract_subset import build_entry_payload, parse_alt_products, parse_de_sections
+from uniprot.scripts.extract_subset import (
+    build_entry_payload,
+    parse_alt_products,
+    parse_de_sections,
+    parse_var_seq,
+)
 
 
 def test_parse_de_sections_includes_subname_full() -> None:
@@ -80,3 +85,16 @@ def test_build_entry_payload_skips_external_isoforms() -> None:
 
     assert "P12345-1" in accessions
     assert "P12345-2" not in accessions
+
+
+def test_parse_var_seq_multiline_note_preserves_full_replacement() -> None:
+    lines = [
+        "FT   VAR_SEQ         1056..1097",
+        "FT                   /note=\"SPLRHDGTPVPARRRPLGHGFGLAHPGMMQELQARLGRPKPQ -> RWEDRL",
+        "FT                   RPGVRDQPGQHSKIPIF (in isoform 3)\"",
+        "FT                   /id=\"VSP_060194\"",
+    ]
+
+    varseqs = parse_var_seq(lines)
+
+    assert varseqs["VSP_060194"] == (1056, 1097, "RWEDRLRPGVRDQPGQHSKIPIF")
