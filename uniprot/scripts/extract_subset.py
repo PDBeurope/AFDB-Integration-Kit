@@ -39,6 +39,23 @@ def stable_shard_for_accession(accession: str, shard_count: int) -> int:
     return int.from_bytes(digest[:8], "big") % shard_count
 
 
+def shard_key_for_target(accession: str) -> str:
+    """
+    Return the key used to route target accessions to shard files.
+
+    UniProt shard files are written by primary accession (canonical). Isoform
+    accessions use a suffix like `-2`, so they must be routed by their
+    canonical accession to land in the same shard as the parent record.
+    """
+    if "-" in accession:
+        return accession.split("-", 1)[0]
+    return accession
+
+
+def stable_shard_for_target(accession: str, shard_count: int) -> int:
+    return stable_shard_for_accession(shard_key_for_target(accession), shard_count)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Filter UniProt flat-files by accession list and emit Parquet tables."
@@ -245,8 +262,12 @@ def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
             continue
         range_token = parts[1]
         try:
-            start_str, end_str = range_token.split("..")
-            start, end = int(start_str), int(end_str)
+            if ".." in range_token:
+                start_str, end_str = range_token.split("..", 1)
+                start, end = int(start_str), int(end_str)
+            else:
+                start = int(range_token)
+                end = start
         except ValueError:
             idx += 1
             continue
@@ -735,7 +756,7 @@ def main() -> int:
             logging.error("--shard-index must be less than --shard-count.")
             return 1
         targets = {
-            ac for ac in targets if stable_shard_for_accession(ac, args.shard_count) == args.shard_index
+            ac for ac in targets if stable_shard_for_target(ac, args.shard_count) == args.shard_index
         }
         logging.info(
             "Filtered targets to shard %d of %d (%d of %d accessions).",
