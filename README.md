@@ -619,6 +619,8 @@ AF-0001234567890125
 AF-0001234567890126
 ```
 
+The ModelPDB step also requires provider metadata. By default the workflow reads this from `input/provider.json`; override it with `--provider_json <path>` if your provider file is elsewhere.
+
 **Example input.txt:**
 ```bash
 # Create the input list file

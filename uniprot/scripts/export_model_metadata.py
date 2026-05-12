@@ -421,6 +421,15 @@ def derive_oligomeric_state(subunit_count: int) -> str:
     return OLIGOMERIC_STATE_MAP.get(subunit_count, "oligomer")
 
 
+def derive_oligomeric_state_description(
+    assembly_type: Optional[str],
+    oligomeric_state: Optional[str],
+) -> Optional[str]:
+    if not assembly_type or not oligomeric_state:
+        return None
+    return f"{assembly_type}{oligomeric_state}"
+
+
 def aggregate_metric(rows: Sequence[ManifestRow], attr: str) -> Optional[float]:
     values = [getattr(row, attr) for row in rows if getattr(row, attr) is not None]
     if not values:
@@ -617,13 +626,23 @@ def build_record(
     )
 
     is_complex = len(manifest_rows) > 1
+    complex_composition = (
+        [f"{component.accession}_{count}" for component, count in zip(components, component_counts)]
+        if is_complex
+        else None
+    )
 
     assembly_type = None
     oligomeric_state = None
+    oligomeric_state_description = None
     if is_complex:
         unique_accessions = {row.uniprot_ac for row in manifest_rows if row.uniprot_ac}
         assembly_type = "Hetero" if len(unique_accessions) > 1 else "Homo"
         oligomeric_state = derive_oligomeric_state(len(manifest_rows))
+        oligomeric_state_description = derive_oligomeric_state_description(
+            assembly_type,
+            oligomeric_state,
+        )
 
     model_meta = model_metadata.get(model_entity_id)
     iptm_value = model_meta.iptm if (is_complex and model_meta) else None
@@ -680,6 +699,10 @@ def build_record(
     if is_complex and assembly_type and oligomeric_state:
         record["assemblyType"] = assembly_type
         record["oligomericState"] = oligomeric_state
+    if complex_composition:
+        record["complexComposition"] = complex_composition
+    if oligomeric_state_description:
+        record["oligomericStateDescription"] = oligomeric_state_description
     record["uniprotAccession"] = accessions
     record["uniprotDescription"] = descriptions
     record["isUniProtReferenceProteome"] = is_uniprot_reference_proteome

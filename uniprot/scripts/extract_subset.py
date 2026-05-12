@@ -39,6 +39,23 @@ def stable_shard_for_accession(accession: str, shard_count: int) -> int:
     return int.from_bytes(digest[:8], "big") % shard_count
 
 
+def shard_key_for_target(accession: str) -> str:
+    """
+    Return the key used to route target accessions to shard files.
+
+    UniProt shard files are written by primary accession (canonical). Isoform
+    accessions use a suffix like `-2`, so they must be routed by their
+    canonical accession to land in the same shard as the parent record.
+    """
+    if "-" in accession:
+        return accession.split("-", 1)[0]
+    return accession
+
+
+def stable_shard_for_target(accession: str, shard_count: int) -> int:
+    return stable_shard_for_accession(shard_key_for_target(accession), shard_count)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Filter UniProt flat-files by accession list and emit Parquet tables."
@@ -158,8 +175,48 @@ def extract_accessions(lines: Sequence[str]) -> List[str]:
 
 def strip_annotations(value: str) -> str:
     cleaned = value.strip()
-    cleaned = re.split(r"\s*[\{\[]", cleaned, 1)[0].strip()
+    while True:
+        updated = re.sub(r"\s*\{[^{}]*\}\s*$", "", cleaned).strip()
+        if updated == cleaned:
+            break
+        cleaned = updated
     return cleaned.rstrip(";").strip()
+
+
+def iter_de_fields(content: str) -> Iterable[tuple[str, str]]:
+    """Yield DE name fields without splitting on semicolons inside names."""
+
+    field_matcher = re.compile(r"(Full|Short|Allergen|Biotech|CD_antigen|INN)=")
+    position = 0
+    while True:
+        match = field_matcher.search(content, position)
+        if not match:
+            break
+        kind = match.group(1)
+        start = match.end()
+        paren_depth = 0
+        square_depth = 0
+        brace_depth = 0
+        end = start
+        while end < len(content):
+            char = content[end]
+            if char == "(":
+                paren_depth += 1
+            elif char == ")" and paren_depth:
+                paren_depth -= 1
+            elif char == "[":
+                square_depth += 1
+            elif char == "]" and square_depth:
+                square_depth -= 1
+            elif char == "{":
+                brace_depth += 1
+            elif char == "}" and brace_depth:
+                brace_depth -= 1
+            elif char == ";" and paren_depth == 0 and square_depth == 0 and brace_depth == 0:
+                break
+            end += 1
+        yield kind, content[start:end]
+        position = end + 1
 
 
 def parse_alt_products(lines: Sequence[str]) -> Dict[str, List[str]]:
@@ -245,8 +302,12 @@ def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
             continue
         range_token = parts[1]
         try:
-            start_str, end_str = range_token.split("..")
-            start, end = int(start_str), int(end_str)
+            if ".." in range_token:
+                start_str, end_str = range_token.split("..", 1)
+                start, end = int(start_str), int(end_str)
+            else:
+                start = int(range_token)
+                end = start
         except ValueError:
             idx += 1
             continue
@@ -369,9 +430,7 @@ def parse_de_sections(lines: Sequence[str]) -> tuple[List[str], List[str]]:
             if other_match:
                 current_section = None
                 content = other_match.group(1).strip()
-        for match in RE_DE_FIELD.finditer(content):
-            kind = match.group(1)
-            raw_val = match.group(2)
+        for kind, raw_val in iter_de_fields(content):
             value = strip_annotations(raw_val)
             if not value:
                 continue
@@ -390,7 +449,7 @@ def parse_organism(raw: str) -> tuple[Optional[str], List[str], List[str]]:
         return None, [], []
     value = value.rstrip(".")
     paren_values = [match.strip().rstrip(".") for match in re.findall(r"\(([^)]+)\)", value)]
-    main = value.split("(", 1)[0].strip() if "(" in value else value.strip()
+    main = value.strip()
     if paren_values:
         common_names = [paren_values[0]] if paren_values[0] else []
         synonyms = [name for name in paren_values[1:] if name]
@@ -735,7 +794,7 @@ def main() -> int:
             logging.error("--shard-index must be less than --shard-count.")
             return 1
         targets = {
-            ac for ac in targets if stable_shard_for_accession(ac, args.shard_count) == args.shard_index
+            ac for ac in targets if stable_shard_for_target(ac, args.shard_count) == args.shard_index
         }
         logging.info(
             "Filtered targets to shard %d of %d (%d of %d accessions).",

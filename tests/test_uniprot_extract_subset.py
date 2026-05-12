@@ -3,6 +3,9 @@ from uniprot.scripts.extract_subset import (
     parse_alt_products,
     parse_de_sections,
     parse_var_seq,
+    shard_key_for_target,
+    stable_shard_for_accession,
+    stable_shard_for_target,
 )
 
 
@@ -98,3 +101,50 @@ def test_parse_var_seq_multiline_note_preserves_full_replacement() -> None:
     varseqs = parse_var_seq(lines)
 
     assert varseqs["VSP_060194"] == (1056, 1097, "RWEDRLRPGVRDQPGQHSKIPIF")
+
+
+def test_parse_var_seq_single_position() -> None:
+    lines = [
+        "FT   VAR_SEQ         339",
+        "FT                   /note=\"L -> MPIARLNSAPLNSHFWRPVWGASPSSV (in isoform 2)\"",
+        "FT                   /id=\"VSP_053046\"",
+    ]
+
+    varseqs = parse_var_seq(lines)
+
+    assert varseqs["VSP_053046"] == (339, 339, "MPIARLNSAPLNSHFWRPVWGASPSSV")
+
+
+def test_build_entry_payload_keeps_isoform_with_single_position_varseq() -> None:
+    lines = [
+        "ID   Q1LVW0_TEST            Reviewed;        1021 AA.",
+        "AC   Q1LVW0; Q1MTD0;",
+        "DE   RecName: Full=Ankyrin repeat and BTB domain-containing protein 4;",
+        "CC   -!- ALTERNATIVE PRODUCTS:",
+        "CC         IsoId=Q1LVW0-1; Sequence=Displayed;",
+        "CC         IsoId=Q1LVW0-2; Sequence=VSP_053045, VSP_053046;",
+        "FT   VAR_SEQ         1..338",
+        "FT                   /note=\"Missing (in isoform 2)\"",
+        "FT                   /id=\"VSP_053045\"",
+        "FT   VAR_SEQ         339",
+        "FT                   /note=\"L -> MPIARLNSAPLNSHFWRPVWGASPSSV (in isoform 2)\"",
+        "FT                   /id=\"VSP_053046\"",
+        "SQ   SEQUENCE   1021 AA;  0 MW;  0000000000000000 CRC64;",
+        f"     {'A' * 338}{'L'}{'B' * (1021 - 339)}",
+    ]
+
+    rows = build_entry_payload(lines, ["Q1LVW0", "Q1MTD0"], "2025_04", reviewed=True)
+    by_ac = {row["primary_ac"]: row for row in rows}
+
+    assert "Q1LVW0-2" in by_ac
+    assert by_ac["Q1LVW0-2"]["is_isoform"] is True
+    assert by_ac["Q1LVW0-2"]["length"] == 709
+
+
+def test_isoform_targets_route_by_canonical_shard_key() -> None:
+    isoform = "Q1LVW0-2"
+    canonical = "Q1LVW0"
+
+    assert shard_key_for_target(isoform) == canonical
+    assert stable_shard_for_target(isoform, 8) == stable_shard_for_accession(canonical, 8)
+    assert stable_shard_for_target(isoform, 64) == stable_shard_for_accession(canonical, 64)
