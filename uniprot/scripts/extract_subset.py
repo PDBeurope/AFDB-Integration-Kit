@@ -28,32 +28,16 @@ OX_PREFIX = "OX"
 SQ_PREFIX = "SQ"
 KW_PREFIX = "KW"
 
-RE_DE_FIELD = re.compile(r"(Full|Short|Allergen|Biotech|CD_antigen|INN)=([^;]+)")
+RE_DE_FIELD = re.compile(r"(Full|Short)=([^;]+)")
 RE_TAXID = re.compile(r"NCBI_TaxID=(\d+)")
 RE_SQ_LEN = re.compile(r"(\d+)\s+AA;")
-RE_CC_FIELD = re.compile(r"([A-Za-z ]+)=([^;]+);")
+RE_ISOFORM_ID = re.compile(r"IsoId=([^;]+)")
+RE_ISOFORM_SEQUENCE = re.compile(r"Sequence=([^;]+)")
 
 
 def stable_shard_for_accession(accession: str, shard_count: int) -> int:
     digest = hashlib.md5(accession.encode("utf-8")).digest()
     return int.from_bytes(digest[:8], "big") % shard_count
-
-
-def shard_key_for_target(accession: str) -> str:
-    """
-    Return the key used to route target accessions to shard files.
-
-    UniProt shard files are written by primary accession (canonical). Isoform
-    accessions use a suffix like `-2`, so they must be routed by their
-    canonical accession to land in the same shard as the parent record.
-    """
-    if "-" in accession:
-        return accession.split("-", 1)[0]
-    return accession
-
-
-def stable_shard_for_target(accession: str, shard_count: int) -> int:
-    return stable_shard_for_accession(shard_key_for_target(accession), shard_count)
 
 
 def parse_args() -> argparse.Namespace:
@@ -175,48 +159,8 @@ def extract_accessions(lines: Sequence[str]) -> List[str]:
 
 def strip_annotations(value: str) -> str:
     cleaned = value.strip()
-    while True:
-        updated = re.sub(r"\s*\{[^{}]*\}\s*$", "", cleaned).strip()
-        if updated == cleaned:
-            break
-        cleaned = updated
+    cleaned = re.split(r"\s*[\{\[]", cleaned, 1)[0].strip()
     return cleaned.rstrip(";").strip()
-
-
-def iter_de_fields(content: str) -> Iterable[tuple[str, str]]:
-    """Yield DE name fields without splitting on semicolons inside names."""
-
-    field_matcher = re.compile(r"(Full|Short|Allergen|Biotech|CD_antigen|INN)=")
-    position = 0
-    while True:
-        match = field_matcher.search(content, position)
-        if not match:
-            break
-        kind = match.group(1)
-        start = match.end()
-        paren_depth = 0
-        square_depth = 0
-        brace_depth = 0
-        end = start
-        while end < len(content):
-            char = content[end]
-            if char == "(":
-                paren_depth += 1
-            elif char == ")" and paren_depth:
-                paren_depth -= 1
-            elif char == "[":
-                square_depth += 1
-            elif char == "]" and square_depth:
-                square_depth -= 1
-            elif char == "{":
-                brace_depth += 1
-            elif char == "}" and brace_depth:
-                brace_depth -= 1
-            elif char == ";" and paren_depth == 0 and square_depth == 0 and brace_depth == 0:
-                break
-            end += 1
-        yield kind, content[start:end]
-        position = end + 1
 
 
 def parse_alt_products(lines: Sequence[str]) -> Dict[str, List[str]]:
@@ -228,8 +172,6 @@ def parse_alt_products(lines: Sequence[str]) -> Dict[str, List[str]]:
 
     isoforms: Dict[str, List[str]] = {}
     in_block = False
-    block_lines: List[str] = []
-
     for raw in lines:
         if not raw.startswith("CC"):
             continue
@@ -240,27 +182,18 @@ def parse_alt_products(lines: Sequence[str]) -> Dict[str, List[str]]:
         if in_block and content.startswith("-!- "):
             # next CC subsection begins; stop parsing alternative products
             break
-        if in_block and content:
-            block_lines.append(content)
-
-    if not block_lines:
-        return isoforms
-
-    block_text = " ".join(block_lines)
-    pairs = [(match.group(1).strip(), match.group(2).strip()) for match in RE_CC_FIELD.finditer(block_text)]
-
-    current_isoids: List[str] = []
-    for key, value in pairs:
-        if key == "IsoId":
-            current_isoids = [token.strip() for token in value.split(",") if token.strip()]
+        if not in_block:
             continue
-        if key != "Sequence" or not current_isoids:
+        iso_match = RE_ISOFORM_ID.search(content)
+        seq_match = RE_ISOFORM_SEQUENCE.search(content)
+        if not iso_match or not seq_match:
             continue
-        seq_tokens = [token.strip() for token in value.split(",") if token.strip()]
-        for isoid in current_isoids:
-            isoforms[isoid] = seq_tokens
-        current_isoids = []
-
+        iso_id = iso_match.group(1).strip()
+        seq_field = seq_match.group(1).strip()
+        if not iso_id or not seq_field:
+            continue
+        tokens = [token.strip() for token in seq_field.split(",") if token.strip()]
+        isoforms[iso_id] = tokens or []
     return isoforms
 
 
@@ -268,21 +201,6 @@ def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
     """
     Parse FT VAR_SEQ features into a mapping of VSP id -> (start, end, replacement).
     """
-
-    def replacement_from_note(note: str) -> str:
-        normalized = " ".join(note.split())
-        if not normalized:
-            return ""
-        lowered = normalized.lower()
-        if lowered.startswith("missing"):
-            return ""
-        if "->" in normalized:
-            rhs = normalized.split("->", 1)[1].strip()
-            rhs = re.sub(r"\s*\(in isoform.*$", "", rhs, flags=re.IGNORECASE).strip()
-            rhs = re.sub(r"\s+", "", rhs)
-            return rhs
-        fallback = re.split(r"\s*\(", normalized, 1)[0].strip()
-        return re.sub(r"\s+", "", fallback)
 
     varseqs: Dict[str, tuple[int, int, str]] = {}
     total_lines = len(lines)
@@ -302,20 +220,14 @@ def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
             continue
         range_token = parts[1]
         try:
-            if ".." in range_token:
-                start_str, end_str = range_token.split("..", 1)
-                start, end = int(start_str), int(end_str)
-            else:
-                start = int(range_token)
-                end = start
+            start_str, end_str = range_token.split("..")
+            start, end = int(start_str), int(end_str)
         except ValueError:
             idx += 1
             continue
 
         replacement = ""
         vsp_id: Optional[str] = None
-        note_chunks: List[str] = []
-        capturing_note = False
         idx += 1
         while idx < total_lines:
             cont = lines[idx]
@@ -326,26 +238,13 @@ def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
             if cont_content and not cont[5].isspace():
                 break
             if cont_content.startswith("/note="):
-                raw_note = cont_content[len("/note="):].strip()
-                note_chunks = []
-                capturing_note = False
-                if raw_note.startswith('"'):
-                    raw_note = raw_note[1:]
-                    if raw_note.endswith('"'):
-                        raw_note = raw_note[:-1]
-                    else:
-                        capturing_note = True
-                note_chunks.append(raw_note)
-                if not capturing_note:
-                    replacement = replacement_from_note(" ".join(note_chunks))
-            elif capturing_note and not cont_content.startswith("/"):
-                chunk = cont_content
-                if chunk.endswith('"'):
-                    chunk = chunk[:-1]
-                    capturing_note = False
-                note_chunks.append(chunk)
-                if not capturing_note:
-                    replacement = replacement_from_note(" ".join(note_chunks))
+                note = cont_content[len("/note="):].strip().strip('"')
+                if "->" in note:
+                    replacement = re.split(r"\s*\(", note.split("->", 1)[1].strip(), 1)[0].strip()
+                elif note.lower().startswith("missing"):
+                    replacement = ""
+                else:
+                    replacement = re.split(r"\s*\(", note, 1)[0].strip()
             elif cont_content.startswith("/id="):
                 vsp_id = cont_content[len("/id="):].strip().strip('"')
             idx += 1
@@ -373,47 +272,10 @@ def apply_var_seq_edits(sequence: str, edits: List[tuple[int, int, str]]) -> str
 
 
 def parse_de_sections(lines: Sequence[str]) -> tuple[List[str], List[str]]:
-    rec_full_names: List[str] = []
-    sub_full_names: List[str] = []
-    alt_full_names: List[str] = []
-    other_full_names: List[str] = []
-    rec_short_names: List[str] = []
-    sub_short_names: List[str] = []
-    alt_short_names: List[str] = []
-    other_short_names: List[str] = []
+    full_names: List[str] = []
+    short_names: List[str] = []
     current_section: Optional[str] = None
-
-    def append_name(kind: str, value: str, section: Optional[str]) -> None:
-        # Treat all descriptive name fields except Short as "full-style" names
-        # so downstream description selection can still surface them.
-        if kind != "Short":
-            if section == "RecName":
-                rec_full_names.append(value)
-            elif section == "SubName":
-                sub_full_names.append(value)
-            elif section == "AltName":
-                alt_full_names.append(value)
-            else:
-                other_full_names.append(value)
-        else:
-            if section == "RecName":
-                rec_short_names.append(value)
-            elif section == "SubName":
-                sub_short_names.append(value)
-            elif section == "AltName":
-                alt_short_names.append(value)
-            else:
-                other_short_names.append(value)
-
-    def unique(values: Sequence[str]) -> List[str]:
-        result: List[str] = []
-        seen: set[str] = set()
-        for value in values:
-            if value not in seen:
-                seen.add(value)
-                result.append(value)
-        return result
-
+    recname_captured_full = False
     for line in lines:
         if not line.startswith(DE_PREFIX):
             continue
@@ -421,7 +283,7 @@ def parse_de_sections(lines: Sequence[str]) -> tuple[List[str], List[str]]:
         if not content:
             continue
         content = content.lstrip()
-        section_match = re.match(r"(RecName|SubName|AltName)\s*:\s*(.*)", content)
+        section_match = re.match(r"(RecName|AltName)\s*:\s*(.*)", content)
         if section_match:
             current_section = section_match.group(1)
             content = section_match.group(2).strip()
@@ -430,14 +292,24 @@ def parse_de_sections(lines: Sequence[str]) -> tuple[List[str], List[str]]:
             if other_match:
                 current_section = None
                 content = other_match.group(1).strip()
-        for kind, raw_val in iter_de_fields(content):
+        for match in RE_DE_FIELD.finditer(content):
+            kind = match.group(1)
+            raw_val = match.group(2)
             value = strip_annotations(raw_val)
             if not value:
                 continue
-            append_name(kind, value, current_section)
-
-    full_names = unique(rec_full_names + sub_full_names + alt_full_names + other_full_names)
-    short_names = unique(rec_short_names + sub_short_names + alt_short_names + other_short_names)
+            if current_section == "RecName":
+                if kind == "Full":
+                    if not recname_captured_full:
+                        recname_captured_full = True
+                    full_names.append(value)
+                elif kind == "Short":
+                    short_names.append(value)
+            elif current_section == "AltName":
+                if kind == "Full":
+                    full_names.append(value)
+                elif kind == "Short":
+                    short_names.append(value)
     return full_names, short_names
 
 
@@ -449,7 +321,7 @@ def parse_organism(raw: str) -> tuple[Optional[str], List[str], List[str]]:
         return None, [], []
     value = value.rstrip(".")
     paren_values = [match.strip().rstrip(".") for match in re.findall(r"\(([^)]+)\)", value)]
-    main = value.strip()
+    main = value.split("(", 1)[0].strip() if "(" in value else value.strip()
     if paren_values:
         common_names = [paren_values[0]] if paren_values[0] else []
         synonyms = [name for name in paren_values[1:] if name]
@@ -649,23 +521,13 @@ def build_entry_payload(
             continue
         if not tokens:
             continue
-        lowered_tokens = [token.lower() for token in tokens]
-        if len(tokens) == 1 and lowered_tokens[0] == "displayed":
+        if len(tokens) == 1 and tokens[0].lower() == "displayed":
             iso_seq = seq_str
-        elif any(token in {"external", "not described"} for token in lowered_tokens):
-            logging.debug(
-                "Skipping isoform %s with non-local sequence source: %s",
-                isoform_id,
-                ", ".join(tokens),
-            )
-            continue
         else:
             edits: List[tuple[int, int, str]] = []
             missing_vsp: List[str] = []
             for token in tokens:
                 vsp = token.strip()
-                if vsp.lower() == "displayed":
-                    continue
                 if vsp not in varseqs:
                     missing_vsp.append(vsp)
                     continue
@@ -794,7 +656,7 @@ def main() -> int:
             logging.error("--shard-index must be less than --shard-count.")
             return 1
         targets = {
-            ac for ac in targets if stable_shard_for_target(ac, args.shard_count) == args.shard_index
+            ac for ac in targets if stable_shard_for_accession(ac, args.shard_count) == args.shard_index
         }
         logging.info(
             "Filtered targets to shard %d of %d (%d of %d accessions).",

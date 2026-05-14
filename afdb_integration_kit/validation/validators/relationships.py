@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+import orjson
 
 from afdb_integration_kit.quality_assessment.naming import PATTERNS
 
@@ -104,7 +105,7 @@ def run(files: List[Path], ctx: ValidationContext) -> List[ValidationResult]:
 
 def _extract_plddt_length(path: Path, results: List[ValidationResult]) -> int | None:
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = orjson.loads(path.read_bytes())
     except Exception as exc:
         results.append(
             ValidationResult(
@@ -150,7 +151,7 @@ def _extract_plddt_length(path: Path, results: List[ValidationResult]) -> int | 
 
 def _extract_pae_dimension(path: Path, results: List[ValidationResult]) -> int | None:
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = orjson.loads(path.read_bytes())
     except Exception as exc:
         results.append(
             ValidationResult(

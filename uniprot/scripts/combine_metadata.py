@@ -6,8 +6,9 @@ Combine per-accession AF metadata JSON files into chunked batches.
 from __future__ import annotations
 
 import argparse
-import json
 import logging
+
+import orjson
 from pathlib import Path
 from typing import Iterable, List
 
@@ -43,6 +44,11 @@ def parse_args() -> argparse.Namespace:
         "--pattern",
         default="*.json",
         help="Glob pattern for per-accession files inside input directory.",
+    )
+    parser.add_argument(
+        "--output-filename",
+        default=None,
+        help="Exact output filename (overrides prefix/chunk naming). All records go to a single file.",
     )
     parser.add_argument(
         "--log-level",
@@ -82,8 +88,7 @@ def chunked(iterable: Iterable[Path], size: int) -> Iterable[List[Path]]:
 def load_records(paths: List[Path]) -> List[dict]:
     records: List[dict] = []
     for path in paths:
-        with path.open("r", encoding="utf-8") as handle:
-            data = json.load(handle)
+        data = orjson.loads(path.read_bytes())
         if isinstance(data, list):
             records.extend(data)
         else:
@@ -100,9 +105,9 @@ def write_batch(
 ) -> Path:
     filename = f"{prefix}-{index}-of-{total}.json"
     path = output_dir / filename
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(records, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
+    with path.open("wb") as handle:
+        handle.write(orjson.dumps(records, option=orjson.OPT_INDENT_2))
+        handle.write(b"\n")
     return path
 
 
@@ -114,6 +119,15 @@ def combine_metadata(args: argparse.Namespace) -> int:
     logging.debug("Scanning input directory %s", input_dir)
     files = iter_input_files(input_dir, args.pattern)
     logging.info("Found %d per-accession JSON files.", len(files))
+
+    if args.output_filename:
+        records = load_records(files)
+        path = output_dir / args.output_filename
+        with path.open("wb") as handle:
+            handle.write(orjson.dumps(records, option=orjson.OPT_INDENT_2))
+            handle.write(b"\n")
+        logging.info("Wrote %d records to %s", len(records), path)
+        return 0
 
     total_batches = (len(files) + args.chunk_size - 1) // args.chunk_size
     logging.info(

@@ -144,7 +144,16 @@
             "year"
           ],
           "properties": {
-            "id": { "type": "array", "items": { "type": "integer" }, "description": "The primary identifier for the citation." },
+            "id": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  { "type": "integer" },
+                  { "type": "string" }
+                ]
+              },
+              "description": "The primary identifier for the citation."
+            },
             "title": { "type": "array", "items": { "type": "string" }, "description": "The title of the publication." },
             "journal_full": { "type": "array", "items": { "type": "string" }, "description": "The full name of the journal." },
             "journal_volume": { "type": "array", "items": { "type": "string" }, "description": "Volume number of the journal." },
@@ -359,7 +368,15 @@
           "type": "object",
           "description": "Specifies the authors of a citation.",
           "properties": {
-            "citation_id": { "type": "array", "items": { "type": "integer" } },
+            "citation_id": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  { "type": "integer" },
+                  { "type": "string" }
+                ]
+              }
+            },
             "name": { "type": "array", "items": { "type": "string" } },
             "ordinal": { "type": "array", "items": { "type": "integer" } }
           },

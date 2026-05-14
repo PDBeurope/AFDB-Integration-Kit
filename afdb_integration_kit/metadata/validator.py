@@ -1,10 +1,10 @@
-import json
 import logging
 from enum import Enum
 from importlib.resources import files
 from pathlib import Path
 
 import jsonschema
+import orjson
 
 # --- Logger setup ---
 logger = logging.getLogger("schema_validator")
@@ -36,12 +36,11 @@ SCHEMA_PATHS = {
 def _load_json_file(file_path: Path) -> dict:
     """Load a JSON file and return its content as a dict."""
     try:
-        with file_path.open("r", encoding="utf-8") as f:
-            return json.load(f)
+        return orjson.loads(file_path.read_bytes())
     except FileNotFoundError:
         logger.error("File not found: %s", file_path)
         raise
-    except json.JSONDecodeError as e:
+    except orjson.JSONDecodeError as e:
         logger.error("Invalid JSON in file %s: %s", file_path, e)
         raise
 

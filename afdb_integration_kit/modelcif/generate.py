@@ -1,4 +1,3 @@
-import json
 import logging
 import shutil
 import subprocess
@@ -11,6 +10,7 @@ import datetime
 import gemmi
 import jsonschema
 import numpy as np
+import orjson
 import requests
 from afdb_integration_kit.utils.pdbeditor import PDBFileEditor
 from afdb_integration_kit.utils.cifstorage import CifDataStorage
@@ -21,6 +21,7 @@ from afdb_integration_kit.utils.constant import (
     CAT_SOFTWARE,
     CAT_MODEL_LIST,
     CAT_TARGET_REF_DB,
+    CAT_QA_METRIC,
     CAT_GLOBAL_QA,
     CAT_LOCAL_QA,
     CAT_ENTITY_POLY_SEQ,
@@ -44,6 +45,9 @@ logger = logging.getLogger("afdb_integration_kit")
 JSON_SCHEMA_PATH = str(
     files("afdb_integration_kit.modelcif.resources").joinpath("schema.json")
 )
+
+# Module-level cache for JSON schema to avoid repeated disk reads
+_SCHEMA_CACHE: Optional[Dict[str, Any]] = None
 
 class ChainMetadata(TypedDict):
     uniprot_accession: str
@@ -102,8 +106,8 @@ def compute_global_plddt(b_factors: List[str]) -> float:
     logger.info("Computing global pLDDT...")
     try:
         b_floats = [float(v) for v in b_factors if v not in ("?", ".", "")]
-        return float(np.mean(b_floats)) if b_floats else -1.0
-    except (ValueError, TypeError) as e:
+        return sum(b_floats) / len(b_floats) if b_floats else -1.0
+    except (ValueError, TypeError, ZeroDivisionError) as e:
         logger.error(f"Error parsing B-factors for global pLDDT: {e}")
         return -1.0
 
@@ -111,43 +115,51 @@ def compute_global_plddt(b_factors: List[str]) -> float:
 def compute_local_plddt_metrics(
     asym_ids: List[str], comp_ids: List[str], seq_ids: List[str], b_factors: List[str]
 ) -> Dict[str, List[Any]]:
-    """Computes local pLDDT per residue and returns a dictionary for the local
-    QA category."""
+    """Computes local pLDDT per residue."""
     logger.info("Computing local pLDDT...")
-    residue_b_factors = defaultdict(list)
-    residue_info = {}
 
-    for asym_id, comp_id, seq_id, b_factor in zip(
-        asym_ids, comp_ids, seq_ids, b_factors
-    ):
-        if b_factor not in ("?", ".", ""):
-            try:
-                residue_key = (asym_id, comp_id, seq_id)
-                residue_b_factors[residue_key].append(float(b_factor))
-                residue_info[residue_key] = {
-                    "label_asym_id": asym_id,
-                    "label_comp_id": comp_id,
-                    "label_seq_id": seq_id,
-                }
-            except (ValueError, TypeError):
-                continue
+    # Use dict to accumulate b-factors per residue, preserving insertion order (Python 3.7+)
+    residue_bfactors: Dict[tuple, List[float]] = {}
+    residue_comp_ids: Dict[tuple, str] = {}
 
-    local_metrics = defaultdict(list)
-    for i, (residue_key, b_list) in enumerate(residue_b_factors.items()):
-        mean_plddt = np.mean(b_list)
-        info = residue_info[residue_key]
-        local_metrics["label_asym_id"].append(info["label_asym_id"])
-        local_metrics["label_comp_id"].append(info["label_comp_id"])
-        local_metrics["label_seq_id"].append(info["label_seq_id"])
+    for i in range(len(asym_ids)):
+        b_factor = b_factors[i]
+        if b_factor in ("?", ".", ""):
+            continue
+        try:
+            bf = float(b_factor)
+        except (ValueError, TypeError):
+            continue
+
+        key = (asym_ids[i], seq_ids[i])
+        if key not in residue_bfactors:
+            residue_bfactors[key] = []
+            residue_comp_ids[key] = comp_ids[i]
+        residue_bfactors[key].append(bf)
+
+    # Build output lists in single pass
+    local_metrics: Dict[str, List[Any]] = {
+        "label_asym_id": [],
+        "label_comp_id": [],
+        "label_seq_id": [],
+        "metric_id": [],
+        "metric_value": [],
+        "model_id": [],
+        "ordinal_id": [],
+    }
+
+    for ordinal, ((asym_id, seq_id), b_list) in enumerate(residue_bfactors.items(), 1):
+        mean_plddt = sum(b_list) / len(b_list)
+        local_metrics["label_asym_id"].append(asym_id)
+        local_metrics["label_comp_id"].append(residue_comp_ids[(asym_id, seq_id)])
+        local_metrics["label_seq_id"].append(seq_id)
         local_metrics["metric_id"].append("2")
         local_metrics["metric_value"].append(f"{mean_plddt:.2f}")
         local_metrics["model_id"].append("1")
-        local_metrics["ordinal_id"].append(str(i + 1))
+        local_metrics["ordinal_id"].append(str(ordinal))
 
-    logger.info(
-        f"Computed local pLDDT for {len(local_metrics['ordinal_id'])} residues."
-    )
-    return dict(local_metrics)
+    logger.info(f"Computed local pLDDT for {len(local_metrics['ordinal_id'])} residues.")
+    return local_metrics
 
 
 def create_polymer_sequence_categories(
@@ -229,6 +241,58 @@ def create_polymer_sequence_categories(
         CAT_ENTITY_POLY_SEQ: dict(poly_seq_data),
         CAT_ENTITY_POLY_SEQ_SCHEME: dict(scheme_data),
     }
+
+
+CAT_STRUCT_REF = "_struct_ref"
+CAT_STRUCT_REF_SEQ = "_struct_ref_seq"
+
+
+def _clamp_struct_ref_seq_to_entity_poly_seq(cif_data: CifDataStorage) -> None:
+    """Clamp _struct_ref_seq seq_align_end/beg to actual _entity_poly_seq range."""
+    data = cif_data.get_data()
+    poly_seq = data.get(CAT_ENTITY_POLY_SEQ) or data.get("_entity_poly_seq.")
+    struct_ref_seq = data.get(CAT_STRUCT_REF_SEQ) or data.get("_struct_ref_seq.")
+    struct_ref = data.get(CAT_STRUCT_REF) or data.get("_struct_ref.")
+    if not poly_seq or not struct_ref_seq or not struct_ref:
+        return
+    entity_ids = poly_seq.get("entity_id", [])
+    nums = poly_seq.get("num", [])
+    if not entity_ids or not nums:
+        return
+    max_num_per_entity: Dict[str, int] = defaultdict(int)
+    for eid, n in zip(entity_ids, nums):
+        try:
+            max_num_per_entity[eid] = max(max_num_per_entity[eid], int(n))
+        except (ValueError, TypeError):
+            continue
+    ref_id_list = struct_ref.get("id", [])
+    entity_id_list = struct_ref.get("entity_id", [])
+    ref_to_entity = {str(rid): str(eid) for rid, eid in zip(ref_id_list, entity_id_list)}
+    seq_align_beg = list(struct_ref_seq.get("seq_align_beg", []))
+    seq_align_end = list(struct_ref_seq.get("seq_align_end", []))
+    ref_ids = struct_ref_seq.get("ref_id", [])
+    if not ref_ids or len(seq_align_beg) != len(ref_ids) or len(seq_align_end) != len(ref_ids):
+        return
+    for i, ref_id in enumerate(ref_ids):
+        eid = ref_to_entity.get(str(ref_id))
+        if eid is None:
+            continue
+        max_num = max_num_per_entity.get(eid, 0)
+        if max_num <= 0:
+            continue
+        try:
+            end_val = int(seq_align_end[i])
+            beg_val = int(seq_align_beg[i]) if i < len(seq_align_beg) else 1
+        except (ValueError, TypeError):
+            continue
+        new_end = min(end_val, max_num)
+        new_beg = max(1, min(beg_val, max_num))
+        if new_beg > new_end:
+            new_beg = new_end
+        seq_align_end[i] = str(new_end)
+        seq_align_beg[i] = str(new_beg)
+    cif_data.set_item(CAT_STRUCT_REF_SEQ, "seq_align_end", seq_align_end)
+    cif_data.set_item(CAT_STRUCT_REF_SEQ, "seq_align_beg", seq_align_beg)
 
 
 def map_entities_and_chains(
@@ -440,9 +504,8 @@ def add_standard_chem_comp_data(cif_data: CifDataStorage):
 def load_json_file(path: str) -> InputMetadata:
     logger.info(f"Loading metadata from: {path}")
     try:
-        with open(path, "r") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, FileNotFoundError) as e:
+        return orjson.loads(Path(path).read_bytes())
+    except (orjson.JSONDecodeError, FileNotFoundError) as e:
         logger.error(f"Error reading or parsing JSON file '{path}': {e}")
         sys.exit(1)
 
@@ -459,20 +522,22 @@ def pdb_to_cif_block(pdb_path: str) -> gemmi.cif.Block:
 
 def validate_json_with_schema(data: Dict[str, Any], schema_path: str):
     """Validates the given data against a JSON schema."""
+    global _SCHEMA_CACHE
     logger.info(f"Validating metadata against schema: {schema_path}")
 
-    try:
-        with open(schema_path, "r") as f:
-            schema = json.load(f)
-    except FileNotFoundError:
-        logger.error(f"CRITICAL: JSON schema file not found at '{schema_path}'.")
-        sys.exit(1)
-    except json.JSONDecodeError as e:
-        logger.error(f"CRITICAL: Could not parse JSON schema file '{schema_path}': {e}")
-        sys.exit(1)
+    # Use cached schema if available
+    if _SCHEMA_CACHE is None:
+        try:
+            _SCHEMA_CACHE = orjson.loads(Path(schema_path).read_bytes())
+        except FileNotFoundError:
+            logger.error(f"CRITICAL: JSON schema file not found at '{schema_path}'.")
+            sys.exit(1)
+        except orjson.JSONDecodeError as e:
+            logger.error(f"CRITICAL: Could not parse JSON schema file '{schema_path}': {e}")
+            sys.exit(1)
 
     try:
-        jsonschema.validate(instance=data, schema=schema)
+        jsonschema.validate(instance=data, schema=_SCHEMA_CACHE)
         logger.info("Metadata JSON validation successful.")
     except jsonschema.ValidationError as e:
         logger.error("CRITICAL: Metadata JSON validation failed.")
@@ -515,14 +580,120 @@ def validate_with_gemmi(cif_path: str, dict_path: str):
     except Exception as e:
         logger.error(f"An unexpected error occurred during validation: {e}")
 
+def extend_qa_with_model_metrics(
+    cif_data: CifDataStorage,
+    model_json_path: str,
+    cif_qa_metrics: str,
+) -> None:
+    """Inject complexPredictionAccuracy_* metrics from a model JSON as global QA metrics.
+
+    Reads the model JSON, filters for ``complexPredictionAccuracy_*`` keys,
+    and appends new entries to ``_ma_qa_metric`` (definitions) and
+    ``_ma_qa_metric_global`` (values).
+
+    Args:
+        cif_data: The CIF data storage to modify in-place.
+        model_json_path: Path to the model metadata JSON file.
+        cif_qa_metrics: Comma-separated short metric names (e.g. ``"ipsae_AB,iptm_af"``),
+            or ``"auto"`` to include all found ``complexPredictionAccuracy_*`` keys.
+    """
+    PREFIX = "complexPredictionAccuracy_"
+    # Short names that are software parameters, not QA metrics
+    _PARAMETER_KEYS = {"ipsae_pae_cutoff", "ipsae_dist_cutoff", "pae_cutoff", "dist_cutoff"}
+
+    # 1. Read model JSON
+    try:
+        model_data = orjson.loads(Path(model_json_path).read_bytes())
+    except (orjson.JSONDecodeError, FileNotFoundError, OSError) as e:
+        logger.warning(f"Could not read model JSON '{model_json_path}': {e}")
+        return
+
+    # 2. Collect all complexPredictionAccuracy_* keys
+    cpa_keys = {k: v for k, v in model_data.items() if k.startswith(PREFIX)}
+    if not cpa_keys:
+        logger.debug("No complexPredictionAccuracy_* keys found in model JSON.")
+        return
+
+    # 3. Build metrics filter
+    if cif_qa_metrics.strip().lower() == "auto":
+        selected_short_names = None  # include all
+    else:
+        selected_short_names = {s.strip() for s in cif_qa_metrics.split(",") if s.strip()}
+
+    # 4. Get existing data and find max ids
+    qa_metric_data = cif_data.data.get(CAT_QA_METRIC, {})
+    global_qa_data = cif_data.data.get(CAT_GLOBAL_QA, {})
+
+    existing_metric_ids = [int(x) for x in qa_metric_data.get("id", []) if x is not None]
+    next_metric_id = max(existing_metric_ids) + 1 if existing_metric_ids else 1
+
+    existing_ordinal_ids = [int(x) for x in global_qa_data.get("ordinal_id", []) if x is not None]
+    next_ordinal_id = max(existing_ordinal_ids) + 1 if existing_ordinal_ids else 1
+
+    # 5. Process each metric
+    added = 0
+    for full_key, value in cpa_keys.items():
+        if value is None:
+            continue
+
+        short_name = full_key[len(PREFIX):]
+
+        # Skip software parameters — these belong in _ma_software_parameter, not QA metrics
+        if short_name in _PARAMETER_KEYS:
+            continue
+
+        if selected_short_names is not None and short_name not in selected_short_names:
+            continue
+
+        # Format value
+        if isinstance(value, float):
+            formatted_value = f"{value:.6g}"
+        elif isinstance(value, int):
+            formatted_value = str(value)
+        else:
+            formatted_value = str(value)
+
+        # Append to _ma_qa_metric
+        for item, val in [
+            ("id", str(next_metric_id)),
+            ("name", short_name),
+            ("type", "other"),
+            ("mode", "global"),
+            ("software_group_id", "1"),
+        ]:
+            qa_metric_data.setdefault(item, []).append(val)
+
+        # Append to _ma_qa_metric_global
+        for item, val in [
+            ("ordinal_id", str(next_ordinal_id)),
+            ("model_id", "1"),
+            ("metric_id", str(next_metric_id)),
+            ("metric_value", formatted_value),
+        ]:
+            global_qa_data.setdefault(item, []).append(val)
+
+        next_metric_id += 1
+        next_ordinal_id += 1
+        added += 1
+
+    # Ensure categories are stored back (in case they were newly created via setdefault)
+    if added > 0:
+        cif_data.data[CAT_QA_METRIC] = qa_metric_data
+        cif_data.data[CAT_GLOBAL_QA] = global_qa_data
+        logger.info(f"Added {added} QA metrics from model JSON to CIF.")
+
+
 # --- Main Orchestration ---
 def generate(
-    pdb_file: str, metadata_file: str, output_file: str, validate_dict_path: str, fetch_uniprot: bool = False
+    pdb_file: str, metadata_file: str, output_file: str, validate_dict_path: str, fetch_uniprot: bool = False,
+    skip_validation: bool = False, skip_alignment: bool = False,
+    model_json_path: Optional[str] = None, cif_qa_metrics: Optional[str] = None,
 ):
     """Main function to orchestrate the PDB to mmCIF conversion and enrichment."""
     # 1. Load initial data
     input_metadata = load_json_file(metadata_file)
-    validate_json_with_schema(input_metadata, JSON_SCHEMA_PATH)
+    if not skip_validation:
+        validate_json_with_schema(input_metadata, JSON_SCHEMA_PATH)
     cif_block = pdb_to_cif_block(pdb_file)
 
     # 2. Initialize data storage and populate from PDB
@@ -533,12 +704,6 @@ def generate(
 
     # 3. Add metadata from JSON file
     model_meta = input_metadata.get("metadata", {})
-    cif_data.set_item(
-        CAT_MODEL_LIST,
-        "model_group_name",
-        [f"AlphaFold {model_meta.get(
-            'model_type', 'Monomer')} v{model_meta.get('version', '3.1')} model"],
-    )
     for category, items in input_metadata.get("categories", {}).items():
         if items:
             cif_data.set_items(category, items)
@@ -601,10 +766,16 @@ def generate(
             if cat_data:
                 cif_data.set_items(cat_name, cat_data)
 
+    _clamp_struct_ref_seq_to_entity_poly_seq(cif_data)
+
+    # 5b. Optionally inject model-level QA metrics from model JSON
+    if model_json_path and cif_qa_metrics:
+        extend_qa_with_model_metrics(cif_data, model_json_path, cif_qa_metrics)
+
     # 6. Write the final mmCIF file
     block_name = Path(output_file).stem
     mmcif_output_file = Path(output_file)
-    cif_data.write_to_cif(str(mmcif_output_file), block_name=block_name)
+    cif_data.write_to_cif(str(mmcif_output_file), block_name=block_name, skip_alignment=skip_alignment)
 
     # 7. Optionally validate the output file
     if validate_dict_path:

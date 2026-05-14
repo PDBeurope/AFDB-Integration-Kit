@@ -8,8 +8,116 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence, TypedDict
 
+import gemmi
+import numpy as np
 import orjson
+import threading
+
 logger = logging.getLogger(__name__)
+
+# Module-level manifest cache to avoid re-parsing the same CSV file
+_MANIFEST_CACHE: dict[str, list[dict[str, str]]] = {}
+_MANIFEST_CACHE_LOCK = threading.Lock()
+
+# Thread-local storage for DuckDB connections (DuckDB connections are not thread-safe)
+_THREAD_LOCAL = threading.local()
+
+# Module-level cache for prefetched DuckDB metadata (thread-safe read after initial population)
+_DUCKDB_METADATA_CACHE: dict[str, dict[str, dict[str, Any]]] = {}
+_DUCKDB_METADATA_LOCK = threading.Lock()
+
+
+def prefetch_duckdb_metadata(db_path: str, accessions: list[str]) -> None:
+    """
+    Prefetch metadata for all accessions from DuckDB into module-level cache.
+    Call this ONCE before batch processing to avoid per-model queries.
+    Thread-safe for initial population; subsequent reads don't need locks.
+    """
+    if not accessions:
+        return
+
+    cache_key = str(Path(db_path).resolve())
+
+    with _DUCKDB_METADATA_LOCK:
+        if cache_key in _DUCKDB_METADATA_CACHE:
+            return  # Already populated
+
+        try:
+            import duckdb
+        except ModuleNotFoundError as exc:
+            raise ModuleNotFoundError(
+                "duckdb Python package is required to read DuckDB manifests. "
+                "Install with `pip install duckdb`."
+            ) from exc
+
+        con = duckdb.connect(db_path, read_only=True)
+        duckdb_mem = os.environ.get("DUCKDB_MEMORY_LIMIT", "512MB")
+        con.execute(f"SET memory_limit = '{duckdb_mem}'")
+        try:
+            unique_accs = list(set(accessions))
+            placeholders = ",".join("?" for _ in unique_accs)
+            query = (
+                "SELECT primary_ac, protein_full_names, sequence "
+                "FROM entry WHERE primary_ac IN ({})"
+            ).format(placeholders)
+            rows_rel = con.execute(query, unique_accs)
+            rows = rows_rel.fetchall()
+            col_index = {name: idx for idx, name in enumerate([col[0] for col in (rows_rel.description or [])])}
+
+            entry_lookup: dict[str, dict[str, Any]] = {}
+            for row in rows:
+                entry_lookup[str(row[col_index["primary_ac"]])] = {
+                    name: row[col_index[name]] for name in col_index
+                }
+
+            _DUCKDB_METADATA_CACHE[cache_key] = entry_lookup
+            logger.info("Prefetched DuckDB metadata for %d/%d accessions", len(entry_lookup), len(unique_accs))
+        finally:
+            con.close()
+
+
+def _get_prefetched_metadata(db_path: str) -> dict[str, dict[str, Any]] | None:
+    """Get prefetched metadata if available, otherwise return None."""
+    cache_key = str(Path(db_path).resolve())
+    return _DUCKDB_METADATA_CACHE.get(cache_key)
+
+
+def _get_duckdb_connection(db_path: str) -> "duckdb.DuckDBPyConnection":
+    """Get or create a thread-local DuckDB connection."""
+    try:
+        import duckdb
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "duckdb Python package is required to read DuckDB manifests. "
+            "Install with `pip install duckdb`."
+        ) from exc
+
+    if not hasattr(_THREAD_LOCAL, "duckdb_conns"):
+        _THREAD_LOCAL.duckdb_conns = {}
+
+    if db_path not in _THREAD_LOCAL.duckdb_conns:
+        conn = duckdb.connect(db_path, read_only=True)
+        duckdb_mem = os.environ.get("DUCKDB_MEMORY_LIMIT", "512MB")
+        conn.execute(f"SET memory_limit = '{duckdb_mem}'")
+        _THREAD_LOCAL.duckdb_conns[db_path] = conn
+
+    return _THREAD_LOCAL.duckdb_conns[db_path]
+
+
+def cleanup_caches() -> None:
+    """Close all cached DuckDB connections and clear caches. Call after batch processing."""
+    # Close thread-local DuckDB connections if they exist
+    if hasattr(_THREAD_LOCAL, "duckdb_conns"):
+        for conn in _THREAD_LOCAL.duckdb_conns.values():
+            try:
+                conn.close()
+            except Exception:
+                pass
+        _THREAD_LOCAL.duckdb_conns.clear()
+    with _MANIFEST_CACHE_LOCK:
+        _MANIFEST_CACHE.clear()
+    with _DUCKDB_METADATA_LOCK:
+        _DUCKDB_METADATA_CACHE.clear()
 
 
 class ChainMetadata(TypedDict):
@@ -85,8 +193,96 @@ def _chain_spans_from_pdb(
     chain_display_names: Dict[str, str] | None = None,
 ) -> tuple[list[ChainMetadata], int]:
     """
+    Parse the PDB to derive chain metadata using gemmi for speed.
+    Falls back to line-by-line parsing if gemmi fails.
+    """
+    try:
+        return _chain_spans_from_pdb_gemmi(pdb_path, chain_display_names)
+    except Exception:
+        logger.warning("gemmi parsing failed, falling back to line parser")
+        return _chain_spans_from_pdb_legacy(pdb_path, chain_display_names)
+
+
+def _chain_spans_from_pdb_gemmi(
+    pdb_path: Path,
+    chain_display_names: Dict[str, str] | None = None,
+) -> tuple[list[ChainMetadata], int]:
+    """Fast PDB parsing using gemmi."""
+    structure = gemmi.read_structure(str(pdb_path))
+    if not structure:
+        raise ValueError(f"No structure found in {pdb_path}")
+    
+    model = structure[0]
+    chains: list[ChainMetadata] = []
+    total_residues = 0
+    
+    for idx, chain in enumerate(model, start=1):
+        # Count unique residues (excluding water)
+        seen_residues: set[tuple[int, str]] = set()
+        for residue in chain:
+            if residue.name == "HOH":
+                continue
+            seen_residues.add((residue.seqid.num, residue.seqid.icode))
+        
+        if not seen_residues:
+            continue
+        
+        chain_id = chain.name if chain.name.strip() else f"Chain{idx}"
+        label = chain_id if chain_id != "_" else f"Chain{idx}"
+        display_name = chain_display_names.get(chain_id, label) if chain_display_names else label
+        
+        # Expose per-chain local residue ranges in JSON metadata.
+        start = 1
+        end = len(seen_residues)
+        chains.append({
+            "name": display_name,
+            "label_asym_id": label,
+            "sequenceStart": start,
+            "sequenceEnd": end,
+        })
+        total_residues += len(seen_residues)
+    
+    if not chains:
+        raise ValueError(f"No chains found in {pdb_path}")
+    
+    return chains, total_residues
+
+
+def _get_pdb_chain_ids(pdb_path: Path) -> list[str]:
+    """
+    Extract ordered list of chain IDs from PDB file.
+    Uses gemmi for fast parsing, falls back to line-by-line if needed.
+    Returns chain IDs in the order they appear in the PDB.
+    """
+    try:
+        structure = gemmi.read_structure(str(pdb_path))
+        if not structure:
+            raise ValueError(f"No structure found in {pdb_path}")
+        model = structure[0]
+        chain_ids = []
+        for chain in model:
+            # Skip chains with no residues (excluding water)
+            has_residues = any(r.name != "HOH" for r in chain)
+            if has_residues:
+                chain_id = chain.name if chain.name.strip() else "_"
+                chain_ids.append(chain_id)
+        return chain_ids
+    except Exception:
+        # Fallback to line-by-line parsing
+        seen_chains: list[str] = []
+        for chain_id, _, _ in _iterate_pdb_residues(pdb_path):
+            if chain_id not in seen_chains:
+                seen_chains.append(chain_id)
+        return seen_chains
+
+
+def _chain_spans_from_pdb_legacy(
+    pdb_path: Path,
+    chain_display_names: Dict[str, str] | None = None,
+) -> tuple[list[ChainMetadata], int]:
+    """
     Parse the PDB to derive chain metadata aligned to pLDDT/PAE indices.
-    Returns (chains, total_residues).
+    Returns (chains, total_residues). Legacy line-by-line fallback.
     """
     residues: OrderedDict[str, list[tuple[int, str]]] = OrderedDict()
     for chain_id, resseq, insertion_code in _iterate_pdb_residues(pdb_path):
@@ -99,12 +295,13 @@ def _chain_spans_from_pdb(
         raise ValueError(f"No ATOM records found in {pdb_path} to derive chains.")
 
     chains: list[ChainMetadata] = []
-    running_total = 1
+    total_residues = 0
     for idx, (chain_id, res_list) in enumerate(residues.items(), start=1):
         label = chain_id if chain_id != "_" else f"Chain{idx}"
         display_name = chain_display_names.get(chain_id) if chain_display_names else label
-        start = running_total
-        end = running_total + len(res_list) - 1
+        # Expose per-chain local residue ranges in JSON metadata.
+        start = 1
+        end = len(res_list)
         chains.append(
             {
                 "name": display_name,
@@ -113,9 +310,8 @@ def _chain_spans_from_pdb(
                 "sequenceEnd": end,
             }
         )
-        running_total = end + 1
+        total_residues += len(res_list)
 
-    total_residues = running_total - 1
     return chains, total_residues
 
 
@@ -148,10 +344,16 @@ def _load_manifest_chains(
     """
     Load chain_id + uniprot_ac pairs for the requested model_entity_id.
     Returns the resolved model_entity_id and ordered chain rows.
+    Uses module-level cache to avoid re-parsing the same manifest file.
     """
-    with manifest_path.open(newline="") as handle:
-        reader = csv.DictReader(handle)
-        rows = list(reader)
+    cache_key = str(manifest_path.resolve())
+
+    with _MANIFEST_CACHE_LOCK:
+        if cache_key not in _MANIFEST_CACHE:
+            with manifest_path.open(newline="") as handle:
+                reader = csv.DictReader(handle)
+                _MANIFEST_CACHE[cache_key] = list(reader)
+        rows = _MANIFEST_CACHE[cache_key]
 
     if not rows:
         raise ValueError(f"Manifest {manifest_path} is empty.")
@@ -235,72 +437,122 @@ def _as_string_list(value: Any) -> list[str]:
 def _load_chain_metadata_from_duckdb(
     db_path: Path,
     manifest_chains: list[dict[str, str]],
-) -> tuple[list[ChainMetadata], list[int]]:
+    pdb_path: Path | None = None,
+) -> tuple[list[ChainMetadata], list[int], list[dict[str, str]]]:
     """
     Resolve chain names and residue ranges from DuckDB using accessions from the CSV manifest.
     - Uses uniprot_ac to find matching rows in the entry table.
     - Uses the first protein_full_names entry as the chain name (required).
-    - Derives sequenceStart/sequenceEnd as 1..len(sequence) (required).
-    """
-    try:
-        import duckdb  # type: ignore
-    except ModuleNotFoundError as exc:
-        raise ModuleNotFoundError(
-            "duckdb Python package is required to read DuckDB manifests. "
-            "Install with `pip install duckdb`."
-        ) from exc
+    - Derives sequenceStart/sequenceEnd as per-chain local ranges 1..len(sequence).
 
-    con = duckdb.connect(str(db_path), read_only=True)
-    try:
-        accs = [c["uniprot_ac"] for c in manifest_chains]
-        placeholders = ",".join("?" for _ in accs)
+    If pdb_path is provided, detects actual chains in the PDB and auto-expands
+    the manifest for homomultimers (multiple chains with the same UniProt accession).
+
+    Returns:
+        (chains, residue_numbers, effective_manifest_chains)
+        - effective_manifest_chains may be expanded for homomultimers
+
+    Uses prefetched metadata cache if available (populated by prefetch_duckdb_metadata).
+    """
+    # Auto-expand manifest for homomultimers if PDB has more chains than manifest
+    effective_chains = manifest_chains
+    if pdb_path is not None:
+        pdb_chain_ids = _get_pdb_chain_ids(pdb_path)
+        if len(pdb_chain_ids) > len(manifest_chains):
+            # Check if this is a homomultimer (single accession for multiple chains)
+            unique_accs = {c["uniprot_ac"] for c in manifest_chains}
+            if len(unique_accs) == 1:
+                # Homodimer/homomultimer: replicate the single accession for each PDB chain
+                base_acc = list(unique_accs)[0]
+                base_entity_id = manifest_chains[0].get("entity_id", "1")
+                effective_chains = []
+                for chain_id in pdb_chain_ids:
+                    effective_chains.append({
+                        "chain_id": chain_id,
+                        "uniprot_ac": base_acc,
+                        "entity_id": base_entity_id,
+                    })
+                logger.info(
+                    "Auto-expanded manifest for homomultimer: %d chains -> %d chains (accession: %s)",
+                    len(manifest_chains), len(effective_chains), base_acc
+                )
+            else:
+                # Heteromultimer with incomplete manifest - warn but proceed
+                logger.warning(
+                    "PDB has %d chains but manifest has %d entries with %d unique accessions. "
+                    "Cannot auto-expand heteromultimer manifests.",
+                    len(pdb_chain_ids), len(manifest_chains), len(unique_accs)
+                )
+
+    cache_key = str(db_path.resolve())
+    accs = [c["uniprot_ac"] for c in effective_chains]
+
+    # Try to use prefetched metadata first (fast path)
+    prefetched = _get_prefetched_metadata(cache_key)
+    if prefetched is not None:
+        entry_lookup = prefetched
+    else:
+        # Fallback to per-model query (slow path)
+        con = _get_duckdb_connection(cache_key)
+        unique_accs_list = list(set(accs))
+        placeholders = ",".join("?" for _ in unique_accs_list)
         query = (
             "SELECT primary_ac, protein_full_names, sequence "
             "FROM entry WHERE primary_ac IN ({})"
         ).format(placeholders)
-        rows_rel = con.execute(query, accs)
+        rows_rel = con.execute(query, unique_accs_list)
         rows = rows_rel.fetchall()
         if not rows:
-            raise ValueError(f"No matching accessions found in DuckDB entry table for {accs}.")
+            raise ValueError(f"No matching accessions found in DuckDB entry table for {unique_accs_list}.")
         col_index = {name: idx for idx, name in enumerate([col[0] for col in (rows_rel.description or [])])}
 
         entry_lookup: Dict[str, Dict[str, Any]] = {}
         for row in rows:
             entry_lookup[str(row[col_index["primary_ac"]])] = {name: row[col_index[name]] for name in col_index}
 
-        chains: list[ChainMetadata] = []
-        residue_numbers: list[int] = []
-        running_total = 0
-        for chain in manifest_chains:
-            acc = chain["uniprot_ac"]
-            chain_id = chain["chain_id"]
-            entry = entry_lookup.get(acc)
-            if entry is None:
-                raise ValueError(f"Accession {acc} not found in DuckDB entry table.")
-            names = _as_string_list(entry.get("protein_full_names"))
-            if not names:
-                raise ValueError(f"No protein_full_names found in DuckDB entry table for accession {acc}.")
-            desc = names[0]
-            seq = entry.get("sequence") or ""
-            seqlen = len(seq)
-            if seqlen == 0:
-                raise ValueError(f"No sequence found in DuckDB entry table for accession {acc}.")
-            seq_start = running_total + 1
-            seq_end = running_total + seqlen
-            chains.append(
-                {
-                    "name": desc,
-                    "label_asym_id": chain_id,
-                    "sequenceStart": seq_start,
-                    "sequenceEnd": seq_end,
-                }
-            )
-            residue_numbers.extend(range(seq_start, seq_end + 1))
-            running_total = seq_end
+    # Verify all unique accessions are in the lookup
+    unique_accs_set = set(accs)
+    missing = [acc for acc in unique_accs_set if acc not in entry_lookup]
+    if missing:
+        raise ValueError(f"No matching accessions found in DuckDB entry table for {missing}.")
 
-        return chains, residue_numbers
-    finally:
-        con.close()
+    chains: list[ChainMetadata] = []
+    residue_numbers: list[int] = []
+    for chain in effective_chains:
+        acc = chain["uniprot_ac"]
+        chain_id = chain["chain_id"]
+        entry = entry_lookup.get(acc)
+        if entry is None:
+            raise ValueError(f"Accession {acc} not found in DuckDB entry table.")
+        # Try protein_full_names first, then fall back to entry_name or gene_names
+        names = _as_string_list(entry.get("protein_full_names"))
+        if names:
+            desc = names[0]
+        elif entry.get("entry_name"):
+            desc = str(entry["entry_name"])
+        elif entry.get("gene_names"):
+            desc = str(entry["gene_names"])
+        else:
+            desc = acc  # Ultimate fallback to accession itself
+        seq = entry.get("sequence") or ""
+        seqlen = len(seq)
+        if seqlen == 0:
+            raise ValueError(f"No sequence found in DuckDB entry table for accession {acc}.")
+        # Expose per-chain local residue ranges in JSON metadata.
+        seq_start = 1
+        seq_end = seqlen
+        chains.append(
+            {
+                "name": desc,
+                "label_asym_id": chain_id,
+                "sequenceStart": seq_start,
+                "sequenceEnd": seq_end,
+            }
+        )
+        # Keep global residue numbering for the flattened confidence arrays.
+        residue_numbers.extend(range(len(residue_numbers) + 1, len(residue_numbers) + seqlen + 1))
+
+    return chains, residue_numbers, effective_chains
 
 
 def _compute_plddt_metrics(
@@ -314,24 +566,28 @@ def _compute_plddt_metrics(
     """
     acc_lookup = {c["chain_id"]: c["uniprot_ac"] for c in manifest_chains}
     entity_lookup = {c["chain_id"]: c.get("entity_id", "") for c in manifest_chains}
+    all_scores = np.asarray(plddt, dtype=np.float64)
     chain_rows: list[dict[str, Any]] = []
     total_sum = 0.0
     total_count = 0
+    running_offset = 0
     for chain in chains:
         start = chain["sequenceStart"]
         end = chain["sequenceEnd"]
         length = end - start + 1
-        # chains are 1-based inclusive for global indices
-        values = plddt[start - 1 : end]
-        if not values:
+        values = all_scores[running_offset : running_offset + length]
+        if len(values) == 0:
             raise ValueError(f"No pLDDT values found for chain {chain['label_asym_id']}.")
-        avg = round(sum(values) / len(values), 2)
-        total_sum += sum(values)
-        total_count += len(values)
-        fraction_plddt_very_low = round(sum(1 for v in values if v < 50.0) / len(values), 3)
-        fraction_plddt_low = round(sum(1 for v in values if 50.0 <= v < 70.0) / len(values), 3)
-        fraction_plddt_confident = round(sum(1 for v in values if 70.0 <= v <= 90.0) / len(values), 3)
-        fraction_plddt_very_high = round(sum(1 for v in values if v > 90.0) / len(values), 3)
+        running_offset += length
+        n = len(values)
+        chain_sum = float(np.sum(values))
+        avg = round(chain_sum / n, 2)
+        total_sum += chain_sum
+        total_count += n
+        fraction_plddt_very_low = round(int(np.sum(values < 50.0)) / n, 3)
+        fraction_plddt_low = round(int(np.sum((values >= 50.0) & (values < 70.0))) / n, 3)
+        fraction_plddt_confident = round(int(np.sum((values >= 70.0) & (values <= 90.0))) / n, 3)
+        fraction_plddt_very_high = round(int(np.sum(values > 90.0)) / n, 3)
         chain_rows.append(
             {
                 "model_entity_id": None,  # filled later
@@ -407,22 +663,32 @@ def plddt_to_ingest(
         raise ValueError(
             f"Residue numbers length ({len(residue_numbers)}) does not match pLDDT length ({len(plddt)})."
         )
-    categories = [_categorise_confidence(x) for x in plddt]
+    scores = np.asarray(plddt, dtype=np.float64)
+    rounded_scores = np.round(scores, 2)
+
+    categories = np.full(len(rounded_scores), "D", dtype="U1")
+    categories[rounded_scores >= 30.0] = "L"
+    categories[rounded_scores >= 50.0] = "M"
+    categories[rounded_scores >= 70.0] = "H"
+    categories[rounded_scores > 90.0] = "V"
+
     return {
         "residueNumber": residue_numbers,
-        "confidenceScore": list(plddt),
-        "confidenceCategory": categories,
+        "confidenceScore": rounded_scores,
+        "confidenceCategory": categories.tolist(),
         "chains": chains,
     }
 
 
 def pae_to_ingest(pae: Sequence[Sequence[float]], max_pae: float, chains: list[ChainMetadata]) -> list[PAEItem]:
     """Build the AFDB PAE payload with light validation."""
-    if not pae or any(len(row) != len(pae) for row in pae):
+    pae_arr = np.asarray(pae, dtype=np.float64)
+    if pae_arr.ndim != 2 or pae_arr.shape[0] != pae_arr.shape[1] or pae_arr.shape[0] == 0:
         raise ValueError("PAE must be a non-empty square matrix (NxN).")
+    rounded_pae = np.round(pae_arr, 2)
     return [
         {
-            "predicted_aligned_error": pae,
+            "predicted_aligned_error": rounded_pae,
             "max_predicted_aligned_error": round(max_pae, 2),
             "chains": chains,
         }
@@ -476,11 +742,13 @@ def convert_file(
 
     chains: list[ChainMetadata]
     residue_numbers: list[int] | None = None
+    effective_manifest_chains: list[dict[str, str]] = manifest_chains
 
     if manifest_chains and duckdb_path:
-        chains, residue_numbers = _load_chain_metadata_from_duckdb(
+        chains, residue_numbers, effective_manifest_chains = _load_chain_metadata_from_duckdb(
             Path(duckdb_path),
             manifest_chains=manifest_chains,
+            pdb_path=pdb,
         )
         if len(residue_numbers) != len(plddt):
             raise ValueError(
@@ -501,9 +769,9 @@ def convert_file(
     chain_manifest_rows: list[dict[str, Any]] | None = None
     model_avg_plddt: float | None = None
     if out_chain_manifest or out_model_manifest or chain_manifest_dir or model_manifest_dir:
-        if not manifest_chains:
+        if not effective_manifest_chains:
             raise ValueError("--manifest is required when writing pLDDT manifests.")
-        chain_manifest_rows, model_avg_plddt = _compute_plddt_metrics(plddt, chains, manifest_chains)
+        chain_manifest_rows, model_avg_plddt = _compute_plddt_metrics(plddt, chains, effective_manifest_chains)
         if model_entity_id:
             for row in chain_manifest_rows:
                 row["model_entity_id"] = model_entity_id
@@ -527,7 +795,7 @@ def convert_file(
 
     def _dump(obj: Any, path: str) -> None:
         with open(path, "wb") as f:
-            f.write(orjson.dumps(obj))
+            f.write(orjson.dumps(obj, option=orjson.OPT_SERIALIZE_NUMPY))
 
     _dump(plddt_payload, out_plddt_path)
     _dump(pae_payload, out_pae_path)

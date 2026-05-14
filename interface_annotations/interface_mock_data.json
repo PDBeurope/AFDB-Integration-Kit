@@ -1,0 +1,168 @@
+{
+  "data_resource": "Nvidia",
+  "resource_version": "0.1",
+  "software_version": "contact-finder",
+  "release_date": "25/02/2024",
+  "includes_het_groups": false,
+  "chains": [
+    {
+      "chain_label": "A",
+      "residues": [
+        {
+          "aa_type": "ALA",
+          "site_data": [
+            {
+              "site_id_ref": 1,
+              "raw_score": 3.8,
+              "raw_score_unit": "A",
+              "confidence_classification": "high"
+            }
+          ],
+          "residue_number": "101"
+        },
+        {
+          "aa_type": "LYS",
+          "site_data": [
+            {
+              "site_id_ref": 1,
+              "raw_score": 4.1,
+              "raw_score_unit": "A",
+              "confidence_classification": "high"
+            }
+          ],
+          "residue_number": "105"
+        }
+      ]
+    },
+    {
+      "chain_label": "B",
+      "residues": [
+        {
+          "aa_type": "GLY",
+          "site_data": [
+            {
+              "site_id_ref": 1,
+              "raw_score": 3.8,
+              "raw_score_unit": "A",
+              "confidence_classification": "high"
+            }
+          ],
+          "residue_number": "220"
+        },
+        {
+          "aa_type": "ASP",
+          "site_data": [
+            {
+              "site_id_ref": 1,
+              "raw_score": 4.1,
+              "raw_score_unit": "A",
+              "confidence_classification": "high"
+            }
+          ],
+          "residue_number": "225"
+        }
+      ]
+    },
+    {
+      "chain_label": "C",
+      "residues": [
+        {
+          "aa_type": "TYR",
+          "site_data": [
+            {
+              "site_id_ref": 2,
+              "raw_score": 3.5,
+              "raw_score_unit": "A",
+              "confidence_classification": "high"
+            }
+          ],
+          "residue_number": "12"
+        }
+      ]
+    },
+    {
+      "chain_label": "D",
+      "residues": [
+        {
+          "aa_type": "LEU",
+          "site_data": [
+            {
+              "site_id_ref": 2,
+              "raw_score": 3.5,
+              "raw_score_unit": "A",
+              "confidence_classification": "high"
+            }
+          ],
+          "residue_number": "48"
+        }
+      ]
+    }
+  ],
+  "sites": [
+    {
+      "site_id": 1,
+      "label": "AB_interface",
+      "site_url": "https://placeholder.resource/sites/AB",
+      "source_database": "placeholder_db",
+      "source_accession": "AF-1234567890123456",
+      "source_release_date": "25/02/2024",
+      "source_version": "2024.02",
+      "additional_site_annotations": {
+        "contact_cutoff_angstrom": 4.5,
+        "description": "AB interface",
+        "interactions": [
+          {
+            "chain_1": "A",
+            "res_1_label": "101",
+            "aa_1_type": "ALA",
+            "chain_2": "B",
+            "res_2_label": "220",
+            "aa_2_type": "GLY",
+            "distance_angstrom": 3.8
+          },
+          {
+            "chain_1": "A",
+            "res_1_label": "105",
+            "aa_1_type": "LYS",
+            "chain_2": "B",
+            "res_2_label": "225",
+            "aa_2_type": "ASP",
+            "distance_angstrom": 4.1
+          }
+        ]
+      }
+    },
+    {
+      "site_id": 2,
+      "label": "CD_interface",
+      "site_url": "https://placeholder.resource/sites/CD",
+      "source_database": "placeholder_db",
+      "source_accession": "AF-1234567890123456",
+      "source_release_date": "25/02/2024",
+      "source_version": "2024.02",
+      "additional_site_annotations": {
+        "contact_cutoff_angstrom": 4.0,
+        "description": "CD interface",
+        "interactions": [
+          {
+            "chain_1": "C",
+            "res_1_label": "12",
+            "aa_1_type": "TYR",
+            "chain_2": "D",
+            "res_2_label": "48",
+            "aa_2_type": "LEU",
+            "distance_angstrom": 3.5
+          }
+        ]
+      }
+    }
+  ],
+  "additional_entry_annotations": {},
+  "evidence_code_ontology": [
+    {
+      "eco_term": "computational evidence",
+      "eco_code": "ECO_0000246"
+    }
+  ],
+  "af_id": "AF-0000000065862006"
+}

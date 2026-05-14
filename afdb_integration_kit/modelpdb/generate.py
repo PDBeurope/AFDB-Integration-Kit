@@ -1,6 +1,8 @@
-import json
 import logging
 import sys
+from pathlib import Path
+
+import orjson
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict
@@ -38,9 +40,8 @@ def load_json_file(path: str) -> Dict[str, Any]:
     """Loads and returns data from a JSON file."""
     logger.info(f"Loading JSON file: {path}")
     try:
-        with open(path, "r") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, FileNotFoundError) as e:
+        return orjson.loads(Path(path).read_bytes())
+    except (orjson.JSONDecodeError, FileNotFoundError) as e:
         logger.error(f"Error reading or parsing JSON file '{path}': {e}")
         sys.exit(1)
 

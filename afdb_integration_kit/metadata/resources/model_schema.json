@@ -118,6 +118,11 @@
       "description": "Number of entity copies (integer)",
       "examples": [2]
     },
+    "oligomericStateDescription": {
+      "type": ["string", "null"],
+      "description": "Combined assembly type and oligomeric state for a complex",
+      "examples": ["Heterodimer"]
+    },
     "ipTM": {
       "type": ["number", "null"],
       "description": "Quality metric (float)",

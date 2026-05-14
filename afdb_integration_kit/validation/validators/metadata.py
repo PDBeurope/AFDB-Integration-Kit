@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Set
+
+import orjson
 
 from ..context import ValidationContext
 from ..registry import register_check
@@ -108,7 +109,7 @@ def _validate_metadata_file(path: Path) -> List[ValidationResult]:
         return results
 
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = orjson.loads(path.read_bytes())
     except Exception as exc:
         results.append(
             ValidationResult(

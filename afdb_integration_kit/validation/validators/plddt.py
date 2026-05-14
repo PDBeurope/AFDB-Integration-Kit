@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-import json
 import math
-from decimal import Decimal, InvalidOperation
+import os
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Iterable, List, Tuple
+
+import orjson
 
 from afdb_integration_kit.quality_assessment.naming import PATTERNS
 
@@ -51,11 +53,10 @@ def _normalise_scores(
 
 def _has_max_two_decimal_places(value: object) -> bool:
     try:
-        dec = Decimal(str(value))
-    except (InvalidOperation, ValueError):
+        f = float(value)
+        return f == round(f, 2)
+    except (TypeError, ValueError):
         return False
-    exponent = -dec.as_tuple().exponent if dec.as_tuple().exponent < 0 else 0
-    return exponent <= 2
 
 
 def _as_bool(value: object, default: bool) -> bool:
@@ -224,10 +225,137 @@ def _allowed_categories_for_score(score: float) -> set[str]:
     return {"D"}
 
 
-@register_check("plddt")
-def run(files: List[Path], ctx: ValidationContext) -> List[ValidationResult]:
+def _validate_single_plddt(args: Tuple[Path, float, float, bool, bool, bool]) -> List[ValidationResult]:
+    """Validate a single pLDDT file (must be top-level for pickling)."""
+    path, min_score, max_score, enforce_length_match, enforce_categories, enforce_decimal_places = args
     results: List[ValidationResult] = []
 
+    try:
+        data = orjson.loads(path.read_bytes())
+    except Exception as exc:
+        return [
+            ValidationResult(
+                check="plddt",
+                file=path,
+                level=Level.ERROR,
+                code="plddt_json_parse_error",
+                message=f"Failed to parse JSON: {exc}",
+                suggested_fix="Ensure the pLDDT JSON follows the AFDB confidence schema.",
+            )
+        ]
+
+    scores_raw, mode = _extract_scores(data)
+    if scores_raw is None:
+        return [
+            ValidationResult(
+                check="plddt",
+                file=path,
+                level=Level.ERROR,
+                code="plddt_unknown_format",
+                message=f"Unrecognised pLDDT JSON structure ({mode}).",
+                suggested_fix="Ensure the JSON contains a confidenceScore array or is a list of scores.",
+            )
+        ]
+
+    if isinstance(data, dict):
+        results.extend(
+            _check_length_alignment(
+                data,
+                enforce_length_match,
+                path,
+            )
+        )
+
+    raw_scores = list(scores_raw)
+
+    scores, invalid_indices, decimal_issues = _normalise_scores(
+        raw_scores,
+        min_score=min_score,
+        max_score=max_score,
+        enforce_decimal_places=enforce_decimal_places,
+    )
+
+    if invalid_indices:
+        index_list = ", ".join(str(i) for i in invalid_indices[:10])
+        extra = "" if len(invalid_indices) <= 10 else f" (and {len(invalid_indices) - 10} more)"
+        results.append(
+            ValidationResult(
+                check="plddt",
+                file=path,
+                level=Level.ERROR,
+                code="plddt_invalid_values",
+                message=f"{len(invalid_indices)} invalid pLDDT values at indices {index_list}{extra}.",
+                suggested_fix=f"Ensure all pLDDT scores are numeric values between {min_score} and {max_score}.",
+            )
+        )
+
+    if decimal_issues:
+        index_list = ", ".join(str(i) for i in decimal_issues[:10])
+        extra = "" if len(decimal_issues) <= 10 else f" (and {len(decimal_issues) - 10} more)"
+        results.append(
+            ValidationResult(
+                check="plddt",
+                file=path,
+                level=Level.ERROR,
+                code="plddt_decimal_precision",
+                message=f"{len(decimal_issues)} pLDDT values exceed two decimal places at indices {index_list}{extra}.",
+                suggested_fix="Format scores with at most two decimal places.",
+            )
+        )
+
+    categories = []
+    if isinstance(data, dict):
+        cat_values = data.get("confidenceCategory")
+        if isinstance(cat_values, list):
+            categories = cat_values
+
+    if categories:
+        results.extend(
+            _check_categories(
+                raw_scores,
+                categories,
+                enforce=enforce_categories,
+                invalid_indices=invalid_indices,
+                path=path,
+            )
+        )
+
+    if not scores:
+        results.append(
+            ValidationResult(
+                check="plddt",
+                file=path,
+                level=Level.ERROR,
+                code="plddt_no_scores",
+                message="No valid pLDDT scores found.",
+                suggested_fix="Populate confidenceScore values with numbers in the range [0, 100].",
+            )
+        )
+        return results
+
+    mean_score = sum(scores) / len(scores)
+    pct_high = (sum(1 for score in scores if score >= 70.0) / len(scores)) * 100.0
+
+    results.append(
+        ValidationResult(
+            check="plddt",
+            file=path,
+            level=Level.INFO,
+            code="plddt_summary",
+            message="pLDDT metrics calculated.",
+            metrics={
+                "mean": mean_score,
+                "length": float(len(scores)),
+                "pct_ge_70": pct_high,
+            },
+        )
+    )
+
+    return results
+
+
+@register_check("plddt")
+def run(files: List[Path], ctx: ValidationContext) -> List[ValidationResult]:
     cfg = ctx.config.get("plddt", {})
     allow_any_name = bool(cfg.get("allow_any_name"))
     pattern = PATTERNS.get("plddt")
@@ -238,137 +366,31 @@ def run(files: List[Path], ctx: ValidationContext) -> List[ValidationResult]:
         elif pattern and pattern.match(path.name):
             candidates.append(path)
 
+    if not candidates:
+        return []
+
     min_score = float(cfg.get("min_score", 0.0))
     max_score = float(cfg.get("max_score", 100.0))
     enforce_length_match = _as_bool(cfg.get("enforce_length_match", True), True)
     enforce_categories = _as_bool(cfg.get("enforce_categories", True), True)
     enforce_decimal_places = _as_bool(cfg.get("enforce_decimal_places", True), True)
 
-    for path in sorted(candidates):
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except Exception as exc:
-            results.append(
-                ValidationResult(
-                    check="plddt",
-                    file=path,
-                    level=Level.ERROR,
-                    code="plddt_json_parse_error",
-                    message=f"Failed to parse JSON: {exc}",
-                    suggested_fix="Ensure the pLDDT JSON follows the AFDB confidence schema.",
-                )
-            )
-            continue
+    sorted_candidates = sorted(candidates)
+    args = [
+        (p, min_score, max_score, enforce_length_match, enforce_categories, enforce_decimal_places)
+        for p in sorted_candidates
+    ]
 
-        scores_raw, mode = _extract_scores(data)
-        if scores_raw is None:
-            results.append(
-                ValidationResult(
-                    check="plddt",
-                    file=path,
-                    level=Level.ERROR,
-                    code="plddt_unknown_format",
-                    message=f"Unrecognised pLDDT JSON structure ({mode}).",
-                    suggested_fix="Ensure the JSON contains a confidenceScore array or is a list of scores.",
-                )
-            )
-            continue
+    num_workers = min(len(candidates), os.cpu_count() or 4)
 
-        if isinstance(data, dict):
-            results.extend(
-                _check_length_alignment(
-                    data,
-                    enforce_length_match,
-                    path,
-                )
-            )
-
-        raw_scores = list(scores_raw)
-
-        scores, invalid_indices, decimal_issues = _normalise_scores(
-            raw_scores,
-            min_score=min_score,
-            max_score=max_score,
-            enforce_decimal_places=enforce_decimal_places,
-        )
-
-        if invalid_indices:
-            index_list = ", ".join(str(i) for i in invalid_indices[:10])
-            extra = "" if len(invalid_indices) <= 10 else f" (and {len(invalid_indices) - 10} more)"
-            results.append(
-                ValidationResult(
-                    check="plddt",
-                    file=path,
-                    level=Level.ERROR,
-                    code="plddt_invalid_values",
-                    message=f"{len(invalid_indices)} invalid pLDDT values at indices {index_list}{extra}.",
-                    suggested_fix=f"Ensure all pLDDT scores are numeric values between {min_score} and {max_score}.",
-                )
-            )
-
-        if decimal_issues:
-            index_list = ", ".join(str(i) for i in decimal_issues[:10])
-            extra = "" if len(decimal_issues) <= 10 else f" (and {len(decimal_issues) - 10} more)"
-            results.append(
-                ValidationResult(
-                    check="plddt",
-                    file=path,
-                    level=Level.ERROR,
-                    code="plddt_decimal_precision",
-                    message=f"{len(decimal_issues)} pLDDT values exceed two decimal places at indices {index_list}{extra}.",
-                    suggested_fix="Format scores with at most two decimal places.",
-                )
-            )
-
-        categories = []
-        if isinstance(data, dict):
-            cat_values = data.get("confidenceCategory")
-            if isinstance(cat_values, list):
-                categories = cat_values
-
-        if categories:
-            results.extend(
-                _check_categories(
-                    raw_scores,
-                    categories,
-                    enforce=enforce_categories,
-                    invalid_indices=invalid_indices,
-                    path=path,
-                )
-            )
-
-        if not scores:
-            results.append(
-                ValidationResult(
-                    check="plddt",
-                    file=path,
-                    level=Level.ERROR,
-                    code="plddt_no_scores",
-                    message="No valid pLDDT scores found.",
-                    suggested_fix="Populate confidenceScore values with numbers in the range [0, 100].",
-                )
-            )
-            continue
-
-        mean_score = sum(scores) / len(scores)
-        pct_high = (sum(1 for score in scores if score >= 70.0) / len(scores)) * 100.0
-
-        results.append(
-            ValidationResult(
-                check="plddt",
-                file=path,
-                level=Level.INFO,
-                code="plddt_summary",
-                message="pLDDT metrics calculated.",
-                metrics={
-                    "mean": mean_score,
-                    "length": float(len(scores)),
-                    "pct_ge_70": pct_high,
-                },
-            )
-        )
-
-    return results
+    # Use parallel processing for many files (threshold of 10)
+    if num_workers > 1 and len(candidates) >= 10:
+        with ProcessPoolExecutor(max_workers=num_workers) as executor:
+            batched = list(executor.map(_validate_single_plddt, args))
+        return [r for batch in batched for r in batch]
+    else:
+        # Sequential for few files (avoids process spawn overhead)
+        return [r for arg in args for r in _validate_single_plddt(arg)]
 
 
 __all__ = ["run"]

@@ -1,0 +1,51 @@
+{
+  "data_resource": "ExampleAFResource",
+  "resource_version": "1.0.0",
+  "software_version": "1.0.0",
+  "resource_entry_url": "https://example.org/resource/AF-1111222233334444",
+  "model_coordinates_url": "https://example.org/resource/AF-1111222233334444/model.cif",
+  "release_date": "10/10/2023",
+  "af_id": "AF-1111222233334444",
+  "includes_het_groups": false,
+  "chains": [
+    {
+      "chain_label": "A",
+      "additional_chain_annotations": {},
+      "residues": [
+        {
+          "residue_number": "1",
+          "aa_type": "ALA",
+          "additional_residue_annotations": {},
+          "site_data": [
+            {
+              "site_id_ref": 1,
+              "raw_score": 0.7,
+              "raw_score_unit": "A",
+              "confidence_score": 0.9,
+              "confidence_classification": "high"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "sites": [
+    {
+      "site_id": 1,
+      "label": "interface_site",
+      "site_url": "https://example.org/resource/AF-1111222233334444/sites/1",
+      "source_database": "AlphaFoldDB",
+      "source_accession": "AF-1111222233334444",
+      "source_release_date": "01/01/2024",
+      "source_version": "1.0.0",
+      "additional_site_annotations": {}
+    }
+  ],
+  "additional_entry_annotations": {},
+  "evidence_code_ontology": [
+    {
+      "eco_term": "computational evidence",
+      "eco_code": "ECO_0000246"
+    }
+  ]
+}

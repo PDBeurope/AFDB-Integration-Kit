@@ -1,0 +1,233 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "$id": "https://gitlab.ebi.ac.uk/pdbe-kb/funpdbe/funpdbe-schema/raw/master/funpdbe_schema.json",
+  "title": "funpdbe_schema",
+  "type": "object",
+  "properties": {
+    "data_resource": {
+      "type": "string",
+      "description": "Name of the database or software"
+    },
+    "resource_version": {
+      "type": "string",
+      "description": "Version of the resource"
+    },
+    "software_version": {
+      "type": "string",
+      "description": "Version of the software used"
+    },
+    "resource_entry_url": {
+      "type": "string",
+      "description": "URL linking to the entry at the partner resource"
+    },
+    "model_coordinates_url": {
+      "type": "string",
+      "description": "URL linking to a structural model at the partner resource"
+    },
+    "includes_het_groups": {
+      "type": "boolean",
+      "description": "Does this JSON include annotations of HET residues"
+    },
+    "release_date": {
+      "type": "string",
+      "description": "Release date of the annotation",
+      "pattern": "^[0-3]*[0-9]/[0-1]*[0-9]/[1-2][0-9]{3}$"
+    },
+    "af_id": {
+      "type": "string",
+      "description": "AlphaFold DB model identifier",
+      "pattern": "^AF-[0-9]{16}$"
+    },
+    "additional_entry_annotations": {
+      "type": "object",
+      "description": "Additional entry-level annotations",
+      "additionalProperties": true
+    },
+    "chains": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "chain_label": {
+            "type": "string",
+            "description": "Model chain identifier (e.g. 'A', 'B')"
+          },
+          "additional_chain_annotations": {
+            "type": "object",
+            "description": "Additional chain-level annotations",
+            "additionalProperties": true
+          },
+          "residues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "residue_number": {
+                  "type": "string",
+                  "description": "Residue index within the AlphaFold model"
+                },
+                "aa_type": {
+                  "type": "string",
+                  "description": "Three-letter amino acid code",
+                  "pattern": "^[A-Za-z0-9]+$"
+                },
+                "additional_residue_annotations": {
+                  "type": "object",
+                  "description": "Additional residue-level annotations",
+                  "additionalProperties": true
+                },
+                "site_data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "site_id_ref": {
+                        "type": "integer",
+                        "description": "Reference to site_id"
+                      },
+                      "raw_score": {
+                        "type": "number",
+                        "description": "Raw calculated score"
+                      },
+                      "raw_score_unit": {
+                        "type": "string",
+                        "description": "The measurement unit of the raw score, if applicable"
+                      },
+                      "confidence_score": {
+                        "type": "number",
+                        "description": "Confidence level of the annotation (0-1, except if the method justifies otherwise)",
+                        "minimum": 0.0
+                      },
+                      "confidence_classification": {
+                        "type": "string",
+                        "description": "Confidence classification of the residue",
+                        "enum": [
+                          "high",
+                          "medium",
+                          "low",
+                          "null",
+                          "curated"
+                        ]
+                      },
+                      "aa_variant": {
+                        "type": "string",
+                        "description": "Three-letter amino acid code of variant/mutant",
+                        "pattern": "^[A-Za-z0-9]+$"
+                      },
+                      "aa_variant_causes": {
+                        "type": "string",
+                        "description": "The reason behind classifying a variant benign or damaging"
+                      }
+                    },
+                    "required": [
+                      "site_id_ref",
+                      "confidence_classification"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "minItems": 1,
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "residue_number",
+                "aa_type",
+                "site_data"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "chain_label",
+          "residues"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "sites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "site_id": {
+            "type": "integer",
+            "description": "Site identifier"
+          },
+          "label": {
+            "type": "string",
+            "description": "Site label"
+          },
+          "site_url": {
+            "type": "string",
+            "description": "URL linking to information on the functional site at the partner resource"
+          },
+          "source_database": {
+            "type": "string",
+            "description": "Name of the source database"
+          },
+          "source_accession": {
+            "type": "string",
+            "description": "Accession identifier"
+          },
+          "source_release_date": {
+            "type": "string",
+            "description": "Date of acquiring data from source",
+            "pattern": "^[0-3]*[0-9]/[0-1]*[0-9]/[1-2][0-9]{3}$"
+          },
+          "source_version": {
+            "type": "string",
+            "description": "Version of the data source"
+          },
+          "additional_site_annotations": {
+            "type": "object",
+            "description": "Additional site-level annotations",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "site_id",
+          "label"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "evidence_code_ontology": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "eco_term": {
+            "type": "string",
+            "description": "Evidence Code Ontology (ECO) term - http://www.evidenceontology.org/"
+          },
+          "eco_code": {
+            "type": "string",
+            "description": "Evidence Code Ontology (ECO) code - http://www.evidenceontology.org/",
+            "pattern": "^ECO_[0-9]{7}$"
+          }
+        },
+        "required": [
+          "eco_code"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "data_resource",
+    "af_id",
+    "chains",
+    "evidence_code_ontology",
+    "sites"
+  ],
+  "additionalProperties": false
+}

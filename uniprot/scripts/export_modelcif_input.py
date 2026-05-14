@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import argparse
 import csv
-import json
 import logging
+
+import orjson
 from collections import OrderedDict, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -393,8 +394,7 @@ def generate_input(args: argparse.Namespace) -> None:
     template_path = args.template
     if not template_path.exists():
         raise FileNotFoundError(f"Template JSON {template_path} does not exist.")
-    with template_path.open("r", encoding="utf-8") as handle:
-        template = json.load(handle)
+    template = orjson.loads(template_path.read_bytes())
     if "metadata" not in template or "categories" not in template:
         raise ValueError("Template JSON must contain 'metadata' and 'categories' keys.")
 
@@ -403,6 +403,8 @@ def generate_input(args: argparse.Namespace) -> None:
 
     entries_by_entity: Dict[str, Dict[str, object]] = {}
     with duckdb.connect(str(args.db), read_only=True) as con:
+        duckdb_mem = os.environ.get("DUCKDB_MEMORY_LIMIT", "512MB")
+        con.execute(f"SET memory_limit = '{duckdb_mem}'")
         for assignment in entity_assignments:
             if assignment.entity_id in entries_by_entity:
                 continue
@@ -414,9 +416,9 @@ def generate_input(args: argparse.Namespace) -> None:
     template["chains"] = build_chains(manifest_entries)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    with args.out.open("w", encoding="utf-8") as handle:
-        json.dump(template, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
+    with args.out.open("wb") as handle:
+        handle.write(orjson.dumps(template, option=orjson.OPT_INDENT_2))
+        handle.write(b"\n")
     LOG.info("Wrote ModelCIF metadata JSON for %s to %s", args.model_id, args.out)
 
 
