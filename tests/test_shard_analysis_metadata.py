@@ -1,14 +1,7 @@
 import csv
 import json
-import sys
-from pathlib import Path
 
-
-SLURM_PIPELINE = Path(__file__).resolve().parents[1] / "slurm-scaling" / "pipeline"
-sys.path.insert(0, str(SLURM_PIPELINE))
-
-import shard_and_run  # noqa: E402
-import finalize_analysis_metadata  # noqa: E402
+from afdb_integration_kit import analysis_metadata
 
 
 def test_build_analysis_metadata_rows_from_ipsae_and_clash_outputs(tmp_path):
@@ -47,19 +40,29 @@ def test_build_analysis_metadata_rows_from_ipsae_and_clash_outputs(tmp_path):
             "processing_time_ms": "11",
         })
 
-    (analysis_dir / "AF-0001-model_v1_clashes.json").write_text(json.dumps({
-        "sites": [
-            {"label": "backbone_clashes", "additional_site_annotations": {"n_clashes": 2}},
-            {"label": "heavy_atom_clashes", "additional_site_annotations": {"n_clashes": 7}},
-        ]
-    }))
+    (analysis_dir / "AF-0001-model_v1_clashes.json").write_text(
+        json.dumps(
+            {
+                "sites": [
+                    {
+                        "label": "backbone_clashes",
+                        "additional_site_annotations": {"n_clashes": 2},
+                    },
+                    {
+                        "label": "heavy_atom_clashes",
+                        "additional_site_annotations": {"n_clashes": 7},
+                    },
+                ]
+            }
+        )
+    )
     (analysis_dir / "AF-0001-model_v1_interface.json").write_text(json.dumps({
         "sites": [
             {"additional_site_annotations": {"interactions": [{"a": 1}, {"a": 2}]}}
         ]
     }))
 
-    rows = shard_and_run._build_analysis_metadata_rows(
+    rows = analysis_metadata._build_analysis_metadata_rows(
         work_dir=work_dir,
         run_name="test_run",
         original_ids=["AF-old"],
@@ -98,7 +101,9 @@ def test_finalize_analysis_metadata_flattens_score_columns(tmp_path):
     tmp_path.mkdir(parents=True, exist_ok=True)
     csv_path = tmp_path / "analysis_metadata.csv"
     with csv_path.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=shard_and_run.ANALYSIS_METADATA_FIELDS)
+        writer = csv.DictWriter(
+            handle, fieldnames=analysis_metadata.ANALYSIS_METADATA_FIELDS
+        )
         writer.writeheader()
         writer.writerow({
             "timestamp": "2026-04-29T00:00:00+00:00",
@@ -126,12 +131,12 @@ def test_finalize_analysis_metadata_flattens_score_columns(tmp_path):
             }),
         })
 
-    score_keys = finalize_analysis_metadata._score_keys(csv_path)
+    score_keys = analysis_metadata._score_keys(csv_path)
     assert score_keys == ["N_clash_backbone", "ipsae_AB", "pDockQ2_BA"]
 
     with csv_path.open(newline="") as handle:
         row = next(csv.DictReader(handle))
-    parsed = finalize_analysis_metadata._coerce_row(row, score_keys)
+    parsed = analysis_metadata._coerce_row(row, score_keys)
 
     assert parsed["score_ipsae_AB"] == 0.61
     assert parsed["score_pDockQ2_BA"] == 0.24
