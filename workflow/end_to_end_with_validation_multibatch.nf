@@ -195,7 +195,7 @@ process BATCH_PREPARE_AF_ASSETS {
     """
     set -euo pipefail
     mkdir -p prepared
-    
+
     python3 - <<'PYTHON_SCRIPT'
 import gzip
 import shutil
@@ -216,7 +216,7 @@ def prepare_model(af_id: str) -> tuple:
     shard_dir = shard_path(af_id)
     meta_on_disk = shard_dir / f"{af_id}-meta_v1.json"
     pdb_on_disk = shard_dir / f"{af_id}-model_v1.pdb"
-    
+
     # Try shard location first
     if meta_on_disk.exists() and pdb_on_disk.exists():
         meta_src, pdb_src = meta_on_disk, pdb_on_disk
@@ -226,10 +226,10 @@ def prepare_model(af_id: str) -> tuple:
         flat_pdb = ARCHIVE_ROOT / f"{af_id}-model_v1.pdb"
         flat_meta_gz = ARCHIVE_ROOT / f"{af_id}-meta_v1.json.gz"
         flat_pdb_gz = ARCHIVE_ROOT / f"{af_id}-model_v1.pdb.gz"
-        
+
         # Ensure shard dir exists
         shard_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Handle meta file (possibly gzipped)
         if flat_meta_gz.exists():
             with gzip.open(flat_meta_gz, 'rb') as f_in:
@@ -238,7 +238,7 @@ def prepare_model(af_id: str) -> tuple:
             shutil.copy(flat_meta, meta_on_disk)
         else:
             return af_id, shard_dir, "error", f"Missing meta: {flat_meta}"
-        
+
         # Handle PDB file (possibly gzipped)
         if flat_pdb_gz.exists():
             with gzip.open(flat_pdb_gz, 'rb') as f_in:
@@ -247,17 +247,17 @@ def prepare_model(af_id: str) -> tuple:
             shutil.copy(flat_pdb, pdb_on_disk)
         else:
             return af_id, shard_dir, "error", f"Missing pdb: {flat_pdb}"
-        
+
         meta_src, pdb_src = meta_on_disk, pdb_on_disk
     else:
         return af_id, shard_dir, "error", "Files not found and no archive_root"
-    
+
     # Copy to output dir
     out_meta = OUTPUT_DIR / f"{af_id}-meta_v1.json"
     out_pdb = OUTPUT_DIR / f"{af_id}-model_v1.pdb"
     shutil.copy(meta_src, out_meta)
     shutil.copy(pdb_src, out_pdb)
-    
+
     return af_id, shard_dir, "ok", ""
 
 # Read model IDs from mapping file
@@ -864,17 +864,17 @@ process BATCH_RUN_MODELPDB {
     """
     set -euo pipefail
     mkdir -p output cif_dir pdb_dir
-    
+
     # Stage CIF files
     for f in *-model-*.cif; do
         [ -f "\$f" ] && cp "\$f" cif_dir/
     done
-    
+
     # Stage PDB files
     for f in *-model_v1.pdb; do
         [ -f "\$f" ] && cp "\$f" pdb_dir/
     done
-    
+
     ${TOOLKIT_CMD} run-batch-modelpdb-gen \\
       --cif-dir cif_dir \\
       --pdb-dir pdb_dir \\
@@ -897,12 +897,12 @@ process BATCH_RUN_CIF2BCIF {
     """
     set -euo pipefail
     mkdir -p input_cifs output
-    
+
     # Stage CIF files to input directory
     for f in *.cif; do
         [ -f "\$f" ] && cp "\$f" input_cifs/
     done
-    
+
     # Use gemmi-based batch CIF2BCIF (faster than molstar subprocess)
     ${TOOLKIT_CMD} batch-cif2bcif --input-dir input_cifs --output-dir output --workers ${WORKERS}
     """
@@ -1064,11 +1064,11 @@ workflow {
         def posix_root_str = POSIX_ROOT
         def posix_root_path = file(POSIX_ROOT)  // For processes that need path input
         def archive_root_str = ARCHIVE_ROOT ?: ''
-        
+
         def batch_prepared = BATCH_PREPARE_AF_ASSETS(mapping_file, posix_root_str, archive_root_str)
-        
+
         // Build prepared_assets channel by joining manifest with output files
-        def meta_files_by_id = batch_prepared.meta_files.flatten().map { f -> 
+        def meta_files_by_id = batch_prepared.meta_files.flatten().map { f ->
             def name = f.name
             def model_id = name.replace('-meta_v1.json', '')
             tuple(model_id, f)
@@ -1078,17 +1078,17 @@ workflow {
             def model_id = name.replace('-model_v1.pdb', '')
             tuple(model_id, f)
         }
-        
+
         // Join manifest info (for shard_dir) with actual output files
         def manifest_rows = batch_prepared.manifest
             .splitCsv(header: true, sep: '\t')
             .filter { row -> row.status == 'ok' }
             .map { row -> tuple(row.model_id, file(row.shard_dir)) }
-        
+
         def prepared_assets = manifest_rows
             .join(meta_files_by_id)
             .join(pdb_files_by_id)
-            .map { model_id, shard_dir, meta_json, pdb_file -> 
+            .map { model_id, shard_dir, meta_json, pdb_file ->
                 tuple(model_id, shard_dir, meta_json, pdb_file)
             }
 
@@ -1139,8 +1139,8 @@ workflow {
     def posix_root_file = file(POSIX_ROOT)
     def colabfold_manifest_file = file(COLABFOLD_MANIFEST)
     def converter_db_file = CONVERTER_DUCKDB ? file(CONVERTER_DUCKDB) : file("NO_DB")
-    def batch_convert_input = validated_ids_file.map { ids_file -> 
-        tuple(ids_file, posix_root_file, colabfold_manifest_file, converter_db_file) 
+    def batch_convert_input = validated_ids_file.map { ids_file ->
+        tuple(ids_file, posix_root_file, colabfold_manifest_file, converter_db_file)
     }
     def converted = BATCH_CONVERT_COLABFOLD(batch_convert_input)
 
@@ -1181,24 +1181,24 @@ workflow {
     // Batch export ModelCIF inputs
     def modelcif_batch_input = model_ids_file.map { ids_file -> tuple(ids_file, db_file, chain_manifest_path) }
     def modelcif_jsons_flat = BATCH_EXPORT_MODELCIF_INPUT(modelcif_batch_input).modelcif_jsons.flatten()
-    
+
     // Collect PDB files and metadata JSONs for batch processing
     def pdb_channel = assets_for_structures.map { t -> tuple(t[0], t[1]) }
     def pdb_files_collected = pdb_channel.map { t -> t[1] }.collect()
     def metadata_files_collected = modelcif_jsons_flat.collect()
-    
+
     // Batch ModelCIF generation (1 process instead of N)
     def mmcif_files_flat = BATCH_RUN_MODELCIF_GEN(pdb_files_collected, metadata_files_collected).mmcif_files.flatten()
-    
+
     // Batch DSSP (1 process instead of N)
     def mmcif_files_collected = mmcif_files_flat.collect()
     def dssp_files_flat = BATCH_RUN_DSSP(mmcif_files_collected).dssp_files.flatten()
-    
+
     // Batch ModelPDB enrichment (1 process instead of N)
     def dssp_files_collected = dssp_files_flat.collect()
     def provider_json_file = file(PROVIDER_JSON)
     def modelpdb_files_flat = BATCH_RUN_MODELPDB(dssp_files_collected, pdb_files_collected, provider_json_file).enriched_pdbs.flatten()
-    
+
     // Batch CIF2BCIF conversion (1 process instead of N)
     def bcif_files = BATCH_RUN_CIF2BCIF(dssp_files_collected).bcif_files.flatten()
 
@@ -1209,17 +1209,17 @@ workflow {
                 shardPathForAf(id).resolve("${id}-meta_v1.json").toString()
             }
             .collect()
-        
+
         def pdb_paths = assets_for_pdb_cleanup
             .map { t ->
                 def id = t[0]
                 shardPathForAf(id).resolve("${id}-model_v1.pdb").toString()
             }
             .collect()
-        
+
         // Wait for modelpdb to finish before cleanup
         def modelpdb_done = modelpdb_files_flat.map { true }.last()
-        
+
         // Batch cleanup (1 process instead of 200)
         BATCH_CLEANUP_FILES(meta_paths, pdb_paths, modelpdb_done)
 

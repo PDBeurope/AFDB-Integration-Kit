@@ -128,29 +128,29 @@ def load_manifest(path: Path, model_ids: List[str]) -> ManifestData:
     """Load manifest entries for specified models into memory."""
     if not path.exists():
         raise FileNotFoundError(f"Manifest file {path} does not exist.")
-    
+
     model_ids_set = set(model_ids)
     by_model: Dict[str, List[ManifestEntry]] = defaultdict(list)
     all_accessions: Set[str] = set()
-    
+
     with path.open("r", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         expected = {"model_entity_id", "entity_id", "chain_id", "uniprot_ac"}
         if reader.fieldnames is None or expected - set(reader.fieldnames):
             raise ValueError(f"Manifest {path} must contain columns {expected}, found {reader.fieldnames}")
-        
+
         for row in reader:
             model_id = (row.get("model_entity_id") or "").strip()
             if model_id not in model_ids_set:
                 continue
-            
+
             entity_id = (row.get("entity_id") or "").strip()
             chain_id = (row.get("chain_id") or "").strip()
             uniprot_ac = (row.get("uniprot_ac") or "").strip()
-            
+
             if not entity_id or not chain_id or not uniprot_ac:
                 raise ValueError(f"Incomplete manifest row for model {model_id}: {row}")
-            
+
             entry = ManifestEntry(
                 model_entity_id=model_id,
                 entity_id=entity_id,
@@ -159,7 +159,7 @@ def load_manifest(path: Path, model_ids: List[str]) -> ManifestData:
             )
             by_model[model_id].append(entry)
             all_accessions.add(uniprot_ac)
-    
+
     return ManifestData(by_model=dict(by_model), all_accessions=all_accessions)
 
 
@@ -244,7 +244,7 @@ def normalise_optional_text(value: object, placeholder: str = "?") -> str:
                 flattened.extend(_flatten(item))
             return flattened
         return [str(obj)]
-    
+
     parts = _flatten(value)
     return ", ".join(parts) if parts else placeholder
 
@@ -459,19 +459,19 @@ def process_model(
     """Process a single model and write output JSON."""
     try:
         entity_assignments = group_entities(manifest_entries)
-        
+
         # Deep copy template to avoid mutation
         template = copy.deepcopy(base_template)
-        
+
         populate_categories(template, entity_assignments, entries_by_accession, model_id)
         update_model_identifiers(template, model_id)
         template["chains"] = build_chains(manifest_entries)
-        
+
         output_path = output_dir / f"{model_id}.json"
         with output_path.open("wb") as handle:
             handle.write(orjson.dumps(template, option=orjson.OPT_INDENT_2))
             handle.write(b"\n")
-        
+
         return True
     except Exception as exc:
         LOG.error("Error processing model %s: %s", model_id, exc)

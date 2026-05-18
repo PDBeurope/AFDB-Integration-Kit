@@ -104,4 +104,3 @@ Default parameters:
 
 ### Interface Residues
 A residue is an interface residue if its CA atom is within `interface_cutoff` (default 8.0 Å) of a CA atom from a different chain.
-

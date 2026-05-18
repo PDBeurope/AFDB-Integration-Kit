@@ -1,10 +1,10 @@
 /**
  * High-throughput C++ implementation of ipSAE calculation.
  * Optimized for ColabFold (AlphaFold2) inputs.
- * 
+ *
  * Compile with:
  *   g++ -O3 -march=native -fopenmp -I deps/eigen-3.4.0 -I deps ipsae_cpp.cpp -o ipsae_cpp
- * 
+ *
  * Usage:
  *   ./ipsae_cpp <pae_json> <pdb_file> <pae_cutoff> <dist_cutoff>
  *   ./ipsae_cpp --batch <data_dir> <pae_cutoff> <dist_cutoff> [--summary <csv_file>] [--workers N]
@@ -106,36 +106,36 @@ StructureData parse_pdb(const std::string& pdb_path) {
     StructureData data;
     data.pdb_path = pdb_path;
     data.valid = false;
-    
+
     std::ifstream file(pdb_path);
     if (!file.is_open()) {
         std::cerr << "Cannot open PDB file: " << pdb_path << std::endl;
         return data;
     }
-    
+
     std::vector<std::array<float, 3>> ca_coords;
     std::vector<std::array<float, 3>> cb_coords;
     std::vector<char> ca_chains;
     std::vector<int> ca_resnums;
     std::unordered_map<std::string, std::array<float, 3>> cb_map;
-    
+
     std::string line;
     while (std::getline(file, line)) {
         if (line.substr(0, 4) != "ATOM") continue;
         if (line.size() < 54) continue;
-        
+
         std::string atom_name = line.substr(12, 4);
         // Trim whitespace
         atom_name.erase(0, atom_name.find_first_not_of(" "));
         atom_name.erase(atom_name.find_last_not_of(" ") + 1);
-        
+
         std::string res_name = line.substr(17, 3);
         char chain_id = line[21];
         int res_num = std::stoi(line.substr(22, 4));
         float x = std::stof(line.substr(30, 8));
         float y = std::stof(line.substr(38, 8));
         float z = std::stof(line.substr(46, 8));
-        
+
         if (atom_name == "CA") {
             ca_coords.push_back({x, y, z});
             ca_chains.push_back(chain_id);
@@ -145,13 +145,13 @@ StructureData parse_pdb(const std::string& pdb_path) {
             cb_map[key] = {x, y, z};
         }
     }
-    
+
     int n_res = ca_coords.size();
     if (n_res == 0) {
         std::cerr << "No CA atoms found in: " << pdb_path << std::endl;
         return data;
     }
-    
+
     // Build CB coordinates (use CA for GLY where CB is missing)
     cb_coords.resize(n_res);
     for (int i = 0; i < n_res; i++) {
@@ -163,7 +163,7 @@ StructureData parse_pdb(const std::string& pdb_path) {
             cb_coords[i] = ca_coords[i];  // Use CA for GLY
         }
     }
-    
+
     // Convert to Eigen matrices
     data.cb_coords.resize(n_res, 3);
     for (int i = 0; i < n_res; i++) {
@@ -171,11 +171,11 @@ StructureData parse_pdb(const std::string& pdb_path) {
         data.cb_coords(i, 1) = cb_coords[i][1];
         data.cb_coords(i, 2) = cb_coords[i][2];
     }
-    
+
     data.chain_ids = ca_chains;
     data.res_nums = ca_resnums;
     data.n_res = n_res;
-    
+
     // Get unique chains in order
     std::set<char> seen;
     for (char c : ca_chains) {
@@ -184,20 +184,20 @@ StructureData parse_pdb(const std::string& pdb_path) {
             seen.insert(c);
         }
     }
-    
+
     data.valid = true;
     return data;
 }
 
 bool parse_json(StructureData& data, const std::string& json_path) {
     data.pae_path = json_path;
-    
+
     std::ifstream file(json_path);
     if (!file.is_open()) {
         std::cerr << "Cannot open JSON file: " << json_path << std::endl;
         return false;
     }
-    
+
     json j;
     try {
         file >> j;
@@ -205,7 +205,7 @@ bool parse_json(StructureData& data, const std::string& json_path) {
         std::cerr << "JSON parse error in " << json_path << ": " << e.what() << std::endl;
         return false;
     }
-    
+
     // Parse PAE matrix
     std::vector<std::vector<float>> pae_vec;
     if (j.contains("pae")) {
@@ -216,28 +216,28 @@ bool parse_json(StructureData& data, const std::string& json_path) {
         std::cerr << "No PAE data in: " << json_path << std::endl;
         return false;
     }
-    
+
     int pae_size = pae_vec.size();
-    
+
     // Validate size match
     if (pae_size != data.n_res) {
         if (pae_size > data.n_res) {
             // Truncate PAE matrix
             pae_size = data.n_res;
         } else {
-            std::cerr << "Size mismatch in " << json_path << ": PDB=" << data.n_res 
+            std::cerr << "Size mismatch in " << json_path << ": PDB=" << data.n_res
                       << " PAE=" << pae_vec.size() << std::endl;
             return false;
         }
     }
-    
+
     data.pae_matrix.resize(pae_size, pae_size);
     for (int i = 0; i < pae_size; i++) {
         for (int j = 0; j < pae_size; j++) {
             data.pae_matrix(i, j) = pae_vec[i][j];
         }
     }
-    
+
     // Parse pLDDT
     if (j.contains("plddt")) {
         std::vector<float> plddt_vec = j["plddt"].get<std::vector<float>>();
@@ -248,10 +248,10 @@ bool parse_json(StructureData& data, const std::string& json_path) {
     } else {
         data.plddt = VectorXf::Zero(data.n_res);
     }
-    
+
     // Parse iptm
     data.iptm_af = j.value("iptm", -1.0f);
-    
+
     return true;
 }
 
@@ -261,19 +261,19 @@ bool parse_json(StructureData& data, const std::string& json_path) {
 
 StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float dist_cutoff) {
     auto start = std::chrono::high_resolution_clock::now();
-    
+
     StructureResult result;
     result.pdb_path = data.pdb_path;
     result.pae_cutoff = pae_cutoff;
     result.dist_cutoff = dist_cutoff;
     result.iptm_af = data.iptm_af;
-    
+
     int n_res = data.n_res;
     const float pDockQ_cutoff = 8.0f;
-    
+
     // Compute distance matrix using Eigen (SIMD optimized)
     MatrixXf distances(n_res, n_res);
-    
+
     #pragma omp parallel for schedule(static)
     for (int i = 0; i < n_res; i++) {
         for (int j = 0; j < n_res; j++) {
@@ -283,11 +283,11 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
             distances(i, j) = std::sqrt(dx*dx + dy*dy + dz*dz);
         }
     }
-    
+
     // Pre-compute chain masks
     std::unordered_map<std::string, std::vector<int>> chain_indices;
     std::unordered_map<std::string, int> chain_lengths;
-    
+
     for (const auto& chain : data.unique_chains) {
         chain_indices[chain] = std::vector<int>();
         for (int i = 0; i < n_res; i++) {
@@ -297,18 +297,18 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
         }
         chain_lengths[chain] = chain_indices[chain].size();
     }
-    
+
     // Process each chain pair
     for (const auto& chain1 : data.unique_chains) {
         for (const auto& chain2 : data.unique_chains) {
             if (chain1 == chain2) continue;
-            
+
             const auto& idx1 = chain_indices[chain1];
             const auto& idx2 = chain_indices[chain2];
-            
+
             int n0chn = chain_lengths[chain1] + chain_lengths[chain2];
             float d0chn = calc_d0(n0chn);
-            
+
             // Pre-compute PTM matrix for d0chn
             MatrixXf ptm_matrix_d0chn(n_res, n_res);
             #pragma omp parallel for schedule(static) collapse(2)
@@ -317,11 +317,11 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
                     ptm_matrix_d0chn(i, j) = ptm_func(data.pae_matrix(i, j), d0chn);
                 }
             }
-            
+
             // ================== pDockQ ==================
             std::vector<bool> contact_mask(n_res, false);
             int n_pairs = 0;
-            
+
             for (int i : idx1) {
                 for (int j : idx2) {
                     if (distances(i, j) <= pDockQ_cutoff) {
@@ -331,7 +331,7 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
                     }
                 }
             }
-            
+
             float pDockQ_val = 0.0f;
             if (n_pairs > 0) {
                 float sum_plddt = 0.0f;
@@ -346,13 +346,13 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
                 float x = mean_plddt * std::log10(n_pairs);
                 pDockQ_val = 0.724f / (1.0f + std::exp(-0.052f * (x - 152.611f))) + 0.018f;
             }
-            
+
             // ================== pDockQ2 ==================
             float pDockQ2_val = 0.0f;
             if (n_pairs > 0) {
                 float ptm_sum = 0.0f;
                 int ptm_count = 0;
-                
+
                 for (int i : idx1) {
                     for (int j : idx2) {
                         if (distances(i, j) <= pDockQ_cutoff) {
@@ -361,7 +361,7 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
                         }
                     }
                 }
-                
+
                 float mean_ptm = ptm_sum / ptm_count;
                 float sum_plddt = 0.0f;
                 int count = 0;
@@ -375,12 +375,12 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
                 float x = mean_plddt * mean_ptm;
                 pDockQ2_val = 1.31f / (1.0f + std::exp(-0.075f * (x - 84.733f))) + 0.005f;
             }
-            
+
             // ================== LIS ==================
             float LIS_val = 0.0f;
             float lis_sum = 0.0f;
             int lis_count = 0;
-            
+
             for (int i : idx1) {
                 for (int j : idx2) {
                     float pae = data.pae_matrix(i, j);
@@ -390,18 +390,18 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
                     }
                 }
             }
-            
+
             if (lis_count > 0) {
                 LIS_val = lis_sum / lis_count;
             }
-            
+
             // ================== ipTM/ipSAE ==================
             VectorXf iptm_d0chn_byres = VectorXf::Zero(n_res);
             VectorXf ipsae_d0chn_byres = VectorXf::Zero(n_res);
-            
+
             std::set<int> unique_res_chain1, unique_res_chain2;
             std::set<int> dist_unique_res_chain1, dist_unique_res_chain2;
-            
+
             for (int i : idx1) {
                 // ipTM: mean over all chain2 residues
                 float iptm_sum = 0.0f;
@@ -409,39 +409,39 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
                     iptm_sum += ptm_matrix_d0chn(i, j);
                 }
                 iptm_d0chn_byres(i) = iptm_sum / idx2.size();
-                
+
                 // ipSAE: mean over chain2 residues with PAE < cutoff
                 float ipsae_sum = 0.0f;
                 int ipsae_count = 0;
-                
+
                 for (int j : idx2) {
                     if (data.pae_matrix(i, j) < pae_cutoff) {
                         ipsae_sum += ptm_matrix_d0chn(i, j);
                         ipsae_count++;
                         unique_res_chain1.insert(data.res_nums[i]);
                         unique_res_chain2.insert(data.res_nums[j]);
-                        
+
                         if (distances(i, j) < dist_cutoff) {
                             dist_unique_res_chain1.insert(data.res_nums[i]);
                             dist_unique_res_chain2.insert(data.res_nums[j]);
                         }
                     }
                 }
-                
+
                 if (ipsae_count > 0) {
                     ipsae_d0chn_byres(i) = ipsae_sum / ipsae_count;
                 }
             }
-            
+
             int n0dom = unique_res_chain1.size() + unique_res_chain2.size();
             float d0dom = calc_d0(n0dom);
-            
+
             // Compute d0dom-based scores
             VectorXf ipsae_d0dom_byres = VectorXf::Zero(n_res);
             VectorXf n0res_byres = VectorXf::Zero(n_res);
             VectorXf d0res_byres = VectorXf::Ones(n_res);
             VectorXf ipsae_d0res_byres = VectorXf::Zero(n_res);
-            
+
             MatrixXf ptm_matrix_d0dom(n_res, n_res);
             if (n0dom > 0) {
                 #pragma omp parallel for schedule(static) collapse(2)
@@ -451,11 +451,11 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
                     }
                 }
             }
-            
+
             for (int i : idx1) {
                 int valid_count = 0;
                 float dom_sum = 0.0f;
-                
+
                 for (int j : idx2) {
                     if (data.pae_matrix(i, j) < pae_cutoff) {
                         valid_count++;
@@ -464,17 +464,17 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
                         }
                     }
                 }
-                
+
                 n0res_byres(i) = valid_count;
-                
+
                 if (valid_count > 0) {
                     if (n0dom > 0) {
                         ipsae_d0dom_byres(i) = dom_sum / valid_count;
                     }
-                    
+
                     float d0_res = calc_d0(valid_count);
                     d0res_byres(i) = d0_res;
-                    
+
                     float res_sum = 0.0f;
                     for (int j : idx2) {
                         if (data.pae_matrix(i, j) < pae_cutoff) {
@@ -484,16 +484,16 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
                     ipsae_d0res_byres(i) = res_sum / valid_count;
                 }
             }
-            
+
             // Get max indices
             int max_idx_iptm = 0, max_idx_ipsae_chn = 0, max_idx_ipsae_dom = 0, max_idx_ipsae_res = 0;
             float max_val;
-            
+
             max_val = iptm_d0chn_byres.maxCoeff(&max_idx_iptm);
             max_val = ipsae_d0chn_byres.maxCoeff(&max_idx_ipsae_chn);
             max_val = ipsae_d0dom_byres.maxCoeff(&max_idx_ipsae_dom);
             max_val = ipsae_d0res_byres.maxCoeff(&max_idx_ipsae_res);
-            
+
             ChainPairResult cpr;
             cpr.chain1 = chain1;
             cpr.chain2 = chain2;
@@ -514,14 +514,14 @@ StructureResult compute_ipsae(const StructureData& data, float pae_cutoff, float
             cpr.nres2 = unique_res_chain2.size();
             cpr.dist_nres1 = dist_unique_res_chain1.size();
             cpr.dist_nres2 = dist_unique_res_chain2.size();
-            
+
             result.chain_pair_results.push_back(cpr);
         }
     }
-    
+
     auto end = std::chrono::high_resolution_clock::now();
     result.processing_time_ms = std::chrono::duration<double, std::milli>(end - start).count();
-    
+
     return result;
 }
 
@@ -535,23 +535,23 @@ void write_txt_output(const StructureResult& result) {
     if (pos != std::string::npos) {
         pdb_stem = pdb_stem.substr(0, pos);
     }
-    
+
     char pae_str[3], dist_str[3];
     snprintf(pae_str, 3, "%02d", (int)result.pae_cutoff);
     snprintf(dist_str, 3, "%02d", (int)result.dist_cutoff);
-    
+
     std::string out_path = pdb_stem + "_" + pae_str + "_" + dist_str + ".txt";
-    
+
     std::ofstream out(out_path);
     out << "\nChn1 Chn2  PAE Dist  Type   ipSAE    ipSAE_d0chn ipSAE_d0dom  ipTM_af  ipTM_d0chn     pDockQ     pDockQ2    LIS       n0res  n0chn  n0dom   d0res   d0chn   d0dom  nres1   nres2   dist1   dist2  Model\n";
-    
+
     // Group by chain pairs
     std::map<std::pair<std::string, std::string>, std::vector<ChainPairResult>> pair_results;
     for (const auto& r : result.chain_pair_results) {
         auto key = std::make_pair(std::min(r.chain1, r.chain2), std::max(r.chain1, r.chain2));
         pair_results[key].push_back(r);
     }
-    
+
     for (const auto& [key, results] : pair_results) {
         for (const auto& r : results) {
             char line[512];
@@ -564,12 +564,12 @@ void write_txt_output(const StructureResult& result) {
                 r.nres1, r.nres2, r.dist_nres1, r.dist_nres2, pdb_stem.c_str());
             out << line;
         }
-        
+
         // Write max line
         if (results.size() == 2) {
             const auto& r1 = results[0];
             const auto& r2 = results[1];
-            
+
             float max_ipsae_d0res = std::max(r1.ipsae_d0res_asym, r2.ipsae_d0res_asym);
             int max_n0res = (r1.ipsae_d0res_asym >= r2.ipsae_d0res_asym) ? r1.n0res : r2.n0res;
             float max_d0res = (r1.ipsae_d0res_asym >= r2.ipsae_d0res_asym) ? r1.d0res : r2.d0res;
@@ -580,7 +580,7 @@ void write_txt_output(const StructureResult& result) {
             float max_iptm = std::max(r1.iptm_d0chn_asym, r2.iptm_d0chn_asym);
             float avg_LIS = (r1.LIS + r2.LIS) / 2.0f;
             float max_pDockQ2 = std::max(r1.pDockQ2, r2.pDockQ2);
-            
+
             char line[512];
             snprintf(line, sizeof(line),
                 "%s    %s     %3s  %3s  max   %8.6f    %8.6f    %8.6f    %5.3f    %8.6f    %8.4f   %8.4f   %8.4f   %5d  %5d  %5d  %6.2f  %6.2f  %6.2f  %5d   %5d   %5d   %5d   %s\n",
@@ -594,7 +594,7 @@ void write_txt_output(const StructureResult& result) {
             out << line;
         }
     }
-    
+
     out << "\n";
 }
 
@@ -721,20 +721,20 @@ void write_csv_summary(const std::vector<StructureResult>& results, const std::s
 
 std::vector<std::pair<std::string, std::string>> find_paired_files(const std::string& data_dir) {
     std::vector<std::pair<std::string, std::string>> pairs;
-    
+
     for (const auto& entry : fs::directory_iterator(data_dir)) {
         std::string path = entry.path().string();
         if (path.find("-meta_v1.json") != std::string::npos) {
             std::string pdb_path = path;
             size_t pos = pdb_path.find("-meta_v1.json");
             pdb_path.replace(pos, 13, "-model_v1.pdb");
-            
+
             if (fs::exists(pdb_path)) {
                 pairs.push_back({pdb_path, path});
             }
         }
     }
-    
+
     std::sort(pairs.begin(), pairs.end());
     return pairs;
 }
@@ -742,32 +742,32 @@ std::vector<std::pair<std::string, std::string>> find_paired_files(const std::st
 std::vector<StructureResult> process_batch(
     const std::vector<std::pair<std::string, std::string>>& file_pairs,
     float pae_cutoff, float dist_cutoff, int n_workers, bool quiet) {
-    
+
     std::vector<StructureResult> results(file_pairs.size());
     std::atomic<int> completed{0};
     std::atomic<int> errors{0};
-    
+
     auto total_start = std::chrono::high_resolution_clock::now();
-    
+
     #pragma omp parallel for schedule(dynamic) num_threads(n_workers)
     for (size_t i = 0; i < file_pairs.size(); i++) {
         const auto& [pdb_path, pae_path] = file_pairs[i];
-        
+
         StructureData data = parse_pdb(pdb_path);
         if (!data.valid) {
             errors++;
             completed++;
             continue;
         }
-        
+
         if (!parse_json(data, pae_path)) {
             errors++;
             completed++;
             continue;
         }
-        
+
         results[i] = compute_ipsae(data, pae_cutoff, dist_cutoff);
-        
+
         int c = ++completed;
         if (!quiet && c % 100 == 0) {
             auto now = std::chrono::high_resolution_clock::now();
@@ -776,13 +776,13 @@ std::vector<StructureResult> process_batch(
             double eta = (file_pairs.size() - c) / rate;
             #pragma omp critical
             {
-                std::cout << "  Progress: " << c << "/" << file_pairs.size() 
-                          << " (" << std::fixed << std::setprecision(1) << rate << "/s, ETA: " 
+                std::cout << "  Progress: " << c << "/" << file_pairs.size()
+                          << " (" << std::fixed << std::setprecision(1) << rate << "/s, ETA: "
                           << (int)eta << "s)" << std::endl;
             }
         }
     }
-    
+
     // Filter out empty results
     std::vector<StructureResult> valid_results;
     for (const auto& r : results) {
@@ -790,17 +790,17 @@ std::vector<StructureResult> process_batch(
             valid_results.push_back(r);
         }
     }
-    
+
     auto total_end = std::chrono::high_resolution_clock::now();
     double total_time = std::chrono::duration<double>(total_end - total_start).count();
-    
+
     if (!quiet) {
-        std::cout << "\nCompleted " << valid_results.size() << "/" << file_pairs.size() 
+        std::cout << "\nCompleted " << valid_results.size() << "/" << file_pairs.size()
                   << " structures in " << std::fixed << std::setprecision(1) << total_time << "s" << std::endl;
-        std::cout << "Throughput: " << std::fixed << std::setprecision(1) 
+        std::cout << "Throughput: " << std::fixed << std::setprecision(1)
                   << valid_results.size() / total_time << " structures/sec" << std::endl;
     }
-    
+
     return valid_results;
 }
 
@@ -814,22 +814,22 @@ int main(int argc, char* argv[]) {
         std::cerr << "   or: " << argv[0] << " --batch <data_dir> <pae_cutoff> <dist_cutoff> [--summary <csv>] [--workers N] [--quiet]" << std::endl;
         return 1;
     }
-    
+
     if (std::string(argv[1]) == "--batch") {
         if (argc < 5) {
             std::cerr << "Usage: " << argv[0] << " --batch <data_dir> <pae_cutoff> <dist_cutoff> [options]" << std::endl;
             return 1;
         }
-        
+
         std::string data_dir = argv[2];
         float pae_cutoff = std::stof(argv[3]);
         float dist_cutoff = std::stof(argv[4]);
-        
+
         std::string summary_csv = "";
         int n_workers = omp_get_max_threads();
         bool quiet = false;
         bool no_individual = false;
-        
+
         for (int i = 5; i < argc; i++) {
             if (std::string(argv[i]) == "--summary" && i + 1 < argc) {
                 summary_csv = argv[++i];
@@ -841,48 +841,48 @@ int main(int argc, char* argv[]) {
                 no_individual = true;
             }
         }
-        
+
         auto file_pairs = find_paired_files(data_dir);
-        
+
         if (!quiet) {
-            std::cout << "Processing " << file_pairs.size() << " structures with " 
+            std::cout << "Processing " << file_pairs.size() << " structures with "
                       << n_workers << " workers..." << std::endl;
         }
-        
+
         auto results = process_batch(file_pairs, pae_cutoff, dist_cutoff, n_workers, quiet);
-        
+
         if (!no_individual) {
             for (const auto& result : results) {
                 write_txt_output(result);
             }
         }
-        
+
         if (!summary_csv.empty()) {
             write_csv_summary(results, summary_csv);
             if (!quiet) {
                 std::cout << "Summary written to: " << summary_csv << std::endl;
             }
         }
-        
+
     } else {
         // Single file mode
         std::string pae_path = argv[1];
         std::string pdb_path = argv[2];
         float pae_cutoff = std::stof(argv[3]);
         float dist_cutoff = std::stof(argv[4]);
-        
+
         StructureData data = parse_pdb(pdb_path);
         if (!data.valid) {
             return 1;
         }
-        
+
         if (!parse_json(data, pae_path)) {
             return 1;
         }
-        
+
         StructureResult result = compute_ipsae(data, pae_cutoff, dist_cutoff);
         write_txt_output(result);
     }
-    
+
     return 0;
 }

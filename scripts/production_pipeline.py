@@ -1303,23 +1303,23 @@ def generate_provider_json(
 
 def preflight_checks(config: "Config", logger: PipelineLogger) -> bool:
     """Run pre-flight checks before pipeline execution.
-    
+
     Checks for required binaries and attempts to compile them if missing.
-    
+
     Returns:
         True if all checks pass, False otherwise.
     """
     logger.info("Running pre-flight checks...")
     all_passed = True
-    
+
     # Check ipSAE binary
     ipsae_binary = config.repo_dir / "afdb_integration_kit" / "ipsae" / "ipsae_cpp"
     ipsae_cpp_dir = ipsae_binary.parent
-    
+
     if not ipsae_binary.exists():
         logger.warning("ipSAE binary not found, attempting to compile...")
         makefile = ipsae_cpp_dir / "Makefile"
-        
+
         if not makefile.exists():
             logger.error("=" * 60)
             logger.error("PREFLIGHT CHECK FAILED: ipSAE Makefile missing")
@@ -1349,10 +1349,10 @@ def preflight_checks(config: "Config", logger: PipelineLogger) -> bool:
                 logger.info("  Successfully compiled ipSAE binary")
     else:
         logger.info("  ipSAE binary: OK")
-    
+
     if all_passed:
         logger.info("Pre-flight checks passed")
-    
+
     return all_passed
 
 
