@@ -13,25 +13,30 @@ High-throughput analysis of protein structures for clashes and interfaces using 
 ## Installation
 
 ```bash
-# PyTorch (adjust for your CUDA version)
-pip install torch --index-url https://download.pytorch.org/whl/cu118
+# Project production dependencies
+uv pip install '.[production]'
 
-# torch_cluster
-pip install torch_cluster -f https://data.pyg.org/whl/torch-2.0.0+cu118.html
+# Check the installed PyTorch build
+python -c "import torch; print(torch.__version__, torch.version.cuda)"
 
-# Other dependencies
-pip install fastpdb biotite numpy tqdm
+# torch_cluster must match the installed PyTorch version and CUDA runtime.
+# Replace the URL suffix with the wheel index for your environment.
+uv pip install torch_cluster -f https://data.pyg.org/whl/torch-2.8.0+cu128.html
 ```
+
+Use `+cpu` for CPU-only PyTorch builds, or a CUDA suffix such as `+cu118`,
+`+cu121`, `+cu124`, `+cu126`, or `+cu128` when it matches your installed
+PyTorch wheel. Available wheels are listed at https://data.pyg.org/whl/.
 
 ## Quick Start
 
 ```python
-from gpu import analyze_pdb_files_pipelined
+from afdb_integration_kit.gpu import analyze_pdb_files_pipelined
 
 # Analyze PDB files and write results to JSON
 results = analyze_pdb_files_pipelined(
     ["complex1.pdb", "complex2.pdb", ...],
-    output_path="results",
+    output_dir="results",
     batch_size=512,
     device="cuda",
     n_workers=16,
