@@ -402,7 +402,7 @@ class Config:
     retry: int = 2
     skip_stages: List[str] = None
     dry_run: bool = False
-    dssp_algorithm: str = "psea"  # "psea", "pydssp", or "tmalign"
+    dssp_algorithm: str = "pydssp"  # "psea", "pydssp", or "tmalign"
     parallel_stages: bool = False  # wave-based parallel execution of independent stages
 
     # Dataset metadata

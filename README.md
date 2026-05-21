@@ -398,6 +398,8 @@ uv run main.py run-dssp -i <input_cif> -o <output_cif>
 **Parameters:**
 - `-i, --input`: Input mmCIF file path
 - `-o, --output`: Output annotated mmCIF file path
+- `-a, --algorithm`: `pydssp` (default), `psea`, or `tmalign`
+- `-d, --device`: `cpu` (default) or `cuda` for PyDSSP
 
 ### Validation Toolkit
 

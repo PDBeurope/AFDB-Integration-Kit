@@ -28,6 +28,7 @@ if not logger.handlers:
     logger.addHandler(handler)
 
 Algorithm = Literal["psea", "pydssp", "tmalign"]
+DEFAULT_ALGORITHM: Algorithm = "pydssp"
 
 PSEA_CODE_MAP = {
     'a': 'HELX_P',
@@ -57,7 +58,7 @@ ResidueInfo = namedtuple("ResidueInfo", [
     "ins_code",
 ])
 
-_CURRENT_ALGORITHM: Algorithm = "psea"
+_CURRENT_ALGORITHM: Algorithm = DEFAULT_ALGORITHM
 _CURRENT_DEVICE: str = "cpu"
 
 _BACKBONE_ATOMS = ("N", "CA", "C", "O")
@@ -369,7 +370,7 @@ def _add_struct_conf_to_cif(
 def run_dssp(
     input_file: Path,
     output_file: Path,
-    algorithm: Algorithm = "psea",
+    algorithm: Algorithm = DEFAULT_ALGORITHM,
     device: str = "cpu",
 ) -> bool:
     """
@@ -427,6 +428,9 @@ def run_dssp(
         doc.write_file(str(output_file))
         return True
 
+    except ModuleNotFoundError as e:
+        logger.error(f"Secondary structure failed for {input_file}: {e}")
+        return False
     except Exception as e:
         logger.error(f"Secondary structure failed for {input_file}: {e}")
         import traceback
@@ -450,7 +454,7 @@ def run_batch_dssp(
     output_dir: Path,
     workers: int = 8,
     pattern: str = "*.cif",
-    algorithm: Algorithm = "psea",
+    algorithm: Algorithm = DEFAULT_ALGORITHM,
     device: str = "cpu",
 ) -> Tuple[int, int]:
     """

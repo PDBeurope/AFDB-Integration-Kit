@@ -14,6 +14,7 @@ from afdb_integration_kit.cif2bcif.convert import (
     run_batch_cif2bcif,
 )
 from afdb_integration_kit.cif2bcif.convert import run_cif2bcif as cif2bcif_helper
+from afdb_integration_kit.dssp.dssp import DEFAULT_ALGORITHM
 from afdb_integration_kit.dssp.dssp import run_dssp as dssp_helper
 from afdb_integration_kit.dssp.dssp import run_batch_dssp
 from afdb_integration_kit.metadata.validator import validate_against_schema
@@ -865,13 +866,33 @@ def run_dssp(
         readable=False,
         resolve_path=True,
     ),
+    algorithm: str = typer.Option(
+        DEFAULT_ALGORITHM,
+        "--algorithm",
+        "-a",
+        help=(
+            "Algorithm for secondary structure: 'psea' (geometry), "
+            "'pydssp' (H-bond), or 'tmalign' (CA-CA distance)."
+        ),
+    ),
+    device: str = typer.Option(
+        "cpu",
+        "--device",
+        "-d",
+        help="Device for PyDSSP: 'cpu' or 'cuda'.",
+    ),
 ):
     """
     Run DSSP on a CIF file to generate secondary structure information.
     """
+    if algorithm not in ("psea", "pydssp", "tmalign"):
+        console.print(f"[red]Invalid algorithm '{algorithm}'. Use 'psea', 'pydssp', or 'tmalign'.[/red]")
+        raise typer.Exit(1)
+
     require_non_empty_file(input_file, description="DSSP input CIF file")
     logger.info(f"Converting {input_file} to {output_file}")
-    dssp_helper(input_file, output_file)
+    if not dssp_helper(input_file, output_file, algorithm=algorithm, device=device):
+        raise typer.Exit(1)
     logger.info("Conversion complete.")
 
 
@@ -902,7 +923,7 @@ def batch_dssp(
         8, "--workers", "-w", help="Number of parallel workers (default: 8)"
     ),
     algorithm: str = typer.Option(
-        "psea",
+        DEFAULT_ALGORITHM,
         "--algorithm",
         "-a",
         help="Algorithm for secondary structure: 'psea' (geometry), 'pydssp' (H-bond), or 'tmalign' (CA-CA distance)"
