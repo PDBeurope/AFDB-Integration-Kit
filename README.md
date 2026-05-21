@@ -106,7 +106,7 @@ conda install -c conda-forge uv
 Install the default dependency set from the locked project environment:
 
 ```bash
-uv sync --locked
+uv sync --locked --no-dev
 ```
 
 The core install is intended for normal CLI usage, help output, metadata and
@@ -114,6 +114,13 @@ schema validation, UniProt metadata tooling, ColabFold conversion, ModelCIF/PDB
 generation, CIF to BCIF conversion through the Mol* CLI fallback, and
 non-production helper scripts. It intentionally does not install the heavier
 production structure-analysis packages.
+
+Contributors who need development tools and tests can install the full locked
+environment instead:
+
+```bash
+uv sync --locked
+```
 
 ### 4. Install Mol* CLI
 
