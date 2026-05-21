@@ -129,10 +129,10 @@ General rules for every step:
   - Cleanup commit: `48168ef chore: strip PR 26 whitespace noise`
   - Step 2 plan/status update commit: `5eea333 docs: update step 2 hygiene status`
 
-Note: Step 1 changes are still only on the step-1 branch. Because they are not
-merged back into `integration-pr-26-gpu`, `pytest -q` on this branch still
-fails during collection on the missing `shard_and_run` module and `pydssp`
-import.
+Note: Step 1 and Step 2 have been merged back into `integration-pr-26-gpu`.
+After the merge, `pytest -q` is expected to use the repo-owned
+`afdb_integration_kit.analysis_metadata` module and the optional production
+dependency import boundaries from Step 1.
 
 ## Step 3: Documentation And Install Instructions
 
