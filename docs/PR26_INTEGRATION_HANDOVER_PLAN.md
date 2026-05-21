@@ -83,14 +83,13 @@ General rules for every step:
     `orjson==3.11.5` with locked `orjson==3.11.4`.
 - [x] (Model: GPT-5.4) Commit only this handover plan on the parent integration
   branch before committing Step 1 implementation changes.
-- [ ] (Model: GPT-5.4) Create Step 1 sub-branch:
+- [x] (Model: GPT-5.4) Create Step 1 sub-branch:
   `integration-pr-26-gpu-step-1-dependencies`.
-- [ ] (Model: GPT-5.4) Commit the Step 1 implementation changes on the Step 1
+- [x] (Model: GPT-5.4) Commit the Step 1 implementation changes on the Step 1
   sub-branch.
-  - Suggested commit 1: `fix: make production dependencies optional at import`
-  - Suggested commit 2: `fix: restore analysis metadata test target`
-  - Suggested commit 3, only if the requirements/export diff is separated:
-    `build: refresh locked dependency exports`
+  - Commit 1: `c94cd71 fix: make production dependencies optional at import`
+  - Commit 2: `f96bbe6 fix: restore analysis metadata test target`
+  - Commit 3: this checklist/status update.
 
 ## Step 2: Mechanical Hygiene And Repository Fit
 

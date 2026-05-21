@@ -14,11 +14,9 @@ import subprocess
 import tempfile
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
-from biotite.structure.io.pdbx import CIFFile, BinaryCIFFile, BinaryCIFBlock
-from biotite.structure.io.pdbx.bcif import BinaryCIFCategory, BinaryCIFColumn
 
 MOLSTAR_CIF2BCIF_CMD = "cif2bcif"
 
@@ -29,7 +27,7 @@ _MASK_QMARK = np.uint8(2)
 _MISSING_TOKENS = frozenset((".", "?"))
 
 
-def _build_bcif_column(raw_strings) -> BinaryCIFColumn:
+def _build_bcif_column(raw_strings, binary_cif_column: type[Any]):
     """Build a BinaryCIFColumn with proper mask and type detection.
 
     Detects missing value tokens ('.' and '?'), builds a BinaryCIF mask,
@@ -37,7 +35,7 @@ def _build_bcif_column(raw_strings) -> BinaryCIFColumn:
     """
     values = list(raw_strings)
     if not values:
-        return BinaryCIFColumn(np.array([], dtype="U1"))
+        return binary_cif_column(np.array([], dtype="U1"))
 
     mask = np.array(
         [_MASK_DOT if v == "." else (_MASK_QMARK if v == "?" else _MASK_PRESENT)
@@ -52,7 +50,7 @@ def _build_bcif_column(raw_strings) -> BinaryCIFColumn:
         data = np.zeros(len(values), dtype=np.int32)
         for i in present_idx:
             data[i] = int(values[i])
-        return BinaryCIFColumn(data, mask if has_missing else None)
+        return binary_cif_column(data, mask if has_missing else None)
     except (ValueError, OverflowError):
         pass
 
@@ -61,25 +59,28 @@ def _build_bcif_column(raw_strings) -> BinaryCIFColumn:
         data = np.zeros(len(values), dtype=np.float64)
         for i in present_idx:
             data[i] = float(values[i])
-        return BinaryCIFColumn(data, mask if has_missing else None)
+        return binary_cif_column(data, mask if has_missing else None)
     except (ValueError, OverflowError):
         pass
 
     # String fallback
     data = np.array(values, dtype="U")
-    return BinaryCIFColumn(data, mask if has_missing else None)
+    return binary_cif_column(data, mask if has_missing else None)
+
+
 BIOTITE_MIN_VERSION = (0, 40, 0)
 
 _biotite_version_ok_cache: bool | None = None
 
 
 def _biotite_version_ok() -> bool:
-    """Return True if Biotite is installed and version >= BIOTITE_MIN_VERSION. Cached."""
+    """Return True if Biotite is installed at a supported version."""
     global _biotite_version_ok_cache
     if _biotite_version_ok_cache is not None:
         return _biotite_version_ok_cache
     try:
         import biotite
+
         raw = getattr(biotite, "__version__", "0")
         parts = raw.split(".")[:3]
         ver = []
@@ -92,6 +93,7 @@ def _biotite_version_ok() -> bool:
     except Exception:
         _biotite_version_ok_cache = False
     return _biotite_version_ok_cache
+
 
 logger = logging.getLogger("cif2bcif")
 logger.setLevel(logging.INFO)
@@ -158,13 +160,16 @@ def _run_biotite_cif2bcif(
 ) -> bool:
     """
     Convert CIF to BinaryCIF using Biotite (table-copy, no AtomArray).
-    Preserves all categories and metadata. Writes via TMPDIR then rename for atomic Lustre-safe output.
+    Preserves all categories and metadata via a temporary file.
     """
     output_str = str(output_file)
     base_tmpdir = tmpdir or os.environ.get("TMPDIR") or tempfile.gettempdir()
     output_file = Path(output_file)
     output_file.parent.mkdir(parents=True, exist_ok=True)
     try:
+        from biotite.structure.io.pdbx import CIFFile, BinaryCIFFile, BinaryCIFBlock
+        from biotite.structure.io.pdbx.bcif import BinaryCIFCategory, BinaryCIFColumn
+
         cif = CIFFile.read(str(input_file))
 
         bcif = BinaryCIFFile()
@@ -178,7 +183,7 @@ def _run_biotite_cif2bcif(
                     col = cif_cat[col_name]
                     # Get raw strings so we can detect '.' and '?' for masks
                     raw = col.as_array(str)
-                    columns[col_name] = _build_bcif_column(raw)
+                    columns[col_name] = _build_bcif_column(raw, BinaryCIFColumn)
                 bcif_cat = BinaryCIFCategory(columns)
                 bcif_block[cat_name] = bcif_cat
             bcif[block_name] = bcif_block
@@ -220,8 +225,8 @@ def run_cif2bcif(
     Args:
         input_file: Input CIF file path
         output_file: Output BCIF file path (.bcif or .bcif.gz)
-        tmpdir: Optional directory for temporary writes (default: TMPDIR or system temp).
-                Used for atomic rename to final path on Lustre.
+        tmpdir: Optional directory for temporary writes. Defaults to TMPDIR or
+                the system temp directory.
 
     Returns:
         True on success, False on failure
@@ -285,7 +290,9 @@ def run_batch_cif2bcif(
     # Prepare arguments for each file (module-level function for pickling)
     work_items = [(f, output_dir, ext) for f in input_files]
 
-    logger.info(f"Processing {len(input_files)} files with {workers} workers (ProcessPool)")
+    logger.info(
+        f"Processing {len(input_files)} files with {workers} workers (ProcessPool)"
+    )
 
     success_count = 0
     error_count = 0
@@ -300,7 +307,9 @@ def run_batch_cif2bcif(
                 error_count += 1
                 logger.error(f"[FAILED] {fname}")
 
-    logger.info(f"Batch conversion complete: {success_count} success, {error_count} errors")
+    logger.info(
+        f"Batch conversion complete: {success_count} success, {error_count} errors"
+    )
     return success_count, error_count
 
 

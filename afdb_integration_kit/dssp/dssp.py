@@ -18,8 +18,6 @@ from typing import List, Tuple, Literal, Optional
 
 import gemmi
 import numpy as np
-import pydssp
-import torch
 
 logger = logging.getLogger("dssp")
 logger.setLevel(logging.INFO)
@@ -160,8 +158,9 @@ def _extract_ca_coords(
     return np.array(coords_list, dtype=np.float32), residue_info
 
 
-def _tmalign_sec_str(d13: float, d14: float, d15: float,
-                     d24: float, d25: float, d35: float) -> int:
+def _tmalign_sec_str(
+    d13: float, d14: float, d15: float, d24: float, d25: float, d35: float
+) -> int:
     """
     Classify secondary structure based on CA-CA distances.
     Implements the sec_str function from TM-align.
@@ -169,15 +168,25 @@ def _tmalign_sec_str(d13: float, d14: float, d15: float,
     Returns: 1 = coil, 2 = helix, 3 = turn, 4 = strand
     """
     delta_helix = 2.1
-    if (abs(d15 - 6.37) < delta_helix and abs(d14 - 5.18) < delta_helix and
-        abs(d25 - 5.18) < delta_helix and abs(d13 - 5.45) < delta_helix and
-        abs(d24 - 5.45) < delta_helix and abs(d35 - 5.45) < delta_helix):
+    if (
+        abs(d15 - 6.37) < delta_helix
+        and abs(d14 - 5.18) < delta_helix
+        and abs(d25 - 5.18) < delta_helix
+        and abs(d13 - 5.45) < delta_helix
+        and abs(d24 - 5.45) < delta_helix
+        and abs(d35 - 5.45) < delta_helix
+    ):
         return 2
 
     delta_strand = 1.42
-    if (abs(d15 - 13.0) < delta_strand and abs(d14 - 10.4) < delta_strand and
-        abs(d25 - 10.4) < delta_strand and abs(d13 - 6.1) < delta_strand and
-        abs(d24 - 6.1) < delta_strand and abs(d35 - 6.1) < delta_strand):
+    if (
+        abs(d15 - 13.0) < delta_strand
+        and abs(d14 - 10.4) < delta_strand
+        and abs(d25 - 10.4) < delta_strand
+        and abs(d13 - 6.1) < delta_strand
+        and abs(d24 - 6.1) < delta_strand
+        and abs(d35 - 6.1) < delta_strand
+    ):
         return 4
 
     if d15 < 8:
@@ -204,7 +213,17 @@ def _compute_sse_tmalign(ca_coords: np.ndarray) -> np.ndarray:
 
 def _compute_sse_pydssp(coords: np.ndarray, device: str = "cpu") -> np.ndarray:
     """Compute SSE using PyDSSP from pre-extracted backbone coordinates."""
-    if device != "cpu" and torch.cuda.is_available():
+    try:
+        import pydssp
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "The 'pydssp' package is required for --algorithm pydssp. "
+            "Install production dependencies with `uv pip install '.[production]'`."
+        ) from exc
+
+    if device != "cpu" and _torch_cuda_available():
+        import torch
+
         coords_tensor = torch.tensor(coords, dtype=torch.float32, device=device)
         return pydssp.assign(coords_tensor, out_type='c3')
     return pydssp.assign(coords, out_type='c3')
@@ -217,10 +236,10 @@ def _compute_sse_psea(input_file: Path) -> Optional[np.ndarray]:
 
     Returns array of SSE codes ('a', 'b', 'c') per residue, or None on failure.
     """
-    from biotite.structure import annotate_sse
-    from biotite.structure.io.pdbx import CIFFile as BiotiteCIFFile, get_structure
-
     try:
+        from biotite.structure import annotate_sse
+        from biotite.structure.io.pdbx import CIFFile as BiotiteCIFFile, get_structure
+
         cif = BiotiteCIFFile.read(str(input_file))
         atom_array = get_structure(cif, model=1)
         return annotate_sse(atom_array)
@@ -293,6 +312,15 @@ def _get_algorithm_label(algorithm: str) -> str:
         "tmalign": "TM-align",
     }
     return labels.get(algorithm, algorithm)
+
+
+def _torch_cuda_available() -> bool:
+    """Return whether torch CUDA is available without making torch a core import."""
+    try:
+        import torch
+    except ModuleNotFoundError:
+        return False
+    return bool(torch.cuda.is_available())
 
 
 def _add_struct_conf_to_cif(
@@ -454,7 +482,7 @@ def run_batch_dssp(
     success_count = 0
     error_count = 0
 
-    use_gpu = device != "cpu" and torch.cuda.is_available()
+    use_gpu = device != "cpu" and _torch_cuda_available()
     PoolClass = ThreadPoolExecutor if use_gpu else ProcessPoolExecutor
 
     with PoolClass(max_workers=workers) as executor:

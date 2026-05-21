@@ -15,15 +15,14 @@ dependencies = [
     "requests>=2.32.4",
     "typer>=0.16.0",
     "orjson>=3.9.0",
-    "mdtraj>=1.9.9",
-    "biotite>=1.0.0",
-    "pydssp>=0.9.0",
 ]
 
 [project.optional-dependencies]
 # Production pipeline dependencies (clash detection, interface residues)
 # Note: torch_cluster must be installed separately - see README for instructions
 production = [
+    "biotite>=1.0.0",
+    "pydssp>=0.9.0",
     "torch>=2.0.0",
     "fastpdb>=1.2",
 ]
