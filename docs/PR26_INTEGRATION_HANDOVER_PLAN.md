@@ -93,23 +93,46 @@ General rules for every step:
 
 ## Step 2: Mechanical Hygiene And Repository Fit
 
-- [ ] (Model: GPT-5.4-mini) Create branch
+- [x] (Model: GPT-5.4-mini) Create branch
   `integration-pr-26-gpu-step-2-hygiene` from `integration-pr-26-gpu` after
   Step 1 is reviewed or merged back.
-- [ ] (Model: GPT-5.4-mini) Run `git diff --check origin/main...HEAD` and list
+- [x] (Model: GPT-5.4-mini) Run `git diff --check origin/main...HEAD` and list
   all whitespace issues introduced by PR #26.
-- [ ] (Model: GPT-5.4-mini) Fix trailing whitespace and end-of-file issues
+  - Before cleanup, the issues were concentrated in:
+    `afdb_integration_kit/colabfold/converter.py`,
+    `afdb_integration_kit/gpu/README.md`,
+    `afdb_integration_kit/ipsae/ipsae_cpp.cpp`,
+    `afdb_integration_kit/validation/validators/_parallel.py`,
+    `docs/PIPELINE_OPTIMIZATION_ANALYSIS.md`, `main.py`,
+    `scripts/production_pipeline.py`, `tests/fixtures/setup_mock_data.py`,
+    `uniprot/scripts/batch_export_modelcif_input.py`,
+    `uniprot/scripts/batch_ipsae.py`, `uniprot/scripts/batch_validate_assets.py`,
+    and `workflow/end_to_end_with_validation_multibatch.nf`.
+- [x] (Model: GPT-5.4-mini) Fix trailing whitespace and end-of-file issues
   across the PR.
   - Do not reformat vendored `afdb_integration_kit/ipsae/deps/json.hpp` unless
     necessary.
   - Prefer mechanical whitespace-only commits.
-- [ ] (Model: GPT-5.4) Run pre-commit-equivalent checks available locally:
+- [x] (Model: GPT-5.4) Run pre-commit-equivalent checks available locally:
   - `git diff --check`
   - `.venv/bin/flake8 <changed-python-files> --max-line-length=88`
   - `python -m compileall -q main.py afdb_integration_kit uniprot scripts tests`
-- [ ] (Model: GPT-5.4) Decide whether to add a repo-level formatter config or
+  - `flake8` still reports existing style issues in the touched Python files;
+    this step stayed scoped to whitespace-only cleanup.
+  - `python3 -m compileall -q main.py afdb_integration_kit uniprot scripts tests`
+    passed in this sandbox because `python` is not on `PATH`.
+- [x] (Model: GPT-5.4) Decide whether to add a repo-level formatter config or
   limit the change to cleaning PR-introduced whitespace.
-- [ ] (Model: GPT-5.4) Commit mechanical cleanup separately from behavior.
+  - Decision: limit to PR-introduced whitespace cleanup; no formatter config
+    added.
+- [x] (Model: GPT-5.4) Commit mechanical cleanup separately from behavior.
+  - Cleanup commit: `48168ef chore: strip PR 26 whitespace noise`
+  - Step 2 plan/status update commit: `5eea333 docs: update step 2 hygiene status`
+
+Note: Step 1 changes are still only on the step-1 branch. Because they are not
+merged back into `integration-pr-26-gpu`, `pytest -q` on this branch still
+fails during collection on the missing `shard_and_run` module and `pydssp`
+import.
 
 ## Step 3: Documentation And Install Instructions
 

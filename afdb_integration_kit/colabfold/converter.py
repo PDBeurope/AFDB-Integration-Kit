@@ -211,11 +211,11 @@ def _chain_spans_from_pdb_gemmi(
     structure = gemmi.read_structure(str(pdb_path))
     if not structure:
         raise ValueError(f"No structure found in {pdb_path}")
-    
+
     model = structure[0]
     chains: list[ChainMetadata] = []
     total_residues = 0
-    
+
     for idx, chain in enumerate(model, start=1):
         # Count unique residues (excluding water)
         seen_residues: set[tuple[int, str]] = set()
@@ -223,14 +223,14 @@ def _chain_spans_from_pdb_gemmi(
             if residue.name == "HOH":
                 continue
             seen_residues.add((residue.seqid.num, residue.seqid.icode))
-        
+
         if not seen_residues:
             continue
-        
+
         chain_id = chain.name if chain.name.strip() else f"Chain{idx}"
         label = chain_id if chain_id != "_" else f"Chain{idx}"
         display_name = chain_display_names.get(chain_id, label) if chain_display_names else label
-        
+
         # Expose per-chain local residue ranges in JSON metadata.
         start = 1
         end = len(seen_residues)
@@ -241,10 +241,10 @@ def _chain_spans_from_pdb_gemmi(
             "sequenceEnd": end,
         })
         total_residues += len(seen_residues)
-    
+
     if not chains:
         raise ValueError(f"No chains found in {pdb_path}")
-    
+
     return chains, total_residues
 
 

@@ -79,12 +79,12 @@ def validate_single(model_id: str, meta_path: Path, pdb_path: Path) -> tuple:
         meta = load_json(meta_path)
         plddt = plddt_len(meta)
         pae = pae_dim(meta)
-        
+
         try:
             pdb_res = pdb_residue_count_gemmi(pdb_path)
         except Exception:
             pdb_res = pdb_residue_count_fallback(pdb_path)
-        
+
         # Check for issues
         if isinstance(pae, str) and "x" in pae:
             return (model_id, "mismatch", f"PAE not square ({pae})", str(plddt), str(pdb_res), pae)
@@ -92,7 +92,7 @@ def validate_single(model_id: str, meta_path: Path, pdb_path: Path) -> tuple:
             return (model_id, "mismatch", "PAE missing", str(plddt), str(pdb_res), pae)
         if plddt != pdb_res:
             return (model_id, "mismatch", f"pLDDT={plddt}, PDB residues={pdb_res}, PAE={pae}", str(plddt), str(pdb_res), pae)
-        
+
         return (model_id, "ok", "", str(plddt), str(pdb_res), pae)
     except Exception as e:
         return (model_id, "mismatch", f"json_or_parse_error: {e}", "0", "0", "0")
@@ -101,18 +101,18 @@ def validate_single(model_id: str, meta_path: Path, pdb_path: Path) -> tuple:
 def _validate_single_worker(args: Tuple[str, Optional[str], Optional[str]]) -> Tuple[str, str, str, str, str, str]:
     """
     Module-level worker function for ProcessPoolExecutor (must be picklable).
-    
+
     Args:
         args: Tuple of (model_id, meta_path_str, pdb_path_str) where paths may be None
-    
+
     Returns:
         Tuple of (model_id, status, reason, plddt_len, pdb_residues, pae_dim)
     """
     model_id, meta_path_str, pdb_path_str = args
-    
+
     if not meta_path_str or not pdb_path_str:
         return (model_id, "mismatch", "missing_files", "0", "0", "0")
-    
+
     return validate_single(model_id, Path(meta_path_str), Path(pdb_path_str))
 
 
@@ -169,7 +169,7 @@ def main():
         ))
 
     logger.info("Starting ProcessPoolExecutor with %d workers", args.workers)
-    
+
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
         results = list(executor.map(_validate_single_worker, work_items))
 

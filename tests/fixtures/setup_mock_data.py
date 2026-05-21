@@ -43,7 +43,7 @@ except ImportError:
 
 SAMPLE_MODEL_IDS = [
     "AF-0000000000000001",
-    "AF-0000000000000002", 
+    "AF-0000000000000002",
     "AF-0000000000000003",
     "AF-0000000000000004",
     "AF-0000000000000005",
@@ -132,7 +132,7 @@ def generate_pdb_file(model_id: str, seq_length: int) -> str:
         f"HEADER    PREDICTION                              {datetime.now().strftime('%d-%b-%y').upper()}   {model_id}",
         f"TITLE     ALPHAFOLD PREDICTION FOR {model_id}",
     ]
-    
+
     atom_num = 1
     for res_num in range(1, seq_length + 1):
         # Generate coordinates along a helix-like path
@@ -141,25 +141,25 @@ def generate_pdb_file(model_id: str, seq_length: int) -> str:
         x = math.cos(theta) * 5 + res_num * 0.1
         y = math.sin(theta) * 5
         z = res_num * 1.5
-        
+
         # CA atom
         line = f"ATOM  {atom_num:5d}  CA  ALA A{res_num:4d}    {x:8.3f}{y:8.3f}{z:8.3f}  1.00{random.uniform(40, 95):6.2f}           C"
         lines.append(line)
         atom_num += 1
-    
+
     lines.append("END")
     return "\n".join(lines)
 
 
 def generate_meta_json(model_id: str, seq_length: int, uniprot_ac: str) -> Dict[str, Any]:
     """Generate the ColabFold-style meta JSON.
-    
+
     ColabFold converter expects keys: plddt, pae, max_pae
     """
     plddt = generate_plddt_scores(seq_length)
     pae = generate_pae_matrix(seq_length)
     max_pae = max(max(row) for row in pae)
-    
+
     return {
         "plddt": plddt,
         "pae": pae,  # ColabFold uses 'pae', not 'predicted_aligned_error'
@@ -171,7 +171,7 @@ def generate_meta_json(model_id: str, seq_length: int, uniprot_ac: str) -> Dict[
 
 def generate_confidence_json(model_id: str, seq_length: int) -> Dict[str, Any]:
     """Generate AFDB confidence JSON format.
-    
+
     Category codes per AFDB spec:
     - V (Very High): >90
     - H (High): 70-90
@@ -180,7 +180,7 @@ def generate_confidence_json(model_id: str, seq_length: int) -> Dict[str, Any]:
     - D (Disordered): <30
     """
     plddt = generate_plddt_scores(seq_length)
-    
+
     def score_to_category(score: float) -> str:
         if score >= 90:
             return "V"
@@ -192,7 +192,7 @@ def generate_confidence_json(model_id: str, seq_length: int) -> Dict[str, Any]:
             return "L"
         else:
             return "D"
-    
+
     return {
         "residueNumber": list(range(1, seq_length + 1)),
         "confidenceScore": plddt,
@@ -211,13 +211,13 @@ def generate_pae_json(seq_length: int) -> List[Dict[str, Any]]:
 
 def generate_msa_a3m(model_id: str, sequence: str) -> str:
     """Generate a minimal MSA in A3M format.
-    
+
     A3M is a compressed multiple sequence alignment format.
     We generate a simple alignment with the query sequence and a few homologs.
     """
     lines = [f">{model_id}"]
     lines.append(sequence)
-    
+
     # Add a few "homologous" sequences with some mutations
     for i in range(3):
         lines.append(f">homolog_{i+1}")
@@ -227,7 +227,7 @@ def generate_msa_a3m(model_id: str, sequence: str) -> str:
             if j < len(mutated):
                 mutated[j] = random.choice("ACDEFGHIKLMNPQRSTVWY")
         lines.append("".join(mutated))
-    
+
     return "\n".join(lines)
 
 
@@ -239,9 +239,9 @@ def create_mock_duckdb(db_path: Path, entries: List[Dict[str, Any]]) -> None:
     """Create a mock DuckDB database with UniProt entries."""
     if not HAS_DUCKDB:
         raise ImportError("duckdb is required. Install with: pip install duckdb")
-    
+
     con = duckdb.connect(str(db_path))
-    
+
     # Create the entry table matching the real schema
     con.execute("""
         CREATE TABLE entry (
@@ -263,7 +263,7 @@ def create_mock_duckdb(db_path: Path, entries: List[Dict[str, Any]]) -> None:
             sequence_version_date DATE
         )
     """)
-    
+
     # Insert entries
     for entry in entries:
         con.execute("""
@@ -286,7 +286,7 @@ def create_mock_duckdb(db_path: Path, entries: List[Dict[str, Any]]) -> None:
             entry.get("is_uniprot_reference_proteome", False),
             entry.get("sequence_version_date"),
         ])
-    
+
     con.close()
     print(f"Created DuckDB with {len(entries)} entries at {db_path}")
 
@@ -301,67 +301,67 @@ def setup_posix_layout(
     entries: List[Dict[str, Any]],
 ) -> List[tuple]:
     """Set up the POSIX shard layout with model files.
-    
+
     Creates all required files for AFDB validation:
     - PDB model file
     - Meta JSON (ColabFold format)
     - pLDDT/confidence JSON
     - PAE JSON
     - MSA A3M file
-    
+
     Returns list of (model_id, sequence) tuples for sequences.fasta generation.
     """
-    
+
     input_dir = output_dir / "input"
     sequences_for_fasta = []
-    
+
     for i, model_id in enumerate(model_ids):
         entry = entries[i % len(entries)]
         sequence = entry["sequence"]
         seq_length = len(sequence)
-        
+
         # Create shard path (AF-XXXX/XXXX/XXXX/XXXX)
         digits = model_id.replace("AF-", "")[:16].ljust(16, "0")
         shard_parts = [digits[j:j+4] for j in range(0, 16, 4)]
         shard_path = input_dir.joinpath(*shard_parts)
         shard_path.mkdir(parents=True, exist_ok=True)
-        
+
         # Create meta JSON (ColabFold format with plddt/pae embedded)
         meta = generate_meta_json(model_id, seq_length, entry["primary_ac"])
         meta_path = shard_path / f"{model_id}-meta_v1.json"
         meta_path.write_text(json.dumps(meta, indent=2))
-        
+
         # Create PDB file
         pdb_content = generate_pdb_file(model_id, seq_length)
         pdb_path = shard_path / f"{model_id}-model_v1.pdb"
         pdb_path.write_text(pdb_content)
-        
+
         # Create pLDDT/confidence JSON (AFDB format)
         confidence = generate_confidence_json(model_id, seq_length)
         confidence_path = shard_path / f"{model_id}-confidence_v1.json"
         confidence_path.write_text(json.dumps(confidence, indent=2))
-        
+
         # Create PAE JSON (AFDB format)
         pae = generate_pae_json(seq_length)
         pae_path = shard_path / f"{model_id}-predicted_aligned_error_v1.json"
         pae_path.write_text(json.dumps(pae, indent=2))
-        
+
         # Create MSA A3M file
         msa_content = generate_msa_a3m(model_id, sequence)
         msa_path = shard_path / f"{model_id}-msa_v1.a3m"
         msa_path.write_text(msa_content)
-        
+
         # Store for sequences.fasta
         sequences_for_fasta.append((model_id, sequence))
-        
+
         print(f"Created files for {model_id} at {shard_path}")
-    
+
     return sequences_for_fasta
 
 
 def create_sequences_fasta(output_dir: Path, sequences: List[tuple]) -> None:
     """Create sequences.fasta file at dataset root.
-    
+
     Args:
         output_dir: Dataset root directory
         sequences: List of (model_id, sequence) tuples
@@ -373,7 +373,7 @@ def create_sequences_fasta(output_dir: Path, sequences: List[tuple]) -> None:
         # Wrap sequence at 80 characters
         for i in range(0, len(sequence), 80):
             lines.append(sequence[i:i+80])
-    
+
     fasta_path.write_text("\n".join(lines) + "\n")
     print(f"Created sequences.fasta with {len(sequences)} sequences at {fasta_path}")
 
@@ -382,7 +382,7 @@ def create_config_files(output_dir: Path, model_ids: List[str], entries: List[Di
     """Create configuration files for the workflow."""
     config_dir = output_dir / "config"
     config_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Dataset config
     dataset_config = {
         "providerId": "test-provider",
@@ -395,7 +395,7 @@ def create_config_files(output_dir: Path, model_ids: List[str], entries: List[Di
         "versionTag": "v1",
     }
     (config_dir / "dataset_config.json").write_text(json.dumps(dataset_config, indent=2))
-    
+
     # Provider JSON
     provider = {
         "providerId": "test-provider",
@@ -404,12 +404,12 @@ def create_config_files(output_dir: Path, model_ids: List[str], entries: List[Di
         "copyrights": ["Copyright 2024 Test Provider. All rights reserved."],
     }
     (config_dir / "provider.json").write_text(json.dumps(provider, indent=2))
-    
+
     # AF mapping file (TSV) - single column, NO header (workflow reads all rows as data)
     with (config_dir / "af_mapping.tsv").open("w") as f:
         for model_id in model_ids:
             f.write(f"{model_id}\n")
-    
+
     # ColabFold manifest (CSV)
     colabfold_rows = []
     for i, model_id in enumerate(model_ids):
@@ -419,12 +419,12 @@ def create_config_files(output_dir: Path, model_ids: List[str], entries: List[Di
             "uniprot_ac": entry["primary_ac"],
             "chain_id": "A",
         })
-    
+
     with (config_dir / "colabfold_manifest.csv").open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["model_entity_id", "uniprot_ac", "chain_id"])
         writer.writeheader()
         writer.writerows(colabfold_rows)
-    
+
     # ModelCIF template
     modelcif_template = {
         "metadata": {
@@ -437,7 +437,7 @@ def create_config_files(output_dir: Path, model_ids: List[str], entries: List[Di
         },
     }
     (config_dir / "modelcif_template.json").write_text(json.dumps(modelcif_template, indent=2))
-    
+
     print(f"Created config files in {config_dir}")
 
 
@@ -482,34 +482,34 @@ def main() -> None:
         help="Remove existing output directory before creating",
     )
     args = parser.parse_args()
-    
+
     output_dir = args.output_dir
-    
+
     if args.clean and output_dir.exists():
         shutil.rmtree(output_dir)
         print(f"Cleaned {output_dir}")
-    
+
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Generate model IDs
     model_ids = [f"AF-{str(i).zfill(16)}" for i in range(1, args.num_models + 1)]
-    
+
     # Create DuckDB
     db_path = output_dir / "uniprot_test.duckdb"
     create_mock_duckdb(db_path, SAMPLE_UNIPROT_ENTRIES)
-    
+
     # Create POSIX layout with all required files (PDB, meta, pLDDT, PAE, MSA)
     sequences = setup_posix_layout(output_dir, model_ids, SAMPLE_UNIPROT_ENTRIES)
-    
+
     # Create sequences.fasta at dataset root
     create_sequences_fasta(output_dir, sequences)
-    
+
     # Create config files
     create_config_files(output_dir, model_ids, SAMPLE_UNIPROT_ENTRIES)
-    
+
     # Create Nextflow config
     create_nextflow_config(output_dir)
-    
+
     print("\n" + "=" * 60)
     print("Mock data setup complete!")
     print("=" * 60)

@@ -194,7 +194,7 @@ The workflow's `VALIDATE_ASSETS` process contains its own inline Python that doe
 
 **Impact:** For N models:
 - N × CSV parses for model metadata
-- N × CSV parses for chain metadata  
+- N × CSV parses for chain metadata
 - = **2N full manifest loads**
 - = **2N DuckDB connection opens**
 
@@ -279,10 +279,10 @@ Create a single script that processes all models in one invocation:
 def export_all_models(model_ids: List[str], manifest_path: Path, db_path: Path):
     # Load manifest ONCE
     manifest = load_manifest(manifest_path)
-    
+
     # Open DuckDB ONCE
     con = duckdb.connect(str(db_path), read_only=True)
-    
+
     for model_id in model_ids:
         # Process each model without reloading
         ...

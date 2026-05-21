@@ -89,19 +89,19 @@ def _process_modelpdb_single(args: Tuple[str, str, str, str, str]) -> Tuple[str,
     cif_path = Path(cif_file)
     pdb_path = Path(pdb_dir)
     output_path = Path(output_dir)
-    
+
     stem = cif_path.stem
     model_id = stem.replace(f"-model_{model_version}", "")
-    
+
     pdb_file = pdb_path / f"{model_id}-model_v1.pdb"
     if not pdb_file.exists():
         pdb_file = pdb_path / f"{model_id}-model_{model_version}.pdb"
-    
+
     if not pdb_file.exists():
         return (model_id, False, "PDB file not found")
-    
+
     output_file = output_path / f"{model_id}-model_{model_version}.pdb"
-    
+
     try:
         # Import here to ensure module is available in subprocess
         from afdb_integration_kit.modelpdb.generate import generate_pdb_headers
@@ -673,10 +673,10 @@ def run_batch_modelcif_gen(
          str(model_json_dir) if model_json_dir else "", cif_qa_metrics or "")
         for jf in json_files
     ]
-    
+
     success_count = 0
     error_count = 0
-    
+
     with ProcessPoolExecutor(max_workers=workers) as executor:
         results = executor.map(_process_modelcif_single, work_items)
         for model_id, success, error in results:
@@ -686,7 +686,7 @@ def run_batch_modelcif_gen(
                 error_count += 1
                 if error:
                     console.print(f"[yellow]Error {model_id}: {error}[/yellow]")
-    
+
     console.print(f"[green]Batch complete: {success_count} success, {error_count} errors[/green]")
 
 
@@ -807,26 +807,26 @@ def run_batch_modelpdb_gen(
     Uses ProcessPoolExecutor for CPU-bound parallel execution (bypasses GIL).
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Find all CIF files
     cif_files = list(cif_dir.glob("*-model_*.cif"))
     if not cif_files:
         console.print("[red]No CIF files found in CIF directory[/red]")
         raise typer.Exit(1)
-    
+
     console.print(f"[blue]Processing {len(cif_files)} models with {workers} workers (ProcessPool)...[/blue]")
-    
+
     provider_str = str(provider)
-    
+
     # Prepare work items as tuples for the module-level worker function
     work_items = [
         (str(cf), str(pdb_dir), str(output_dir), provider_str, model_version)
         for cf in cif_files
     ]
-    
+
     success_count = 0
     error_count = 0
-    
+
     with ProcessPoolExecutor(max_workers=workers) as executor:
         results = executor.map(_process_modelpdb_single, work_items)
         for model_id, success, error in results:
@@ -836,7 +836,7 @@ def run_batch_modelpdb_gen(
                 error_count += 1
                 if error:
                     console.print(f"[yellow]Error {model_id}: {error}[/yellow]")
-    
+
     console.print(f"[green]Batch complete: {success_count} success, {error_count} errors[/green]")
 
 
@@ -916,19 +916,19 @@ def batch_dssp(
 ):
     """
     Batch process all CIF files in a directory to add secondary structure.
-    
+
     Supports three algorithms:
     - psea: Biotite's P-SEA algorithm (geometry-based, ~95% agreement with DSSP)
     - pydssp: PyDSSP (simplified H-bond DSSP, ~97% agreement with DSSP)
     - tmalign: TM-align make_sec algorithm (CA-CA distance patterns, very fast)
-    
+
     When --device cuda is used with pydssp, the H-bond and SSE computation
     runs on GPU via PyTorch for faster processing.
     """
     if algorithm not in ("psea", "pydssp", "tmalign"):
         console.print(f"[red]Invalid algorithm '{algorithm}'. Use 'psea', 'pydssp', or 'tmalign'.[/red]")
         raise typer.Exit(1)
-    
+
     algo_names = {"psea": "P-SEA (Biotite)", "pydssp": "PyDSSP", "tmalign": "TM-align"}
     algo_name = algo_names[algorithm]
     device_label = f"GPU ({device})" if device != "cpu" else "CPU"

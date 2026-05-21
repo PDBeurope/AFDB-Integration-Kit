@@ -25,31 +25,31 @@ IPSAE_BINARY = IPSAE_CPP_DIR / "ipsae_optimized"
 
 def ensure_ipsae_binary() -> bool:
     """Ensure the ipSAE binary exists, compiling if necessary.
-    
+
     Returns:
         True if binary is available, False if compilation failed.
     """
     if IPSAE_BINARY.exists():
         return True
-    
+
     logger.info("ipSAE binary not found, attempting to compile...")
     makefile = IPSAE_CPP_DIR / "Makefile"
     if not makefile.exists():
         logger.error(f"Cannot compile: Makefile not found at {makefile}")
         return False
-    
+
     result = subprocess.run(
         ["make"],
         cwd=IPSAE_CPP_DIR,
         capture_output=True,
         text=True
     )
-    
+
     if result.returncode != 0:
         logger.error(f"Compilation failed: {result.stderr}")
         logger.error("Make sure you have g++ and OpenMP installed")
         return False
-    
+
     logger.info("Successfully compiled ipSAE binary")
     return IPSAE_BINARY.exists()
 
@@ -62,17 +62,17 @@ def find_pae_file(model_id: str, scores_dir: Path) -> Optional[Path]:
         f"{model_id}_pae.json",
         f"{model_id}_scores.json",
     ]
-    
+
     for pattern in patterns:
         pae_file = scores_dir / pattern
         if pae_file.exists():
             return pae_file
-    
+
     # Try to find meta file that might contain PAE
     meta_file = scores_dir / f"{model_id}-meta_v1.json"
     if meta_file.exists():
         return meta_file
-    
+
     return None
 
 
@@ -82,12 +82,12 @@ def find_pdb_file(model_id: str, pdb_dir: Path) -> Optional[Path]:
         f"{model_id}-model_v1.pdb",
         f"{model_id}.pdb",
     ]
-    
+
     for pattern in patterns:
         pdb_file = pdb_dir / pattern
         if pdb_file.exists():
             return pdb_file
-    
+
     return None
 
 
@@ -110,7 +110,7 @@ def run_ipsae_batch(
 ) -> tuple[int, int, int]:
     """
     Run the C++ ipsae_optimized binary in batch mode.
-    
+
     Returns:
         Tuple of (processed, skipped, errors)
     """
@@ -120,11 +120,11 @@ def run_ipsae_batch(
             f"  Expected at: {IPSAE_BINARY}\n"
             f"  To compile manually: cd {IPSAE_CPP_DIR} && make"
         )
-    
+
     # Set OpenMP thread count
     env = os.environ.copy()
     env["OMP_NUM_THREADS"] = str(num_threads)
-    
+
     cmd = [
         str(IPSAE_BINARY),
         "--batch",
@@ -133,25 +133,25 @@ def run_ipsae_batch(
         "--pae-cutoff", str(pae_cutoff),
         "--dist-cutoff", str(dist_cutoff)
     ]
-    
+
     logger.info(f"Running: {' '.join(cmd)}")
-    
+
     result = subprocess.run(
         cmd,
         capture_output=True,
         text=True,
         env=env
     )
-    
+
     if result.returncode != 0:
         logger.error(f"ipSAE binary failed: {result.stderr}")
         return (0, 0, -1)
-    
+
     # Parse output for statistics
     processed = 0
     skipped = 0
     errors = 0
-    
+
     for line in result.stdout.split('\n'):
         if "Processed:" in line:
             processed = int(line.split(':')[1].strip())
@@ -159,7 +159,7 @@ def run_ipsae_batch(
             skipped = int(line.split(':')[1].strip())
         elif "Errors:" in line:
             errors = int(line.split(':')[1].strip())
-    
+
     return (processed, skipped, errors)
 
 
@@ -208,20 +208,20 @@ def main():
         default=os.cpu_count() or 1,
         help="Number of OpenMP threads (default: all available CPUs)"
     )
-    
+
     args = parser.parse_args()
-    
+
     # Validate directories
     if not args.pae_dir.exists():
         logger.error(f"PAE directory does not exist: {args.pae_dir}")
         sys.exit(1)
-    
+
     if not args.pdb_dir.exists():
         logger.error(f"PDB directory does not exist: {args.pdb_dir}")
         sys.exit(1)
-    
+
     args.output_dir.mkdir(exist_ok=True, parents=True)
-    
+
     # Get model IDs
     if args.model_ids and args.model_ids.exists():
         model_ids = [line.strip() for line in args.model_ids.read_text().splitlines() if line.strip()]
@@ -229,46 +229,46 @@ def main():
     else:
         model_ids = get_model_ids_from_pdb_dir(args.pdb_dir)
         logger.info(f"Found {len(model_ids)} models in PDB directory")
-    
+
     if not model_ids:
         logger.warning("No models found to process")
         sys.exit(0)
-    
+
     # Build input list file for batch mode
     # Format: model_id\tpae_file\tpdb_file
     entries = []
     missing_pae = []
     missing_pdb = []
-    
+
     for model_id in model_ids:
         pae_file = find_pae_file(model_id, args.pae_dir)
         pdb_file = find_pdb_file(model_id, args.pdb_dir)
-        
+
         if not pae_file:
             missing_pae.append(model_id)
             continue
         if not pdb_file:
             missing_pdb.append(model_id)
             continue
-        
+
         entries.append(f"{model_id}\t{pae_file}\t{pdb_file}")
-    
+
     if missing_pae:
         logger.warning(f"Missing PAE files for {len(missing_pae)} models")
     if missing_pdb:
         logger.warning(f"Missing PDB files for {len(missing_pdb)} models")
-    
+
     if not entries:
         logger.error("No valid model entries found")
         sys.exit(1)
-    
+
     logger.info(f"Processing {len(entries)} models with {args.workers} threads")
-    
+
     # Write batch input file
     with tempfile.NamedTemporaryFile(mode='w', suffix='.tsv', delete=False) as f:
         f.write('\n'.join(entries))
         input_list_file = Path(f.name)
-    
+
     try:
         processed, skipped, errors = run_ipsae_batch(
             input_list_file,
@@ -277,7 +277,7 @@ def main():
             args.dist_cutoff,
             args.workers
         )
-        
+
         logger.info("")
         logger.info("=" * 40)
         logger.info("BATCH ipSAE COMPLETE")
@@ -287,10 +287,10 @@ def main():
         logger.info(f"  Skipped (monomer): {skipped}")
         logger.info(f"  Errors: {errors}")
         logger.info(f"  Output: {args.output_dir}")
-        
+
         if errors > 0:
             sys.exit(1)
-    
+
     finally:
         # Cleanup temp file
         input_list_file.unlink(missing_ok=True)
