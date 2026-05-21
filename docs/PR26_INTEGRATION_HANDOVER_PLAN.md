@@ -171,26 +171,44 @@ dependency import boundaries from Step 1.
 
 ## Step 4: DSSP Refactor Review
 
-- [ ] (Model: GPT-5.4) Create branch
+- [x] (Model: GPT-5.4) Create branch
   `integration-pr-26-gpu-step-4-dssp`.
-- [ ] (Model: GPT-5.4) Review the replacement of external `mkdssp` subprocess
+- [x] (Model: GPT-5.4) Review the replacement of external `mkdssp` subprocess
   behavior with internal algorithms in `afdb_integration_kit/dssp/dssp.py`.
-- [ ] (Model: GPT-5.4) Confirm desired default algorithm.
+- [x] (Model: GPT-5.4) Confirm desired default algorithm.
   - README currently indicates `pydssp` in production-pipeline contexts.
   - CLI `batch-dssp` default may differ; reconcile defaults intentionally.
-- [ ] (Model: GPT-5.4) Add tests for at least `tmalign`, because it has no
+  - Decision: `pydssp` remains the production default because it is closest to
+    DSSP behavior. CLI single-file, CLI batch, library defaults, and the
+    production-pipeline dataclass fallback now share that default.
+  - `tmalign` remains the core-dependency algorithm for environments without
+    production extras and is covered directly by tests.
+- [x] (Model: GPT-5.4) Add tests for at least `tmalign`, because it has no
   production-only dependencies.
-- [ ] (Model: GPT-5.4) Add skip-marked tests for `psea` and `pydssp` when
+- [x] (Model: GPT-5.4) Add skip-marked tests for `psea` and `pydssp` when
   optional packages are not installed.
-- [ ] (Model: GPT-5.4) Validate output CIF structure.
+- [x] (Model: GPT-5.4) Validate output CIF structure.
   - Confirm `_struct_conf` and `_struct_conf_type` are generated correctly.
   - Confirm existing CIF categories are preserved.
   - Confirm files with no polymer residues fail cleanly.
-- [ ] (Model: GPT-5.4-mini) Run:
+- [x] (Model: GPT-5.4-mini) Run:
   - `pytest tests/test_pdb.py tests/validation/test_runner.py -q`
   - any new DSSP tests
   - `python -m compileall -q afdb_integration_kit/dssp tests`
-- [ ] (Model: GPT-5.5) Review biological correctness risks before merging.
+  - Evidence: `uv run pytest tests/test_pdb.py tests/validation/test_runner.py
+    -q` passed with `21 passed`.
+  - Evidence: `uv run pytest tests/test_dssp.py -q` passed with `5 passed, 1
+    skipped`; the skip was the optional `pydssp` package in this sandbox.
+  - Evidence: `python -m compileall -q afdb_integration_kit/dssp tests` could
+    not run because `python` is not on `PATH`; `.venv/bin/python -m compileall
+    -q afdb_integration_kit/dssp tests` passed.
+  - Evidence: `git diff --check` passed.
+- [x] (Model: GPT-5.5) Review biological correctness risks before merging.
+  - Risk note: `pydssp`, `psea`, and `tmalign` are all 3-state approximations
+    rather than byte-for-byte `mkdssp` replacements. The integration keeps
+    `pydssp` as the default for production because its H-bond based assignment
+    is the closest intended replacement, while `tmalign` is best treated as a
+    dependency-light fallback for testing or constrained environments.
 
 ## Step 5: CIF To BCIF Conversion Review
 
