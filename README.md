@@ -11,12 +11,13 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
   - [Installation](#installation)
     - [1. Clone the Repository](#1-clone-the-repository)
     - [2. Install UV (Python Package Manager)](#2-install-uv-python-package-manager)
-    - [3. Install Mol\* CLI](#3-install-mol-cli)
-    - [4. Install DSSP](#4-install-dssp)
-    - [5. Download mmCIF Dictionary (Required for ModelCIF Generator)](#5-download-mmcif-dictionary-required-for-modelcif-generator)
-    - [6. Install Production Pipeline Dependencies (Optional)](#6-install-production-pipeline-dependencies-optional)
-    - [7. Install Nextflow (Optional)](#7-install-nextflow-optional)
-    - [8. Install Docker (Optional)](#8-install-docker-optional)
+    - [3. Install Core Python Dependencies](#3-install-core-python-dependencies)
+    - [4. Install Mol\* CLI](#4-install-mol-cli)
+    - [5. Install DSSP](#5-install-dssp)
+    - [6. Download mmCIF Dictionary (Optional)](#6-download-mmcif-dictionary-optional)
+    - [7. Install Production Pipeline Dependencies (Optional)](#7-install-production-pipeline-dependencies-optional)
+    - [8. Install Nextflow (Optional)](#8-install-nextflow-optional)
+    - [9. Install Docker (Optional)](#9-install-docker-optional)
   - [Quick Start](#quick-start)
     - [Verify Installation](#verify-installation)
     - [Basic Usage Example](#basic-usage-example)
@@ -30,7 +31,6 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
   - [Docker Usage](#docker-usage)
     - [Use Prebuilt Docker Image (Recommended)](#use-prebuilt-docker-image-recommended)
     - [Build Docker Image (Optional)](#build-docker-image-optional)
-    - [Build Docker Image](#build-docker-image)
     - [Run Tools in Docker](#run-tools-in-docker)
   - [Nextflow Workflow](#nextflow-workflow)
     - [End-to-End Processing](#end-to-end-processing)
@@ -101,7 +101,28 @@ pip install uv
 conda install -c conda-forge uv
 ```
 
-### 3. Install Mol* CLI
+### 3. Install Core Python Dependencies
+
+Install the default dependency set from the locked project environment:
+
+```bash
+uv sync --locked --no-dev
+```
+
+The core install is intended for normal CLI usage, help output, metadata and
+schema validation, UniProt metadata tooling, ColabFold conversion, ModelCIF/PDB
+generation, CIF to BCIF conversion through the Mol* CLI fallback, and
+non-production helper scripts. It intentionally does not install the heavier
+production structure-analysis packages.
+
+Contributors who need development tools and tests can install the full locked
+environment instead:
+
+```bash
+uv sync --locked
+```
+
+### 4. Install Mol* CLI
 
 If you use nvm (Node Version Manager):
 ```bash
@@ -114,7 +135,7 @@ Without nvm:
 npm install -g molstar
 ```
 
-### 4. Install DSSP (Nextflow workflow only)
+### 5. Install DSSP (Nextflow workflow only)
 
 The production pipeline uses built-in Python DSSP algorithms (`pydssp`, `psea`, `tmalign`) and does **not** require an external DSSP binary. This step is only needed if you use the Nextflow workflow.
 
@@ -133,7 +154,7 @@ sudo make install
 
 For detailed installation instructions, visit: https://github.com/PDB-REDO/dssp
 
-### 5. Download mmCIF Dictionary (Optional)
+### 6. Download mmCIF Dictionary (Optional)
 
 The ModelCIF tool has an additional option to validate the mmCIF files against the updated model cif dictionary. 
 This is an optional parameter, but it is recommended to validate the output files when first setting up the tool.
@@ -147,34 +168,39 @@ curl -o mmcif_ma.dic https://raw.githubusercontent.com/ihmwg/ModelCIF/refs/heads
 
 **Note:** This step is automatically handled in the Docker environment, but is required for local installations.
 
-### 6. Install Production Pipeline Dependencies (Optional)
+### 7. Install Production Pipeline Dependencies (Optional)
 
-The production pipeline (`scripts/production_pipeline.py`) requires additional dependencies for structure analysis (clash detection, interface residues). These use PyTorch and torch_cluster.
+The production pipeline (`scripts/production_pipeline.py`) requires additional dependencies for structure analysis, DSSP algorithms, clash detection, and interface residues.
 
-**Option A: Using `environment.yml` (recommended):**
-
-```bash
-conda env create -f environment.yml
-conda activate afdb-toolkit
-
-# Install Mol* CLI into the environment
-npm install -g molstar
-```
-
-This installs everything (core + production + C++ build tools + Node.js) in one step.
-
-**Option B: Manual pip installation:**
+Install the project production extra into the uv environment:
 
 ```bash
-# Install PyTorch 2.8.0 (CPU version) - pinned for torch_cluster compatibility
-pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
-
-# Install torch_cluster (CPU version)
-pip install torch_cluster -f https://data.pyg.org/whl/torch-2.8.0+cpu.html
-
-# Install other production dependencies
-uv pip install ".[production]"
+uv pip install '.[production]'
 ```
+
+This installs the production Python packages declared by the project, including
+`biotite`, `pydssp`, `torch`, and `fastpdb`.
+
+Install `torch_cluster` separately after PyTorch is installed. Its wheel must
+match the installed PyTorch version and CUDA runtime. Pick the `CUDA` suffix
+from the PyTorch Geometric wheel index for your environment (`cpu`, `cu118`,
+`cu121`, `cu124`, `cu126`, `cu128`, etc.):
+
+```bash
+# Check the installed PyTorch build first
+python -c "import torch; print(torch.__version__, torch.version.cuda)"
+
+# Example: CPU wheel for PyTorch 2.8.0
+uv pip install torch_cluster -f https://data.pyg.org/whl/torch-2.8.0+cpu.html
+
+# Example: CUDA 12.8 wheel for PyTorch 2.8.0
+uv pip install torch_cluster -f https://data.pyg.org/whl/torch-2.8.0+cu128.html
+```
+
+If `uv pip install '.[production]'` resolves a different PyTorch version, change
+the `torch-<version>+<cuda>` part of the `torch_cluster` URL to match that
+installed build. For available `torch_cluster` wheels, see
+https://data.pyg.org/whl/.
 
 **Verify installation:**
 
@@ -182,9 +208,7 @@ uv pip install ".[production]"
 python -c "import torch; from torch_cluster import radius_graph; print('torch_cluster OK')"
 ```
 
-For available torch_cluster versions, see: https://data.pyg.org/whl/
-
-### 7. Install Nextflow (Optional)
+### 8. Install Nextflow (Optional)
 
 For workflow automation:
 
@@ -197,7 +221,7 @@ chmod +x nextflow
 sudo mv nextflow /usr/local/bin/
 ```
 
-### 8. Install Docker (Optional)
+### 9. Install Docker (Optional)
 
 For containerized execution:
 - **macOS/Windows**: Download Docker Desktop from https://www.docker.com/products/docker-desktop
@@ -207,13 +231,22 @@ For containerized execution:
 
 ### Verify Installation
 
-Test that all dependencies are correctly installed:
+Verify the core Python install:
+
+```bash
+uv run main.py --help
+uv run main.py list-validations
+```
+
+To check the optional external toolchain as well, install Mol*, DSSP, and any
+other workflow tools you need, then run:
 
 ```bash
 uv run main.py test
 ```
 
-This command will validate your environment and report any missing dependencies.
+This command reports missing external executables such as `cif2bcif` or
+`mkdssp`.
 
 ### Basic Usage Example
 
@@ -475,11 +508,11 @@ The production pipeline (`scripts/production_pipeline.py`) provides a standalone
 
 > **Note:** ipSAE and clash analysis (stages 5-6) run *before* metadata export (stages 7-8) so that quality metrics are available for JSON enrichment and CIF embedding.
 
-**Prerequisites:** Install production dependencies first (see [Installation section 6](#6-install-production-pipeline-dependencies-optional)), or use the `environment.yml`:
+**Prerequisites:** Install production dependencies first (see [Installation section 7](#7-install-production-pipeline-dependencies-optional)). For clash/interface analysis, also install a `torch_cluster` wheel that matches your PyTorch and CUDA build.
 
 ```bash
-conda env create -f environment.yml
-conda activate afdb-toolkit
+uv pip install '.[production]'
+uv pip install torch_cluster -f https://data.pyg.org/whl/torch-<torch-version>+<cuda>.html
 ```
 
 #### Homodimer mode (default)
@@ -568,6 +601,13 @@ By default, scores files are **symlinked** as meta JSONs (zero I/O). Pass `--ext
 
 ## Docker Usage
 
+The Dockerfile installs the core Python dependency set from `requirements.txt`,
+plus Mol*, DSSP, Nextflow, and the ModelCIF dictionary. It is intended for the
+core CLI, validation, ModelCIF/PDB, CIF/BCIF, and Nextflow workflows. It does
+not install the `production` extra or `torch_cluster`; build a derived image
+with a PyTorch/CUDA-compatible `torch_cluster` wheel if you need the standalone
+production pipeline inside Docker.
+
 ### Use Prebuilt Docker Image (Recommended)
 
 You can skip building the image locally by using the prebuilt image available on Docker Hub:
@@ -593,13 +633,6 @@ docker run \
 ### Build Docker Image (Optional)
 
 If you prefer to build the image yourself:
-
-```bash
-docker build -t afdb-toolkit .
-```
-
-
-### Build Docker Image
 
 ```bash
 docker build -t afdb-toolkit .
