@@ -231,6 +231,35 @@ Implemented in Step 4:
 
 ### 7. Preserve Original CIF To BCIF Behavior By Default
 
+Decision:
+
+- The original toolkit converted CIF to BCIF by delegating to the external Mol*
+  `cif2bcif` command.
+- Step 5 should preserve that original behavior as the default/source-of-truth
+  conversion path.
+- The PR's Biotite in-process conversion logic should not be discarded, but it
+  must be additive and explicit rather than silently replacing Mol*.
+- Biotite should remain in the `production` extra and must continue to be lazily
+  imported. Do not move Biotite into core dependencies for Step 5.
+- Preferred backend shape:
+  - `molstar`: use only external Mol* `cif2bcif`; this is the original and
+    safest default behavior.
+  - `biotite`: use only the Biotite in-process converter; useful for targeted
+    testing and intentionally provisioned production environments.
+  - `auto`: try Mol* first, then fall back to Biotite when Mol* is unavailable
+    or fails.
+- Do not make Biotite-first the implicit default.
+
+Reasoning:
+
+- Mol* `cif2bcif` is the established converter used by the original toolkit and
+  is the lowest-risk path for downstream Mol*/gemmi/AFDB compatibility.
+- The Biotite implementation may be useful in environments where Node/Mol* is
+  hard to provision, but it makes this repository responsible for BinaryCIF
+  encoding details such as column typing and `.`/`?` masks.
+- Keeping Biotite explicit or fallback-only incorporates the PR's work without
+  increasing the default integration risk.
+
 ### 8. Preserve Global Chain Spans In ColabFold JSON Outputs
 
 Decision:
@@ -267,34 +296,25 @@ Reasoning:
 - This keeps Step 6 conservative while still allowing deterministic resolution
   when the accession lengths and ColabFold metadata provide direct evidence.
 
+### 10. Use Single AF-Style IDs For Real ColabFold Fixtures
+
 Decision:
 
-- The original toolkit converted CIF to BCIF by delegating to the external Mol*
-  `cif2bcif` command.
-- Step 5 should preserve that original behavior as the default/source-of-truth
-  conversion path.
-- The PR's Biotite in-process conversion logic should not be discarded, but it
-  must be additive and explicit rather than silently replacing Mol*.
-- Biotite should remain in the `production` extra and must continue to be lazily
-  imported. Do not move Biotite into core dependencies for Step 5.
-- Preferred backend shape:
-  - `molstar`: use only external Mol* `cif2bcif`; this is the original and
-    safest default behavior.
-  - `biotite`: use only the Biotite in-process converter; useful for targeted
-    testing and intentionally provisioned production environments.
-  - `auto`: try Mol* first, then fall back to Biotite when Mol* is unavailable
-    or fails.
-- Do not make Biotite-first the implicit default.
+- Curated real ColabFold fixtures should use single AF-style `model_entity_id`
+  names in directories, copied files, and fixture metadata.
+- Heterodimer source files that were named with two component AF IDs should be
+  normalized to a single fixture AF ID; the original composite source ID and
+  component reassigned AF IDs are retained in `manifest.json`.
+- Chain UniProt accessions should be recorded in `manifest.json` so later
+  integration and end-to-end tests can build real-style chain manifests without
+  relying on filename parsing.
 
 Reasoning:
 
-- Mol* `cif2bcif` is the established converter used by the original toolkit and
-  is the lowest-risk path for downstream Mol*/gemmi/AFDB compatibility.
-- The Biotite implementation may be useful in environments where Node/Mol* is
-  hard to provision, but it makes this repository responsible for BinaryCIF
-  encoding details such as column typing and `.`/`?` masks.
-- Keeping Biotite explicit or fallback-only incorporates the PR's work without
-  increasing the default integration risk.
+- The production `model_entity_id` convention is a single AF-style ID, not a
+  composite ID made from both components.
+- Keeping source IDs as metadata preserves provenance while making tests target
+  the naming contract the toolkit is expected to support.
 
 ## Verification Results Reported So Far
 

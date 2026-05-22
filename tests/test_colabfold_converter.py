@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -196,3 +197,73 @@ def test_partial_prefetch_does_not_break_later_duckdb_lookups(tmp_path: Path) ->
     assert effective_manifest == [{"chain_id": "B", "uniprot_ac": "Q22222", "entity_id": "2"}]
 
     cleanup_caches()
+
+
+REAL_EXAMPLES_DIR = Path(__file__).parent / "fixtures" / "colabfold_real_examples"
+AF_ID_RE = re.compile(r"^AF-\d{16}$")
+
+
+def _load_real_examples() -> list[dict]:
+    with open(REAL_EXAMPLES_DIR / "manifest.json", encoding="utf-8") as handle:
+        return json.load(handle)["examples"]
+
+
+def _fixture_path(example: dict, suffix: str) -> Path:
+    category_dir = REAL_EXAMPLES_DIR / f"{example['category']}s" / example["example_id"]
+    matches = [f["name"] for f in example["files"] if f["name"].endswith(suffix)]
+    assert len(matches) == 1
+    return category_dir / matches[0]
+
+
+def test_real_colabfold_fixture_names_are_single_af_ids() -> None:
+    for example in _load_real_examples():
+        example_id = example["example_id"]
+        assert AF_ID_RE.match(example_id)
+        for file_info in example["files"]:
+            assert file_info["name"].startswith(f"{example_id}-")
+        for chain in example["chain_spans"]:
+            assert chain["uniprot_ac"]
+
+
+@pytest.mark.parametrize("example", _load_real_examples(), ids=lambda ex: ex["example_id"])
+def test_convert_file_handles_curated_real_colabfold_examples(
+    tmp_path: Path,
+    example: dict,
+) -> None:
+    scores_json = _fixture_path(example, "-scores_v1.json")
+    pdb_file = _fixture_path(example, "-model_v1.pdb")
+
+    output_paths = convert_file(
+        str(scores_json),
+        str(pdb_file),
+        outdir=str(tmp_path / example["example_id"]),
+        model_entity_id=example["example_id"],
+    )
+
+    with open(scores_json, encoding="utf-8") as handle:
+        raw_scores = json.load(handle)
+    with open(output_paths["plddt"], encoding="utf-8") as handle:
+        plddt_payload = json.load(handle)
+    with open(output_paths["pae"], encoding="utf-8") as handle:
+        pae_payload = json.load(handle)[0]
+
+    expected_chains = [
+        {
+            "name": chain["chain_id"],
+            "label_asym_id": chain["chain_id"],
+            "sequenceStart": chain["sequence_start"],
+            "sequenceEnd": chain["sequence_end"],
+        }
+        for chain in example["chain_spans"]
+    ]
+
+    assert plddt_payload["chains"] == expected_chains
+    assert pae_payload["chains"] == expected_chains
+    assert len(plddt_payload["confidenceScore"]) == example["plddt_length"]
+    assert plddt_payload["residueNumber"] == list(range(1, example["plddt_length"] + 1))
+    assert len(pae_payload["predicted_aligned_error"]) == example["pae_dimension"]
+    assert all(
+        len(row) == example["pae_dimension"]
+        for row in pae_payload["predicted_aligned_error"]
+    )
+    assert pae_payload["max_predicted_aligned_error"] == round(raw_scores["max_pae"], 2)

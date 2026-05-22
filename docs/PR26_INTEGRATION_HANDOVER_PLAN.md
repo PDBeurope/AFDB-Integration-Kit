@@ -325,11 +325,24 @@ commit `2c6d225`. Parent-branch verification after the merge:
   building.
 - [x] (Model: GPT-5.4) Add tests for chain mapping behavior in
   `convert_file`.
+- [x] (Model: GPT-5.4) Add curated real ColabFold fixtures for later
+  integration and end-to-end smoke tests.
+  - Evidence: `tests/fixtures/colabfold_real_examples` now contains 3
+    monomers, 3 homodimers, and 3 heterodimers with minimal raw score JSON,
+    PDB, and small metadata/input files.
+  - Fixture names use single AF-style `model_entity_id` values. Heterodimer
+    source files that were originally named with two component AF IDs now use
+    reserved single fixture IDs, while source component IDs are retained in
+    `manifest.json`.
+  - Chain UniProt accessions are recorded in `manifest.json` from the corrected
+    merged ColabFold manifest and related corrected mapping outputs.
 - [x] (Model: GPT-5.4-mini) Run:
   - `pytest tests/test_colabfold_converter.py -q`
-    - Result: `4 passed` via `uv run pytest tests/test_colabfold_converter.py -q`.
+    - Result: `14 passed` via
+      `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_colabfold_converter.py -q`.
   - new manifest resolver tests
-    - Result: `4 passed` via `uv run pytest tests/test_manifest_resolver.py -q`.
+    - Result: `4 passed` via
+      `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_manifest_resolver.py -q`.
   - `.venv/bin/python -m compileall -q afdb_integration_kit/colabfold
     afdb_integration_kit/manifest tests`
     - Result: passed.
