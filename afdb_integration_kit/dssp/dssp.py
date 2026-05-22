@@ -1,16 +1,19 @@
 """
 Secondary structure calculation with multiple algorithm support.
 
-Supports three algorithms for secondary structure assignment:
-1. P-SEA (Biotite's annotate_sse): Geometry-based, ~95% agreement with DSSP
-2. PyDSSP: Simplified H-bond based DSSP, ~97% agreement with DSSP
-3. TM-align: CA-CA distance based (from Foldseek/TM-align), very fast
+Supports four algorithms for secondary structure assignment:
+1. mkdssp: External DSSP binary, preserving the historical default behavior
+2. P-SEA (Biotite's annotate_sse): Geometry-based, ~95% agreement with DSSP
+3. PyDSSP: Simplified H-bond based DSSP, ~97% agreement with DSSP
+4. TM-align: CA-CA distance based (from Foldseek/TM-align), very fast
 
-All produce 3-state output: helix, strand, coil (turn mapped to coil for 3-state).
-Uses gemmi for mmCIF I/O to produce complete _struct_conf annotations with all
-standard fields (label/auth identifiers, insertion codes).
+The Python algorithms produce 3-state output: helix, strand, coil (turn mapped
+to coil for 3-state). They use gemmi for mmCIF I/O to produce complete
+_struct_conf annotations with all standard fields (label/auth identifiers,
+insertion codes).
 """
 import logging
+import subprocess
 from collections import namedtuple
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -27,8 +30,8 @@ if not logger.handlers:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
-Algorithm = Literal["psea", "pydssp", "tmalign"]
-DEFAULT_ALGORITHM: Algorithm = "pydssp"
+Algorithm = Literal["mkdssp", "psea", "pydssp", "tmalign"]
+DEFAULT_ALGORITHM: Algorithm = "mkdssp"
 
 PSEA_CODE_MAP = {
     'a': 'HELX_P',
@@ -308,6 +311,7 @@ def _find_secondary_structure_ranges(
 
 def _get_algorithm_label(algorithm: str) -> str:
     labels = {
+        "mkdssp": "mkdssp",
         "psea": "P-SEA",
         "pydssp": "PyDSSP",
         "tmalign": "TM-align",
@@ -367,6 +371,27 @@ def _add_struct_conf_to_cif(
         ])
 
 
+def _run_mkdssp(input_file: Path, output_file: Path) -> bool:
+    """Run the external mkdssp binary, preserving the legacy subprocess path."""
+    try:
+        result = subprocess.run(
+            ["mkdssp", str(input_file), str(output_file)],
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        logger.error(
+            "mkdssp executable not found. Install DSSP or choose "
+            "--algorithm psea, --algorithm pydssp, or --algorithm tmalign."
+        )
+        return False
+
+    if result.returncode != 0:
+        logger.error(f"mkdssp failed for {input_file}: {result.stderr}")
+        return False
+    return True
+
+
 def run_dssp(
     input_file: Path,
     output_file: Path,
@@ -382,6 +407,9 @@ def run_dssp(
     """
     if not str(output_file).endswith(".cif"):
         raise ValueError("Output file must have a .cif extension")
+
+    if algorithm == "mkdssp":
+        return _run_mkdssp(input_file, output_file)
 
     try:
         doc = gemmi.cif.read(str(input_file))
@@ -510,7 +538,6 @@ def run_batch_dssp(
 
 def run_command(input_path, output_path):
     """Legacy subprocess wrapper - kept for compatibility but not recommended."""
-    import subprocess
     command = ["mkdssp", str(input_path), str(output_path)]
     result = subprocess.run(command, capture_output=True, text=True)
     return result.returncode, input_path, result.stdout, result.stderr

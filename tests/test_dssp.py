@@ -1,9 +1,12 @@
 from pathlib import Path
+import shutil
+from types import SimpleNamespace
 
 import gemmi
 import numpy as np
 import pytest
 
+import afdb_integration_kit.dssp.dssp as dssp_module
 from afdb_integration_kit.dssp.dssp import (
     DEFAULT_ALGORITHM,
     _compute_sse_tmalign,
@@ -22,8 +25,47 @@ def _category_rows(block, category):
     ]
 
 
-def test_default_algorithm_matches_production_docs():
-    assert DEFAULT_ALGORITHM == "pydssp"
+def test_default_algorithm_preserves_mkdssp_behavior():
+    assert DEFAULT_ALGORITHM == "mkdssp"
+
+
+def test_default_dssp_uses_mkdssp_subprocess(monkeypatch, tmp_path):
+    output = tmp_path / "mkdssp.cif"
+    calls = []
+
+    def fake_run(command, capture_output, text):
+        calls.append((command, capture_output, text))
+        output.write_text("data_mkdssp\n", encoding="utf-8")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(dssp_module.subprocess, "run", fake_run)
+
+    assert run_dssp(EXAMPLE_CIF, output)
+    assert calls == [(["mkdssp", str(EXAMPLE_CIF), str(output)], True, True)]
+    assert output.read_text(encoding="utf-8") == "data_mkdssp\n"
+
+
+def test_mkdssp_failure_is_reported_when_executable_is_missing(monkeypatch, tmp_path):
+    output = tmp_path / "mkdssp.cif"
+
+    def missing_mkdssp(command, capture_output, text):
+        raise FileNotFoundError(command[0])
+
+    monkeypatch.setattr(dssp_module.subprocess, "run", missing_mkdssp)
+
+    assert not run_dssp(EXAMPLE_CIF, output, algorithm="mkdssp")
+    assert not output.exists()
+
+
+@pytest.mark.skipif(
+    shutil.which("mkdssp") is None,
+    reason="mkdssp executable is not installed",
+)
+def test_mkdssp_writes_output_when_executable_is_installed(tmp_path):
+    output = tmp_path / "mkdssp.cif"
+
+    assert run_dssp(EXAMPLE_CIF, output, algorithm="mkdssp")
+    assert output.exists()
 
 
 def test_tmalign_classifies_secondary_structure_from_ca_distances():

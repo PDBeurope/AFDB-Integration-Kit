@@ -871,7 +871,8 @@ def run_dssp(
         "--algorithm",
         "-a",
         help=(
-            "Algorithm for secondary structure: 'psea' (geometry), "
+            "Algorithm for secondary structure: 'mkdssp' (external DSSP), "
+            "'psea' (geometry), "
             "'pydssp' (H-bond), or 'tmalign' (CA-CA distance)."
         ),
     ),
@@ -885,8 +886,11 @@ def run_dssp(
     """
     Run DSSP on a CIF file to generate secondary structure information.
     """
-    if algorithm not in ("psea", "pydssp", "tmalign"):
-        console.print(f"[red]Invalid algorithm '{algorithm}'. Use 'psea', 'pydssp', or 'tmalign'.[/red]")
+    if algorithm not in ("mkdssp", "psea", "pydssp", "tmalign"):
+        console.print(
+            f"[red]Invalid algorithm '{algorithm}'. Use 'mkdssp', 'psea', "
+            "'pydssp', or 'tmalign'.[/red]"
+        )
         raise typer.Exit(1)
 
     require_non_empty_file(input_file, description="DSSP input CIF file")
@@ -926,7 +930,11 @@ def batch_dssp(
         DEFAULT_ALGORITHM,
         "--algorithm",
         "-a",
-        help="Algorithm for secondary structure: 'psea' (geometry), 'pydssp' (H-bond), or 'tmalign' (CA-CA distance)"
+        help=(
+            "Algorithm for secondary structure: 'mkdssp' (external DSSP), "
+            "'psea' (geometry), 'pydssp' (H-bond), or 'tmalign' "
+            "(CA-CA distance)"
+        )
     ),
     device: str = typer.Option(
         "cpu",
@@ -938,7 +946,8 @@ def batch_dssp(
     """
     Batch process all CIF files in a directory to add secondary structure.
 
-    Supports three algorithms:
+    Supports four algorithms:
+    - mkdssp: external DSSP binary (historical default)
     - psea: Biotite's P-SEA algorithm (geometry-based, ~95% agreement with DSSP)
     - pydssp: PyDSSP (simplified H-bond DSSP, ~97% agreement with DSSP)
     - tmalign: TM-align make_sec algorithm (CA-CA distance patterns, very fast)
@@ -946,11 +955,19 @@ def batch_dssp(
     When --device cuda is used with pydssp, the H-bond and SSE computation
     runs on GPU via PyTorch for faster processing.
     """
-    if algorithm not in ("psea", "pydssp", "tmalign"):
-        console.print(f"[red]Invalid algorithm '{algorithm}'. Use 'psea', 'pydssp', or 'tmalign'.[/red]")
+    if algorithm not in ("mkdssp", "psea", "pydssp", "tmalign"):
+        console.print(
+            f"[red]Invalid algorithm '{algorithm}'. Use 'mkdssp', 'psea', "
+            "'pydssp', or 'tmalign'.[/red]"
+        )
         raise typer.Exit(1)
 
-    algo_names = {"psea": "P-SEA (Biotite)", "pydssp": "PyDSSP", "tmalign": "TM-align"}
+    algo_names = {
+        "mkdssp": "mkdssp",
+        "psea": "P-SEA (Biotite)",
+        "pydssp": "PyDSSP",
+        "tmalign": "TM-align",
+    }
     algo_name = algo_names[algorithm]
     device_label = f"GPU ({device})" if device != "cpu" else "CPU"
     logger.info(

@@ -402,7 +402,7 @@ class Config:
     retry: int = 2
     skip_stages: List[str] = None
     dry_run: bool = False
-    dssp_algorithm: str = "pydssp"  # "psea", "pydssp", or "tmalign"
+    dssp_algorithm: str = "pydssp"  # "mkdssp", "psea", "pydssp", or "tmalign"
     parallel_stages: bool = False  # wave-based parallel execution of independent stages
 
     # Dataset metadata
@@ -681,9 +681,13 @@ Examples:
 
     parser.add_argument(
         "--dssp-algorithm",
-        choices=["psea", "pydssp", "tmalign"],
+        choices=["mkdssp", "psea", "pydssp", "tmalign"],
         default="pydssp",
-        help="Algorithm for secondary structure: 'psea' (geometry), 'pydssp' (H-bond), or 'tmalign' (CA-CA distance). Default: %(default)s"
+        help=(
+            "Algorithm for secondary structure: 'mkdssp' (external DSSP), "
+            "'psea' (geometry), 'pydssp' (H-bond), or 'tmalign' "
+            "(CA-CA distance). Production default: %(default)s"
+        )
     )
 
     parser.add_argument(
@@ -1866,7 +1870,12 @@ def stage_11_batch_dssp(
     error_tracker: ErrorTracker
 ) -> Dict[str, Any]:
     """STAGE 11: BATCH_RUN_DSSP"""
-    algo_names = {"psea": "P-SEA", "pydssp": "PyDSSP", "tmalign": "TM-align"}
+    algo_names = {
+        "mkdssp": "mkdssp",
+        "psea": "P-SEA",
+        "pydssp": "PyDSSP",
+        "tmalign": "TM-align",
+    }
     algo_name = algo_names.get(config.dssp_algorithm, config.dssp_algorithm)
     device = config.clash_device
     logger.info(f"STAGE 11: BATCH_DSSP ({config.workers} workers, {algo_name}, device={device})")

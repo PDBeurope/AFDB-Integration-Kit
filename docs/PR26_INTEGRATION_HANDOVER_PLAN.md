@@ -178,9 +178,9 @@ dependency import boundaries from Step 1.
 - [x] (Model: GPT-5.4) Confirm desired default algorithm.
   - README currently indicates `pydssp` in production-pipeline contexts.
   - CLI `batch-dssp` default may differ; reconcile defaults intentionally.
-  - Decision: `pydssp` remains the production default because it is closest to
-    DSSP behavior. CLI single-file, CLI batch, library defaults, and the
-    production-pipeline dataclass fallback now share that default.
+  - Follow-up correction: `mkdssp` remains the shared default to preserve the
+    historical CLI and library behavior. `pydssp` remains explicit only in the
+    production pipeline, where Python production dependencies are documented.
   - `tmalign` remains the core-dependency algorithm for environments without
     production extras and is covered directly by tests.
 - [x] (Model: GPT-5.4) Add tests for at least `tmalign`, because it has no
@@ -197,18 +197,16 @@ dependency import boundaries from Step 1.
   - `python -m compileall -q afdb_integration_kit/dssp tests`
   - Evidence: `uv run pytest tests/test_pdb.py tests/validation/test_runner.py
     -q` passed with `21 passed`.
-  - Evidence: `uv run pytest tests/test_dssp.py -q` passed with `5 passed, 1
-    skipped`; the skip was the optional `pydssp` package in this sandbox.
+  - Evidence: `uv run pytest tests/test_dssp.py -q` passed with `8 passed, 1
+    skipped`; the skip was the real `mkdssp` executable check in this sandbox.
   - Evidence: `python -m compileall -q afdb_integration_kit/dssp tests` could
     not run because `python` is not on `PATH`; `.venv/bin/python -m compileall
     -q afdb_integration_kit/dssp tests` passed.
   - Evidence: `git diff --check` passed.
 - [x] (Model: GPT-5.5) Review biological correctness risks before merging.
   - Risk note: `pydssp`, `psea`, and `tmalign` are all 3-state approximations
-    rather than byte-for-byte `mkdssp` replacements. The integration keeps
-    `pydssp` as the default for production because its H-bond based assignment
-    is the closest intended replacement, while `tmalign` is best treated as a
-    dependency-light fallback for testing or constrained environments.
+    rather than byte-for-byte `mkdssp` replacements. The shared default remains
+    `mkdssp`; the Python algorithms should be treated as opt-in alternatives.
 
 ## Step 5: CIF To BCIF Conversion Review
 

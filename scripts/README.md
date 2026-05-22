@@ -115,7 +115,8 @@ python production_pipeline.py \
 --resume                   Skip already-completed stages
 --dry-run                  Show what would run without executing
 --skip-stages S            Comma-separated stages to skip (e.g. stage_12,stage_13)
---dssp-algorithm ALG       psea | pydssp | tmalign (default: pydssp)
+--dssp-algorithm ALG       mkdssp | psea | pydssp | tmalign
+                           (production default: pydssp)
 --pae-cutoff F             ipSAE PAE threshold (default: 10.0)
 --dist-cutoff F            ipSAE distance threshold (default: 15.0)
 --clash-cutoff F           VDW overlap threshold (default: 0.4 Å)
