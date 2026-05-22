@@ -430,9 +430,26 @@ merge/status documentation commit. No Step 7 implementation has started yet.
       `torch_cluster`, so the CPU execution/fallback test is skip-marked and
       CUDA throughput remains unverified here.
 
+Note: Step 7 has been merged back into `integration-pr-26-gpu` with merge
+commit `0529ffa`. Parent-branch verification after the merge:
+
+- `git diff --check`: passed.
+- `.venv/bin/python -m compileall -q afdb_integration_kit/gpu tests`: passed.
+- `.venv/bin/python -m pytest -q tests/test_gpu_analysis.py`: passed with
+  `6 passed, 1 skipped`.
+- `.venv/bin/python -m pytest -q tests/test_cif2bcif.py tests/test_dssp.py
+  tests/test_gpu_analysis.py`: passed with `23 passed, 2 skipped, 1 warning`.
+- `.venv/bin/python main.py --help`: passed.
+- `.venv/bin/python scripts/production_pipeline.py --help`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `79 passed, 2 skipped, 1
+  warning`.
+
+The Step 8 branch was created from this verified parent after the Step 7
+merge/status documentation commit. No Step 8 implementation has started yet.
+
 ## Step 8: iPSAE C++ Tool Review
 
-- [ ] (Model: GPT-5.4) Create branch
+- [x] (Model: GPT-5.4) Create branch
   `integration-pr-26-gpu-step-8-ipsae`.
 - [ ] (Model: GPT-5.4) Review `afdb_integration_kit/ipsae/ipsae_cpp.cpp` and
   `Makefile`.
