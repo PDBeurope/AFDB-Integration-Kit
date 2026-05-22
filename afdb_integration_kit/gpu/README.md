@@ -2,6 +2,9 @@
 
 High-throughput analysis of protein structures for clashes and interfaces using GPU acceleration. Designed for processing millions of generated complexes.
 
+The throughput figures in this directory come from the copied PR materials.
+They are not re-verified in this CPU-only integration environment.
+
 ## Features
 
 - **Fast**: ~1500 proteins/s on a single GPU
@@ -38,7 +41,7 @@ results = analyze_pdb_files_pipelined(
     ["complex1.pdb", "complex2.pdb", ...],
     output_dir="results",
     batch_size=512,
-    device="cuda",
+    device="auto",
     n_workers=16,
 )
 
@@ -50,6 +53,18 @@ for r in results:
     print(f"  Clashing residues: {r.backbone_clashing_residues}")
     print(f"  Interface residues: {r.interface_residues}")
 ```
+
+Device options:
+
+- `device="auto"`: use CUDA when available, otherwise CPU
+- `device="cuda"`: require CUDA and fail early if it is unavailable
+- `device="cpu"`: run the Torch implementation on CPU for small/correctness jobs
+
+Import note:
+
+- `import afdb_integration_kit.gpu` stays lightweight.
+- Production analysis entry points still require the optional production
+  dependencies (`torch`, `fastpdb`, and related packages) when you call them.
 
 ## Module Structure
 

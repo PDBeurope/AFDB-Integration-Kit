@@ -379,14 +379,14 @@ merge/status documentation commit. No Step 7 implementation has started yet.
 
 - [x] (Model: GPT-5.4) Create branch
   `integration-pr-26-gpu-step-7-gpu-analysis`.
-- [ ] (Model: GPT-5.4) Preserve existing toolkit behavior outside the new
+- [x] (Model: GPT-5.4) Preserve existing toolkit behavior outside the new
   clash/interface analysis package.
   - Core toolkit imports and commands must not require Torch, fastpdb, Biotite,
     CUDA, or torch_cluster unless the user calls production analysis code.
   - Shared behavior between the current toolkit and PR #26 should remain
     functionally similar unless there is an explicit integration decision and
     test coverage for the change.
-- [ ] (Model: GPT-5.4) Review `afdb_integration_kit/gpu/*` as a package.
+- [x] (Model: GPT-5.4) Review `afdb_integration_kit/gpu/*` as a package.
   - Confirm imports are optional and do not affect core package import.
   - Consider making `afdb_integration_kit.gpu.__init__` lazy or minimal so
     missing `fastpdb`, `torch`, or `torch_cluster` produce clear errors.
@@ -397,25 +397,38 @@ merge/status documentation commit. No Step 7 implementation has started yet.
     `device="cpu"`, `device="cuda"`, and preferably `device="auto"`.
   - If `device="cuda"` is requested without CUDA availability, fail early with
     a clear message instead of failing later during tensor transfer.
-- [ ] (Model: GPT-5.4) Check licensing headers and provenance for copied GPU
+- [x] (Model: GPT-5.4) Check licensing headers and provenance for copied GPU
   code.
-- [ ] (Model: GPT-5.4) Add CPU-compatible tests where possible.
+- [x] (Model: GPT-5.4) Add CPU-compatible tests where possible.
   - Test schema conversion.
   - Test small clash/interface calculations if torch is available.
   - Test CPU execution explicitly for tiny synthetic `Protein` objects.
   - Test `device="auto"` resolution if added.
   - Skip CUDA-specific tests unless CUDA is available.
-- [ ] (Model: GPT-5.4) Check `torch_cluster` fallback behavior in
+- [x] (Model: GPT-5.4) Check `torch_cluster` fallback behavior in
   `clashes.py`.
   - Confirm the pure-PyTorch fallback produces correct small-case results when
     `torch_cluster` is unavailable or intentionally bypassed.
   - Keep `torch_cluster` documented as an optional accelerator with
     environment-specific wheel installation.
-- [ ] (Model: GPT-5.5) Review performance-sensitive code for memory pressure
+- [x] (Model: GPT-5.5) Review performance-sensitive code for memory pressure
   and batching assumptions.
   - Document that CPU tests validate correctness and API behavior, while CUDA
     throughput and GPU memory behavior remain unverified in this CPU-only
     environment.
+  - Step 7 implementation notes:
+    - `afdb_integration_kit.gpu.__init__` is now lazy so plain package import
+      no longer pulls `torch`, `fastpdb`, or `biotite`.
+    - Public GPU analysis entry points now accept `device="auto"` and fail
+      early with a clear error if `device="cuda"` is requested without CUDA.
+    - `parse.py` loads `fastpdb` and Biotite lazily, so `analyze_proteins()`
+      is not coupled to PDB parsing support at import time.
+    - Added `tests/test_gpu_analysis.py` for lightweight import checks,
+      dependency-error messaging, schema conversion, `device="auto"` resolution,
+      and a CPU/fallback execution path that runs when PyTorch is installed.
+    - In this sandbox `.venv` does not contain `torch`, `fastpdb`, or
+      `torch_cluster`, so the CPU execution/fallback test is skip-marked and
+      CUDA throughput remains unverified here.
 
 ## Step 8: iPSAE C++ Tool Review
 
