@@ -135,9 +135,15 @@ Without nvm:
 npm install -g molstar
 ```
 
-### 5. Install DSSP (Nextflow workflow only)
+### 5. Install DSSP
 
-The production pipeline uses built-in Python DSSP algorithms (`pydssp`, `psea`, `tmalign`) and does **not** require an external DSSP binary. This step is only needed if you use the Nextflow workflow.
+The default `run-dssp` and `batch-dssp` commands use the external `mkdssp`
+binary, so install DSSP when using the default secondary-structure path. DSSP is
+also needed for Nextflow workflows.
+
+The standalone production pipeline defaults to the built-in `pydssp` algorithm
+and does **not** require an external DSSP binary unless you select
+`--dssp-algorithm mkdssp`.
 
 We use the modern DSSP implementation by the PDB-REDO team:
 
