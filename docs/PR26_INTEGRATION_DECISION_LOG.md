@@ -18,19 +18,19 @@ with the detailed task checklist in
   - `integration-pr-26-gpu-step-3-install-docs`
   - `integration-pr-26-gpu-step-4-dssp`
   - `integration-pr-26-gpu-step-5-cif2bcif`
-  - `integration-pr-26-gpu-step-6-colabfold-manifest` (reviewed on branch,
-    not yet merged)
+  - `integration-pr-26-gpu-step-6-colabfold-manifest`
 - Merged into `integration-pr-26-gpu` so far:
   - Step 1 dependencies/test baseline
   - Step 2 mechanical hygiene
   - Step 3 install documentation
   - Step 4 DSSP refactor branch
   - Step 5 CIF to BCIF conversion review
+  - Step 6 ColabFold converter and manifest resolver review
 
-The immediate next action is to merge the completed Step 6 branch
-`integration-pr-26-gpu-step-6-colabfold-manifest` back into
-`integration-pr-26-gpu`, verify the parent branch, record the Step 6 merge
-status, and then create the Step 7 branch from the verified parent.
+The immediate next action is Step 7 review work on
+`integration-pr-26-gpu-step-7-gpu-analysis`. The Step 7 branch was created
+from the verified parent after Step 6 was merged and documented; no Step 7
+implementation has started yet.
 
 ## Why We Created This Integration Structure
 
@@ -125,9 +125,9 @@ Step 6 branch:
   - `77ccadc test: add curated colabfold real example fixtures`
   - `c7549eb test: normalize colabfold real fixtures`
   - `30de578 docs: update step 6 commit list`
+  - `0024936 docs: document colabfold fixture handoff`
 - Merge status:
-  - Complete and verified on the Step 6 branch only; not yet merged into
-    `integration-pr-26-gpu`.
+  - Merged into `integration-pr-26-gpu` with merge commit `4c4a158`.
 
 ## Decisions Made
 
@@ -404,6 +404,19 @@ After Step 6 on `integration-pr-26-gpu-step-6-colabfold-manifest`:
 - Real-fixture coverage now includes all 9 curated ColabFold examples under
   `tests/fixtures/colabfold_real_examples`.
 
+After merging Step 6 into the parent branch:
+
+- Merge commit: `4c4a158`.
+- `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_colabfold_converter.py
+  -q`: passed with `14 passed`.
+- `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_manifest_resolver.py
+  -q`: passed with `4 passed`.
+- `.venv/bin/python -m compileall -q afdb_integration_kit/colabfold
+  afdb_integration_kit/manifest tests`: passed.
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `73 passed, 1 skipped, 1
+  warning`.
+
 ## Known Caveats And Follow-Up Needs
 
 - The production pipeline intentionally defaults to `pydssp`; this is the one
@@ -418,11 +431,10 @@ After Step 6 on `integration-pr-26-gpu-step-6-colabfold-manifest`:
 
 ## Immediate Next Action
 
-Merge `integration-pr-26-gpu-step-6-colabfold-manifest` into the verified
-parent branch `integration-pr-26-gpu`, rerun the Step 6 verification commands
-on the parent, update this decision log and the handover plan with the merge
-commit and parent verification results, then create
-`integration-pr-26-gpu-step-7-gpu-analysis` from the verified parent.
+Continue with Step 7 on
+`integration-pr-26-gpu-step-7-gpu-analysis`. That branch was created from the
+verified parent after the Step 6 merge/status documentation commit. Do not
+assume any Step 7 implementation or review work has already started.
 
 ## Next Planned Step After Step 6
 

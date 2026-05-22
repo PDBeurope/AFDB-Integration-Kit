@@ -359,16 +359,25 @@ commit `2c6d225`. Parent-branch verification after the merge:
     implementation but is only indirectly justified by the AFCDB/ColabFold
     multimer workflow context; no broader monomer claim was added in Step 6.
 
-Note: Step 6 is complete on
-`integration-pr-26-gpu-step-6-colabfold-manifest` but has not yet been merged
-back into `integration-pr-26-gpu`. The next coordinator should merge Step 6
-into the parent branch, rerun the Step 6 verification commands on the parent,
-record the merge/status in this file and the decision log, then create the
-Step 7 branch from the verified parent.
+Note: Step 6 has been merged back into `integration-pr-26-gpu` with merge
+commit `4c4a158`. Parent-branch verification after the merge:
+
+- `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_colabfold_converter.py
+  -q`: passed with `14 passed`.
+- `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_manifest_resolver.py
+  -q`: passed with `4 passed`.
+- `.venv/bin/python -m compileall -q afdb_integration_kit/colabfold
+  afdb_integration_kit/manifest tests`: passed.
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `73 passed, 1 skipped, 1
+  warning`.
+
+The Step 7 branch was created from this verified parent after the Step 6
+merge/status documentation commit. No Step 7 implementation has started yet.
 
 ## Step 7: GPU Clash/Interface Package Review
 
-- [ ] (Model: GPT-5.4) Create branch
+- [x] (Model: GPT-5.4) Create branch
   `integration-pr-26-gpu-step-7-gpu-analysis`.
 - [ ] (Model: GPT-5.4) Review `afdb_integration_kit/gpu/*` as a package.
   - Confirm imports are optional and do not affect core package import.
