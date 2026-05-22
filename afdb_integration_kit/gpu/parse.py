@@ -19,12 +19,14 @@ from __future__ import annotations
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from functools import partial
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-import fastpdb
-from biotite.structure.atoms import AtomArray
+from ._runtime import import_optional_dependency
+
+if TYPE_CHECKING:
+    from biotite.structure.atoms import AtomArray
 
 try:
     from .protein import (
@@ -50,9 +52,16 @@ except ImportError:
     )
 
 
+def _load_parse_dependencies():
+    """Import parsing dependencies lazily for production analysis."""
+    import_optional_dependency("biotite.structure.atoms", "GPU PDB parsing")
+    return import_optional_dependency("fastpdb", "GPU PDB parsing")
+
+
 def _read_structure(path: str | Path, model: Optional[int] = 1) -> AtomArray:
     """Read PDB file using fastpdb."""
     path = Path(path)
+    fastpdb = _load_parse_dependencies()
     pdb = fastpdb.PDBFile.read(str(path))
     if model is None:
         return pdb.get_structure()

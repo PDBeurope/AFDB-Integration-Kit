@@ -23,7 +23,9 @@ from __future__ import annotations
 from typing import List, Literal, Sequence
 
 import numpy as np
-import torch
+from ._runtime import require_torch, resolve_device
+
+torch = require_torch("GPU clash/interface analysis")
 
 try:
     from torch_cluster import radius_graph as _radius_graph_ext
@@ -121,7 +123,7 @@ def count_clashes(
     selection: Literal["heavy", "backbone"] = "heavy",
     clash_cutoff: float = 0.12,
     min_seq_sep: int = 3,
-    device: str = "cpu",
+    device: str = "auto",
     batch_size: int = 32,
     max_num_neighbors: int = 128,
     exclude_disulfides: bool = True,
@@ -152,6 +154,11 @@ def count_clashes(
     if n_proteins == 0:
         return []
 
+    resolved_device = resolve_device(
+        device,
+        torch_module=torch,
+        feature="GPU clash/interface analysis",
+    )
     clash_counts = []
 
     # Process in batches
@@ -164,7 +171,7 @@ def count_clashes(
             selection=selection,
             clash_cutoff=clash_cutoff,
             min_seq_sep=min_seq_sep,
-            device=device,
+            device=resolved_device,
             max_num_neighbors=max_num_neighbors,
             exclude_disulfides=exclude_disulfides,
         )
@@ -331,7 +338,7 @@ def get_clash_pairs(
     selection: Literal["heavy", "backbone"] = "heavy",
     clash_cutoff: float = 0.12,
     min_seq_sep: int = 3,
-    device: str = "cpu",
+    device: str = "auto",
     max_num_neighbors: int = 128,
     exclude_disulfides: bool = True,
 ) -> List[tuple]:
@@ -352,6 +359,11 @@ def get_clash_pairs(
     """
     if protein.n_residues == 0:
         return []
+    resolved_device = resolve_device(
+        device,
+        torch_module=torch,
+        feature="GPU clash/interface analysis",
+    )
 
     # Determine atom slots
     if selection == "backbone":
@@ -389,8 +401,8 @@ def get_clash_pairs(
         return []
 
     # Move to device
-    coords_t = torch.tensor(coords_valid, dtype=torch.float32, device=device)
-    vdw_t = torch.tensor(vdw_valid, dtype=torch.float32, device=device)
+    coords_t = torch.tensor(coords_valid, dtype=torch.float32, device=resolved_device)
+    vdw_t = torch.tensor(vdw_valid, dtype=torch.float32, device=resolved_device)
 
     # Create index mapping
     res_idx = np.arange(N).repeat(n_slots)[valid_idx]
