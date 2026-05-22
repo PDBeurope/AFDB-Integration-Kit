@@ -27,10 +27,10 @@ with the detailed task checklist in
   - Step 4 DSSP refactor branch
   - Step 5 CIF to BCIF conversion review
 
-The immediate next action is to review the completed Step 6 branch and decide
-whether to merge `integration-pr-26-gpu-step-6-colabfold-manifest` back into
-`integration-pr-26-gpu`, or to continue directly to Step 7 on a fresh branch
-if Step 6 is intentionally being held unmerged.
+The immediate next action is to merge the completed Step 6 branch
+`integration-pr-26-gpu-step-6-colabfold-manifest` back into
+`integration-pr-26-gpu`, verify the parent branch, record the Step 6 merge
+status, and then create the Step 7 branch from the verified parent.
 
 ## Why We Created This Integration Structure
 
@@ -124,8 +124,9 @@ Step 6 branch:
   - `de7e51f docs: record step 6 colabfold review status`
   - `77ccadc test: add curated colabfold real example fixtures`
   - `c7549eb test: normalize colabfold real fixtures`
+  - `30de578 docs: update step 6 commit list`
 - Merge status:
-  - Reviewed and verified on the Step 6 branch only; not merged into
+  - Complete and verified on the Step 6 branch only; not yet merged into
     `integration-pr-26-gpu`.
 
 ## Decisions Made
@@ -389,6 +390,20 @@ After merging Step 5 into the parent branch:
 - `.venv/bin/python -m pytest -q`: passed with `55 passed, 2 skipped, 1
   warning`.
 
+After Step 6 on `integration-pr-26-gpu-step-6-colabfold-manifest`:
+
+- `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_colabfold_converter.py
+  -q`: passed with `14 passed`.
+- `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_manifest_resolver.py
+  -q`: passed with `4 passed`.
+- `.venv/bin/python -m compileall -q afdb_integration_kit/colabfold
+  afdb_integration_kit/manifest tests`: passed.
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `73 passed, 1 skipped, 1
+  warning`.
+- Real-fixture coverage now includes all 9 curated ColabFold examples under
+  `tests/fixtures/colabfold_real_examples`.
+
 ## Known Caveats And Follow-Up Needs
 
 - The production pipeline intentionally defaults to `pydssp`; this is the one
@@ -403,10 +418,11 @@ After merging Step 5 into the parent branch:
 
 ## Immediate Next Action
 
-Continue on `integration-pr-26-gpu-step-6-colabfold-manifest`, which was
-created from the verified `integration-pr-26-gpu` parent branch, and use the
-recorded Step 6 evidence in
-[`docs/PR26_INTEGRATION_HANDOVER_PLAN.md`](./PR26_INTEGRATION_HANDOVER_PLAN.md).
+Merge `integration-pr-26-gpu-step-6-colabfold-manifest` into the verified
+parent branch `integration-pr-26-gpu`, rerun the Step 6 verification commands
+on the parent, update this decision log and the handover plan with the merge
+commit and parent verification results, then create
+`integration-pr-26-gpu-step-7-gpu-analysis` from the verified parent.
 
 ## Next Planned Step After Step 6
 

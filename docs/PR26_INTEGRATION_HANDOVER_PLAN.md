@@ -336,6 +336,9 @@ commit `2c6d225`. Parent-branch verification after the merge:
     `manifest.json`.
   - Chain UniProt accessions are recorded in `manifest.json` from the corrected
     merged ColabFold manifest and related corrected mapping outputs.
+  - Real-fixture tests now run `convert_file()` across all 9 curated examples
+    and assert output confidence lengths, PAE dimensions, global chain spans,
+    source IDs, and chain accessions from `manifest.json`.
 - [x] (Model: GPT-5.4-mini) Run:
   - `pytest tests/test_colabfold_converter.py -q`
     - Result: `14 passed` via
@@ -349,12 +352,19 @@ commit `2c6d225`. Parent-branch verification after the merge:
   - `git diff --check`
     - Result: passed.
   - `.venv/bin/python -m pytest -q`
-    - Result: `63 passed, 1 skipped, 1 warning`.
+    - Result: `73 passed, 1 skipped, 1 warning`.
 - [x] (Model: GPT-5.5) Review data-model assumptions before merging.
   - Remaining assumption: `build_colabfold_manifest()` still treats a single
     AF ID as a homodimer and emits two chains. This matches the PR branch
     implementation but is only indirectly justified by the AFCDB/ColabFold
     multimer workflow context; no broader monomer claim was added in Step 6.
+
+Note: Step 6 is complete on
+`integration-pr-26-gpu-step-6-colabfold-manifest` but has not yet been merged
+back into `integration-pr-26-gpu`. The next coordinator should merge Step 6
+into the parent branch, rerun the Step 6 verification commands on the parent,
+record the merge/status in this file and the decision log, then create the
+Step 7 branch from the verified parent.
 
 ## Step 7: GPU Clash/Interface Package Review
 

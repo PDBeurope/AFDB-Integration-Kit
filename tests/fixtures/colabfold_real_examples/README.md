@@ -28,6 +28,20 @@ Naming:
   `AF-0000000300000101` through `AF-0000000300000103`. The original composite
   source ID and component reassigned AF IDs are preserved in `manifest.json`.
 
+Fixture index:
+
+| Fixture ID | Type | Source ID | Chains / accessions | Intended coverage |
+| --- | --- | --- | --- | --- |
+| `AF-0000000300000001` | Monomer | `ACATN_HUMAN_19de7` | A: `O00400` | Single-chain raw ColabFold conversion with long pLDDT/PAE arrays. |
+| `AF-0000000300000002` | Monomer | `C76C2_ARATH_6db51` | A: `O64637` | Single-chain conversion with a different AlphaFold2 model rank/source. |
+| `AF-0000000300000003` | Monomer | `CDK9_CAEEL_5ca86` | A: `Q9TVL3` | Single-chain conversion and monomer input CSV provenance. |
+| `AF-0000000065760001` | Homodimer | `AF-0000000065760001` | A/B: `Q6GZX4` | Two-chain homomer spans with raw `meta_v1` confidence JSON. |
+| `AF-0000000065760002` | Homodimer | `AF-0000000065760002` | A/B: `Q6GZX3` | Larger homomer confidence and chain-span coverage. |
+| `AF-0000000065760003` | Homodimer | `AF-0000000065760003` | A/B: `Q197F8` | Largest curated homomer fixture in this set. |
+| `AF-0000000300000101` | Heterodimer | `AF_0000000066426974_AF_0000000066426875` | A: `A0ABS2QMZ4`; B: `A0ABS2QMF5` | Real heteromer with normalized single fixture ID and preserved component IDs. |
+| `AF-0000000300000102` | Heterodimer | `AF_0000000066576660_AF_0000000066577761` | A: `A0ABS8Y874`; B: `A0ABS8RL98` | Real heteromer chain-accession mapping coverage. |
+| `AF-0000000300000103` | Heterodimer | `AF_0000000066908168_AF_0000000066909825` | A: `A0AAV6YE70`; B: `A0AAV6YAU6` | Real heteromer conversion coverage with short chains. |
+
 Selection rules used here:
 
 - Keep only the minimal files needed for later conversion tests.
@@ -47,6 +61,16 @@ Validation performed before copying:
 - PDB residue count equals `len(plddt)`.
 - PAE is square and its dimension equals `len(plddt)`.
 - Chain IDs and flattened residue spans are recorded in `manifest.json`.
+
+How tests should use this set:
+
+- Read `manifest.json` for expected metadata instead of inferring chain
+  accessions or source provenance from filenames.
+- Use these fixtures for integration-style conversion and manifest checks.
+  Keep synthetic tests for small edge cases that are easier to isolate.
+- Treat these as curated regression fixtures, not as a refreshed example corpus.
+  A broad metadata refresh should be a separate repo-shape or data-preparation
+  task.
 
 Notes:
 
