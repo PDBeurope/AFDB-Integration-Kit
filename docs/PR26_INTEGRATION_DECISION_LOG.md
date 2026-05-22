@@ -21,6 +21,7 @@ with the detailed task checklist in
   - `integration-pr-26-gpu-step-6-colabfold-manifest`
   - `integration-pr-26-gpu-step-7-gpu-analysis`
   - `integration-pr-26-gpu-step-8-ipsae`
+  - `integration-pr-26-gpu-step-9-production-pipeline`
 - Merged into `integration-pr-26-gpu` so far:
   - Step 1 dependencies/test baseline
   - Step 2 mechanical hygiene
@@ -30,13 +31,11 @@ with the detailed task checklist in
   - Step 6 ColabFold converter and manifest resolver review
   - Step 7 GPU clash/interface analysis package review
   - Step 8 iPSAE C++ tool review
+  - Step 9 runnable ColabFold end-to-end reference
 
 The current verified parent branch remains `integration-pr-26-gpu`, now with
-Step 8 merged and verified. Step 9 was then completed on
-`integration-pr-26-gpu-step-9-production-pipeline` as a pivot toward a small
-runnable ColabFold-like end-to-end reference under
-`examples/colabfold_e2e/`. That branch has not been merged back into the
-parent yet.
+Step 9 merged and verified. The merged Step 9 work is a small runnable
+ColabFold-like end-to-end reference under `examples/colabfold_e2e/`.
 
 ## Why We Created This Integration Structure
 
@@ -531,7 +530,7 @@ After merging Step 7 into the parent branch:
 Branch:
 
 - `integration-pr-26-gpu-step-9-production-pipeline`
-- Not merged back into `integration-pr-26-gpu` yet
+- Merged back into `integration-pr-26-gpu` with merge commit `a07e8ce`
 
 Scope completed on the branch:
 
@@ -588,6 +587,16 @@ Step 9 verification on the branch:
 - `.venv/bin/python scripts/generate_colabfold_e2e_example.py --duckdb
   /mnt/disks/toolkit-data/uniprot_extract_2025_04_merged_5way/db/uniprot_2025_04_merged_5way.duckdb
   --output-dir examples/colabfold_e2e`: passed.
+
+Parent-branch verification after the merge:
+
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q tests/test_generate_colabfold_e2e_example.py`:
+  passed with `3 passed`.
+- `.venv/bin/python -m pytest -q tests/test_colabfold_converter.py
+  tests/test_generate_colabfold_e2e_example.py`: passed with `17 passed`.
+- `.venv/bin/python -m pytest -q`: passed with `83 passed, 2 skipped, 1
+  warning`.
 
 ## Known Caveats And Follow-Up Needs
 

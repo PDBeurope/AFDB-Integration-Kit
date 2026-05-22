@@ -586,6 +586,8 @@ Parent-branch verification after the merge:
   - `.venv/bin/python scripts/generate_colabfold_e2e_example.py --duckdb
     /mnt/disks/toolkit-data/uniprot_extract_2025_04_merged_5way/db/uniprot_2025_04_merged_5way.duckdb
     --output-dir examples/colabfold_e2e`: passed.
+  - Merge commit on the parent branch: `a07e8ce` (`merge
+    integration-pr-26-gpu-step-9-production-pipeline`).
 
 ## Step 10: UniProt Script And Template Review
 
