@@ -27,6 +27,35 @@ _DUCKDB_METADATA_CACHE: dict[str, dict[str, dict[str, Any]]] = {}
 _DUCKDB_METADATA_LOCK = threading.Lock()
 
 
+def _query_duckdb_entries(
+    con: "duckdb.DuckDBPyConnection",
+    accessions: Sequence[str],
+) -> dict[str, dict[str, Any]]:
+    """Fetch entry-table metadata for the requested accessions."""
+    unique_accs = list(dict.fromkeys(accessions))
+    if not unique_accs:
+        return {}
+
+    placeholders = ",".join("?" for _ in unique_accs)
+    query = (
+        "SELECT primary_ac, protein_full_names, sequence "
+        "FROM entry WHERE primary_ac IN ({})"
+    ).format(placeholders)
+    rows_rel = con.execute(query, unique_accs)
+    rows = rows_rel.fetchall()
+    col_index = {
+        name: idx
+        for idx, name in enumerate([col[0] for col in (rows_rel.description or [])])
+    }
+
+    entry_lookup: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        entry_lookup[str(row[col_index["primary_ac"]])] = {
+            name: row[col_index[name]] for name in col_index
+        }
+    return entry_lookup
+
+
 def prefetch_duckdb_metadata(db_path: str, accessions: list[str]) -> None:
     """
     Prefetch metadata for all accessions from DuckDB into module-level cache.
@@ -39,9 +68,6 @@ def prefetch_duckdb_metadata(db_path: str, accessions: list[str]) -> None:
     cache_key = str(Path(db_path).resolve())
 
     with _DUCKDB_METADATA_LOCK:
-        if cache_key in _DUCKDB_METADATA_CACHE:
-            return  # Already populated
-
         try:
             import duckdb
         except ModuleNotFoundError as exc:
@@ -54,24 +80,18 @@ def prefetch_duckdb_metadata(db_path: str, accessions: list[str]) -> None:
         duckdb_mem = os.environ.get("DUCKDB_MEMORY_LIMIT", "512MB")
         con.execute(f"SET memory_limit = '{duckdb_mem}'")
         try:
-            unique_accs = list(set(accessions))
-            placeholders = ",".join("?" for _ in unique_accs)
-            query = (
-                "SELECT primary_ac, protein_full_names, sequence "
-                "FROM entry WHERE primary_ac IN ({})"
-            ).format(placeholders)
-            rows_rel = con.execute(query, unique_accs)
-            rows = rows_rel.fetchall()
-            col_index = {name: idx for idx, name in enumerate([col[0] for col in (rows_rel.description or [])])}
+            existing = _DUCKDB_METADATA_CACHE.setdefault(cache_key, {})
+            missing_accs = [acc for acc in dict.fromkeys(accessions) if acc not in existing]
+            if not missing_accs:
+                return
 
-            entry_lookup: dict[str, dict[str, Any]] = {}
-            for row in rows:
-                entry_lookup[str(row[col_index["primary_ac"]])] = {
-                    name: row[col_index[name]] for name in col_index
-                }
-
-            _DUCKDB_METADATA_CACHE[cache_key] = entry_lookup
-            logger.info("Prefetched DuckDB metadata for %d/%d accessions", len(entry_lookup), len(unique_accs))
+            entry_lookup = _query_duckdb_entries(con, missing_accs)
+            existing.update(entry_lookup)
+            logger.info(
+                "Prefetched DuckDB metadata for %d/%d additional accessions",
+                len(entry_lookup),
+                len(missing_accs),
+            )
         finally:
             con.close()
 
@@ -231,9 +251,8 @@ def _chain_spans_from_pdb_gemmi(
         label = chain_id if chain_id != "_" else f"Chain{idx}"
         display_name = chain_display_names.get(chain_id, label) if chain_display_names else label
 
-        # Expose per-chain local residue ranges in JSON metadata.
-        start = 1
-        end = len(seen_residues)
+        start = total_residues + 1
+        end = total_residues + len(seen_residues)
         chains.append({
             "name": display_name,
             "label_asym_id": label,
@@ -295,13 +314,12 @@ def _chain_spans_from_pdb_legacy(
         raise ValueError(f"No ATOM records found in {pdb_path} to derive chains.")
 
     chains: list[ChainMetadata] = []
-    total_residues = 0
+    running_total = 1
     for idx, (chain_id, res_list) in enumerate(residues.items(), start=1):
         label = chain_id if chain_id != "_" else f"Chain{idx}"
         display_name = chain_display_names.get(chain_id) if chain_display_names else label
-        # Expose per-chain local residue ranges in JSON metadata.
-        start = 1
-        end = len(res_list)
+        start = running_total
+        end = running_total + len(res_list) - 1
         chains.append(
             {
                 "name": display_name,
@@ -310,8 +328,9 @@ def _chain_spans_from_pdb_legacy(
                 "sequenceEnd": end,
             }
         )
-        total_residues += len(res_list)
+        running_total = end + 1
 
+    total_residues = running_total - 1
     return chains, total_residues
 
 
@@ -452,7 +471,9 @@ def _load_chain_metadata_from_duckdb(
         (chains, residue_numbers, effective_manifest_chains)
         - effective_manifest_chains may be expanded for homomultimers
 
-    Uses prefetched metadata cache if available (populated by prefetch_duckdb_metadata).
+    Uses prefetched metadata cache if available (populated by
+    prefetch_duckdb_metadata). Missing accessions fall back to a targeted query
+    so a partial prefetch cannot poison later conversions.
     """
     # Auto-expand manifest for homomultimers if PDB has more chains than manifest
     effective_chains = manifest_chains
@@ -487,28 +508,16 @@ def _load_chain_metadata_from_duckdb(
     cache_key = str(db_path.resolve())
     accs = [c["uniprot_ac"] for c in effective_chains]
 
-    # Try to use prefetched metadata first (fast path)
     prefetched = _get_prefetched_metadata(cache_key)
-    if prefetched is not None:
-        entry_lookup = prefetched
-    else:
-        # Fallback to per-model query (slow path)
+    entry_lookup: Dict[str, Dict[str, Any]] = dict(prefetched or {})
+    missing_accs = [acc for acc in dict.fromkeys(accs) if acc not in entry_lookup]
+    if missing_accs:
         con = _get_duckdb_connection(cache_key)
-        unique_accs_list = list(set(accs))
-        placeholders = ",".join("?" for _ in unique_accs_list)
-        query = (
-            "SELECT primary_ac, protein_full_names, sequence "
-            "FROM entry WHERE primary_ac IN ({})"
-        ).format(placeholders)
-        rows_rel = con.execute(query, unique_accs_list)
-        rows = rows_rel.fetchall()
-        if not rows:
-            raise ValueError(f"No matching accessions found in DuckDB entry table for {unique_accs_list}.")
-        col_index = {name: idx for idx, name in enumerate([col[0] for col in (rows_rel.description or [])])}
-
-        entry_lookup: Dict[str, Dict[str, Any]] = {}
-        for row in rows:
-            entry_lookup[str(row[col_index["primary_ac"]])] = {name: row[col_index[name]] for name in col_index}
+        fetched = _query_duckdb_entries(con, missing_accs)
+        entry_lookup.update(fetched)
+        if prefetched is not None:
+            with _DUCKDB_METADATA_LOCK:
+                _DUCKDB_METADATA_CACHE.setdefault(cache_key, {}).update(fetched)
 
     # Verify all unique accessions are in the lookup
     unique_accs_set = set(accs)
@@ -538,9 +547,8 @@ def _load_chain_metadata_from_duckdb(
         seqlen = len(seq)
         if seqlen == 0:
             raise ValueError(f"No sequence found in DuckDB entry table for accession {acc}.")
-        # Expose per-chain local residue ranges in JSON metadata.
-        seq_start = 1
-        seq_end = seqlen
+        seq_start = len(residue_numbers) + 1
+        seq_end = len(residue_numbers) + seqlen
         chains.append(
             {
                 "name": desc,
