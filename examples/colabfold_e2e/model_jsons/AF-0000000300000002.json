@@ -1,0 +1,28 @@
+{
+  "modelEntityId": "AF-0000000300000002",
+  "latestVersion": 1,
+  "providerId": "EXAMPLE",
+  "isComplex": false,
+  "uniprotAccession": [
+    "O64637"
+  ],
+  "uniprotDescription": [
+    "Cytochrome P450 76C2"
+  ],
+  "isUniProtReferenceProteome": true,
+  "isUniProtReviewed": true,
+  "isIsoform": false,
+  "organismScientificName": [
+    "Arabidopsis thaliana (Mouse-ear cress)"
+  ],
+  "gene": [
+    "CYP76C2"
+  ],
+  "taxId": [
+    3702
+  ],
+  "sequenceStart": 1,
+  "sequenceEnd": 512,
+  "globalMetricValue": 92.19,
+  "isAMdata": false
+}

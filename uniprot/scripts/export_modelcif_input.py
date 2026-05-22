@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import csv
 import logging
+import os
 
 import orjson
 from collections import OrderedDict, defaultdict

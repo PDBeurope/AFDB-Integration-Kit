@@ -522,26 +522,70 @@ Parent-branch verification after the merge:
 - `git diff --check`: passed.
 - `.venv/bin/python -m pytest -q`: passed with `80 passed, 2 skipped, 1 warning`.
 
-## Step 9: Production Pipeline Scripts Review
+## Step 9: Runnable ColabFold End-to-End Reference
 
 - [x] (Model: GPT-5.4) Create branch
   `integration-pr-26-gpu-step-9-production-pipeline`.
-- [ ] (Model: GPT-5.4) Review `scripts/prepare_inputs.py` and
-  `scripts/production_pipeline.py`.
-- [ ] (Model: GPT-5.4) Confirm all paths and generated config files line up
-  with the repo-owned modules.
-- [ ] (Model: GPT-5.4) Confirm production mode does not require network/API.
-- [ ] (Model: GPT-5.4) Confirm dev mode handles API failures and missing
-  accessions predictably.
-- [ ] (Model: GPT-5.4) Add tests for:
-  - matched PDB/JSON pair detection.
-  - symlink/copy behavior.
-  - config generation.
-  - resume/caching behavior if feasible with small fixtures.
-- [ ] (Model: GPT-5.4) Decide whether `analysis_metadata.py` should remain a
-  library module or move under `scripts/`.
-- [ ] (Model: GPT-5.5) Review operational safety before merging: idempotency,
-  cleanup, retry behavior, and failure reports.
+- [x] (Model: GPT-5.4) Pivot Step 9 away from a broad production-pipeline
+  review and toward a small runnable reference flow from raw ColabFold-like
+  fixture outputs to final AFDB artifacts.
+- [x] (Model: GPT-5.4) Use the old Nextflow workflow only as the required
+  sequence/output reference; do not rewrite the Nextflow pipeline itself.
+- [x] (Model: GPT-5.4) Review the active small-run path across
+  `scripts/prepare_inputs.py`, `scripts/production_pipeline.py`,
+  `afdb_integration_kit.colabfold.converter`, `uniprot/scripts/*`, and the
+  example fixtures.
+  - Outcome: keep `scripts/production_pipeline.py` unchanged for now; it is
+    broader than needed for the Step 9 proof and not the cleanest reproduction
+    path for a tiny local example.
+  - Outcome: add a narrow repo-owned helper,
+    `scripts/generate_colabfold_e2e_example.py`, that stages a few curated
+    fixture inputs and runs the existing toolkit commands in the Nextflow
+    order.
+- [x] (Model: GPT-5.4) Confirm the example path works entirely offline apart
+  from access to the supplied local DuckDB.
+  - No network calls are required.
+  - The example uses three curated monomer fixtures:
+    `AF-0000000300000001` (`O00400`),
+    `AF-0000000300000002` (`O64637`),
+    `AF-0000000300000003` (`Q9TVL3`).
+- [x] (Model: GPT-5.4) Fix only direct blockers in the selected flow.
+  - Fixed `uniprot/scripts/export_modelcif_input.py` by restoring the missing
+    `import os`.
+  - Preserved Step 1-8 behavior; no broad UniProt/API rewrite was started.
+- [x] (Model: GPT-5.4) Populate `examples/colabfold_e2e/` with generated
+  reference outputs and exact commands.
+  - Added `examples/colabfold_e2e/README.md`.
+  - Added `examples/colabfold_e2e/config/commands.txt` and
+    `examples/colabfold_e2e/run_summary.json`.
+  - Added normalized staged inputs, converted AFDB JSONs, merged manifests,
+    model/chain metadata JSONs and batch files, ModelCIF input JSONs, mmCIFs,
+    DSSP outputs, enriched PDBs, and BCIF outputs.
+- [x] (Model: GPT-5.4) Record optional-tool behavior clearly.
+  - `mkdssp` was available locally and used for DSSP.
+  - Mol* `cif2bcif` was not on `PATH`.
+  - The explicit Biotite backend worked for plain ModelCIF files but failed on
+    the DSSP-enriched CIFs; the committed example BCIF files were therefore
+    generated from the pre-DSSP ModelCIF files instead, and that fallback is
+    recorded in `run_summary.json`.
+- [x] (Model: GPT-5.4) Add focused tests for the helper/manifests rather than a
+  heavy full end-to-end pytest run against the large DuckDB.
+  - Added `tests/test_generate_colabfold_e2e_example.py`.
+- [x] (Model: GPT-5.4-mini) Verify Step 9.
+  - `.venv/bin/python main.py --help`: passed.
+  - `.venv/bin/python scripts/production_pipeline.py --help`: passed.
+  - `.venv/bin/python -m afdb_integration_kit.colabfold.converter --help`:
+    passed.
+  - `.venv/bin/python uniprot/scripts/export_model_metadata.py --help`:
+    passed.
+  - `.venv/bin/python uniprot/scripts/export_chain_metadata.py --help`:
+    passed.
+  - `.venv/bin/python uniprot/scripts/export_modelcif_input.py --help`:
+    passed.
+  - `.venv/bin/python uniprot/scripts/combine_metadata.py --help`: passed.
+  - `.venv/bin/python scripts/generate_colabfold_e2e_example.py --duckdb
+    /mnt/disks/toolkit-data/uniprot_extract_2025_04_merged_5way/db/uniprot_2025_04_merged_5way.duckdb
+    --output-dir examples/colabfold_e2e`: passed.
 
 ## Step 10: UniProt Script And Template Review
 

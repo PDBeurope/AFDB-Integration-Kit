@@ -1,0 +1,2 @@
+model_entity_id,entity_id,chain_id,uniprot_ac,is_fragment,is_isoform,entity_type,sequence_start,sequence_end,average_plddt,fraction_plddt_very_low,fraction_plddt_low,fraction_plddt_confident,fraction_plddt_very_high
+AF-0000000300000001,1,A,O00400,,,protein,1,549,81.38,0.135,0.033,0.326,0.506

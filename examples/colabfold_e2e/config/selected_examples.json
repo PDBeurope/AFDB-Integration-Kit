@@ -1,0 +1,17 @@
+{
+  "example_ids": [
+    "AF-0000000300000001",
+    "AF-0000000300000002",
+    "AF-0000000300000003"
+  ],
+  "categories": {
+    "AF-0000000300000001": "monomer",
+    "AF-0000000300000002": "monomer",
+    "AF-0000000300000003": "monomer"
+  },
+  "source_directories": {
+    "AF-0000000300000001": "/home/mitsenkov/AFDB-Integration-Kit/tests/fixtures/colabfold_real_examples/monomers/AF-0000000300000001",
+    "AF-0000000300000002": "/home/mitsenkov/AFDB-Integration-Kit/tests/fixtures/colabfold_real_examples/monomers/AF-0000000300000002",
+    "AF-0000000300000003": "/home/mitsenkov/AFDB-Integration-Kit/tests/fixtures/colabfold_real_examples/monomers/AF-0000000300000003"
+  }
+}

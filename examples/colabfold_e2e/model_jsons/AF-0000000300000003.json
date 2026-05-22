@@ -1,0 +1,28 @@
+{
+  "modelEntityId": "AF-0000000300000003",
+  "latestVersion": 1,
+  "providerId": "EXAMPLE",
+  "isComplex": false,
+  "uniprotAccession": [
+    "Q9TVL3"
+  ],
+  "uniprotDescription": [
+    "Probable cyclin-dependent kinase 9"
+  ],
+  "isUniProtReferenceProteome": true,
+  "isUniProtReviewed": true,
+  "isIsoform": false,
+  "organismScientificName": [
+    "Caenorhabditis elegans"
+  ],
+  "gene": [
+    "cdk-9"
+  ],
+  "taxId": [
+    6239
+  ],
+  "sequenceStart": 1,
+  "sequenceEnd": 478,
+  "globalMetricValue": 76.47,
+  "isAMdata": false
+}

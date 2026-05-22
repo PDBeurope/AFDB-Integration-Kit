@@ -1,0 +1,86 @@
+[
+  {
+    "modelEntityId": "AF-0000000300000001",
+    "latestVersion": 1,
+    "providerId": "EXAMPLE",
+    "isComplex": false,
+    "uniprotAccession": [
+      "O00400"
+    ],
+    "uniprotDescription": [
+      "Acetyl-coenzyme A transporter 1"
+    ],
+    "isUniProtReferenceProteome": true,
+    "isUniProtReviewed": true,
+    "isIsoform": false,
+    "organismScientificName": [
+      "Homo sapiens (Human)"
+    ],
+    "gene": [
+      "SLC33A1"
+    ],
+    "taxId": [
+      9606
+    ],
+    "sequenceStart": 1,
+    "sequenceEnd": 549,
+    "globalMetricValue": 81.38,
+    "isAMdata": false
+  },
+  {
+    "modelEntityId": "AF-0000000300000002",
+    "latestVersion": 1,
+    "providerId": "EXAMPLE",
+    "isComplex": false,
+    "uniprotAccession": [
+      "O64637"
+    ],
+    "uniprotDescription": [
+      "Cytochrome P450 76C2"
+    ],
+    "isUniProtReferenceProteome": true,
+    "isUniProtReviewed": true,
+    "isIsoform": false,
+    "organismScientificName": [
+      "Arabidopsis thaliana (Mouse-ear cress)"
+    ],
+    "gene": [
+      "CYP76C2"
+    ],
+    "taxId": [
+      3702
+    ],
+    "sequenceStart": 1,
+    "sequenceEnd": 512,
+    "globalMetricValue": 92.19,
+    "isAMdata": false
+  },
+  {
+    "modelEntityId": "AF-0000000300000003",
+    "latestVersion": 1,
+    "providerId": "EXAMPLE",
+    "isComplex": false,
+    "uniprotAccession": [
+      "Q9TVL3"
+    ],
+    "uniprotDescription": [
+      "Probable cyclin-dependent kinase 9"
+    ],
+    "isUniProtReferenceProteome": true,
+    "isUniProtReviewed": true,
+    "isIsoform": false,
+    "organismScientificName": [
+      "Caenorhabditis elegans"
+    ],
+    "gene": [
+      "cdk-9"
+    ],
+    "taxId": [
+      6239
+    ],
+    "sequenceStart": 1,
+    "sequenceEnd": 478,
+    "globalMetricValue": 76.47,
+    "isAMdata": false
+  }
+]

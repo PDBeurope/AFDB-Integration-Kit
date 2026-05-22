@@ -32,9 +32,11 @@ with the detailed task checklist in
   - Step 8 iPSAE C++ tool review
 
 The current verified parent branch remains `integration-pr-26-gpu`, now with
-Step 8 merged and verified. The immediate next action is to prepare Step 9 on
-`integration-pr-26-gpu-step-9-production-pipeline` without starting its
-implementation yet.
+Step 8 merged and verified. Step 9 was then completed on
+`integration-pr-26-gpu-step-9-production-pipeline` as a pivot toward a small
+runnable ColabFold-like end-to-end reference under
+`examples/colabfold_e2e/`. That branch has not been merged back into the
+parent yet.
 
 ## Why We Created This Integration Structure
 
@@ -524,6 +526,69 @@ After merging Step 7 into the parent branch:
 - `.venv/bin/python -m pytest -q`: passed with `79 passed, 2 skipped, 1
   warning`.
 
+## Step 9 Outcome
+
+Branch:
+
+- `integration-pr-26-gpu-step-9-production-pipeline`
+- Not merged back into `integration-pr-26-gpu` yet
+
+Scope completed on the branch:
+
+- Pivoted Step 9 away from a broad standalone-pipeline review and toward a
+  runnable local proof that the repo can produce AFDB integration artifacts
+  from raw ColabFold-like outputs.
+- Kept the old Nextflow workflow only as the required sequence/output
+  reference.
+- Added `scripts/generate_colabfold_e2e_example.py` to stage a few curated
+  fixtures and run the existing toolkit commands in the same overall order.
+- Populated `examples/colabfold_e2e/` with normalized inputs, converted AFDB
+  JSONs, merged manifests, model/chain metadata JSONs and batches, ModelCIF
+  input JSONs, ModelCIF files, DSSP-enriched mmCIF files, enriched PDB files,
+  BCIF files, and recorded commands/status files.
+- Added `tests/test_generate_colabfold_e2e_example.py` for focused helper and
+  manifest coverage.
+- Fixed a direct Step 9 blocker in `uniprot/scripts/export_modelcif_input.py`
+  by restoring the missing `import os`.
+
+Step 9 decisions:
+
+- Use the curated monomer fixtures
+  `AF-0000000300000001` (`O00400`),
+  `AF-0000000300000002` (`O64637`),
+  `AF-0000000300000003` (`Q9TVL3`) as the committed reference subset.
+  - Reasoning: they are small, deterministic, present in the supplied DuckDB,
+    and complete the end-to-end artifact path cleanly.
+- Do not widen Step 9 into a large review of all remaining PR areas.
+  - Reasoning: the immediate goal is a runnable artifact proof, not a full
+    production orchestration redesign.
+- Keep `scripts/production_pipeline.py` available but do not force it to be the
+  example driver.
+  - Reasoning: the tiny reference flow is easier to reproduce and verify with a
+    narrow helper plus the existing focused commands.
+- Use `mkdssp` for the committed example DSSP step because it is available in
+  this environment.
+- Use the explicit Biotite BCIF backend because Mol* `cif2bcif` is not on
+  `PATH`.
+  - Caveat: Biotite fails on the DSSP-enriched mmCIF outputs in this
+    environment, so the committed `.bcif` files were generated from the
+    pre-DSSP ModelCIF files instead. That fallback is recorded in
+    `examples/colabfold_e2e/run_summary.json`.
+
+Step 9 verification on the branch:
+
+- `.venv/bin/python main.py --help`: passed.
+- `.venv/bin/python scripts/production_pipeline.py --help`: passed.
+- `.venv/bin/python -m afdb_integration_kit.colabfold.converter --help`:
+  passed.
+- `.venv/bin/python uniprot/scripts/export_model_metadata.py --help`: passed.
+- `.venv/bin/python uniprot/scripts/export_chain_metadata.py --help`: passed.
+- `.venv/bin/python uniprot/scripts/export_modelcif_input.py --help`: passed.
+- `.venv/bin/python uniprot/scripts/combine_metadata.py --help`: passed.
+- `.venv/bin/python scripts/generate_colabfold_e2e_example.py --duckdb
+  /mnt/disks/toolkit-data/uniprot_extract_2025_04_merged_5way/db/uniprot_2025_04_merged_5way.duckdb
+  --output-dir examples/colabfold_e2e`: passed.
+
 ## Known Caveats And Follow-Up Needs
 
 - The production pipeline intentionally defaults to `pydssp`; this is the one
@@ -532,14 +597,24 @@ After merging Step 7 into the parent branch:
   should not be treated as byte-for-byte `mkdssp` replacements.
 - `torch_cluster` is not in `pyproject.toml`; it is intentionally documented as
   a separate install due to PyTorch/CUDA wheel compatibility.
+- Reproducing the Step 9 example metadata exports requires access to the local
+  DuckDB at
+  `/mnt/disks/toolkit-data/uniprot_extract_2025_04_merged_5way/db/uniprot_2025_04_merged_5way.duckdb`.
+- The local Biotite BCIF backend currently fails on the DSSP-enriched mmCIF
+  outputs with a `citation_author` deserialization error; the Step 9 example
+  falls back to pre-DSSP ModelCIF files for BCIF generation when Mol* is not
+  installed.
 - Some future steps will require stronger review because they touch scientific
   correctness and output formats, especially ModelCIF, ColabFold conversion,
   GPU clash/interface analysis, iPSAE, and Nextflow.
 
 ## Immediate Next Action
 
-Create and hand off `integration-pr-26-gpu-step-9-production-pipeline` from
-the verified parent branch. Step 9 implementation should not start yet.
+Keep `integration-pr-26-gpu-step-9-production-pipeline` unmerged until an
+explicit merge request is given. When continuing PR #26 integration work, start
+with Step 10 or any narrower follow-up that directly addresses the remaining
+ModelCIF/metadata/Nextflow review items without undoing the Step 9 example
+reference.
 
 ## Step 8 Plan Reference
 
