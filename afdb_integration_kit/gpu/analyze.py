@@ -31,19 +31,19 @@ from dataclasses import dataclass, asdict, field
 from pathlib import Path
 from typing import List, Optional, Sequence, Set, Union
 
-import torch
 from tqdm import tqdm
+from ._runtime import require_torch, resolve_device
+
+torch = require_torch("GPU clash/interface analysis")
 
 try:
     from .protein import Protein
-    from .parse import parse_protein, parse_proteins
     from .batch import ProteinBatch, create_batch, iter_batches
     from .clashes import compute_clashes_from_batch
     from .interface import compute_interface_residues_flat
     from .schema import result_to_interface_schema, result_to_clash_schema
 except ImportError:
     from protein import Protein
-    from parse import parse_protein, parse_proteins
     from batch import ProteinBatch, create_batch, iter_batches
     from clashes import compute_clashes_from_batch
     from interface import compute_interface_residues_flat
@@ -499,7 +499,7 @@ def _extract_clash_contacts(
 def analyze_proteins(
     proteins: Sequence[Protein],
     batch_size: int = 32,
-    device: str = "cuda",
+    device: str = "auto",
     clash_cutoff: float = 0.12,
     min_seq_sep: int = 3,
     interface_cutoff: float = 8.0,
@@ -529,6 +529,11 @@ def analyze_proteins(
     Returns:
         List of ProteinAnalysisResult
     """
+    device = resolve_device(
+        device,
+        torch_module=torch,
+        feature="GPU clash/interface analysis",
+    )
     results = []
     n_proteins = len(proteins)
 
@@ -572,7 +577,7 @@ def analyze_proteins(
                 pending_writes.append(future)
 
             # Clear GPU cache periodically
-            if device == "cuda" and batch_start % (batch_size * 10) == 0:
+            if device.startswith("cuda") and batch_start % (batch_size * 10) == 0:
                 torch.cuda.empty_cache()
 
         # Wait for all writes to complete
@@ -592,7 +597,7 @@ def analyze_pdb_files(
     output_dir: Optional[Union[str, Path]] = None,
     batch_size: int = 32,
     n_workers: int = 4,
-    device: str = "cuda",
+    device: str = "auto",
     clash_cutoff: float = 0.12,
     min_seq_sep: int = 3,
     interface_cutoff: float = 8.0,
@@ -632,6 +637,16 @@ def analyze_pdb_files(
         ... )
         # Creates: results/complex1.json, results/complex2.json
     """
+    device = resolve_device(
+        device,
+        torch_module=torch,
+        feature="GPU clash/interface analysis",
+    )
+    try:
+        from .parse import parse_proteins
+    except ImportError:
+        from parse import parse_proteins
+
     # Parse PDB files
     if progress:
         print(f"Parsing {len(paths)} PDB files...")
@@ -670,7 +685,7 @@ def analyze_pdb_files_pipelined(
     output_dir: Optional[Union[str, Path]] = None,
     batch_size: int = 32,
     n_workers: int = 4,
-    device: str = "cuda",
+    device: str = "auto",
     clash_cutoff: float = 0.12,
     min_seq_sep: int = 3,
     interface_cutoff: float = 8.0,
@@ -713,6 +728,16 @@ def analyze_pdb_files_pipelined(
         List of ProteinAnalysisResult
     """
     import multiprocessing as mp
+
+    device = resolve_device(
+        device,
+        torch_module=torch,
+        feature="GPU clash/interface analysis",
+    )
+    try:
+        from .parse import parse_protein
+    except ImportError:
+        from parse import parse_protein
 
     n_paths = len(paths)
     if n_paths == 0:
@@ -875,9 +900,9 @@ def main():
     )
     parser.add_argument(
         "--device",
-        default="cuda",
-        choices=["cuda", "cpu"],
-        help="Computation device (default: cuda)",
+        default="auto",
+        choices=["auto", "cuda", "cpu"],
+        help="Computation device (default: auto)",
     )
     parser.add_argument(
         "--clash-cutoff",

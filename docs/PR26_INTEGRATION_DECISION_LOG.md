@@ -19,6 +19,7 @@ with the detailed task checklist in
   - `integration-pr-26-gpu-step-4-dssp`
   - `integration-pr-26-gpu-step-5-cif2bcif`
   - `integration-pr-26-gpu-step-6-colabfold-manifest`
+  - `integration-pr-26-gpu-step-7-gpu-analysis`
 - Merged into `integration-pr-26-gpu` so far:
   - Step 1 dependencies/test baseline
   - Step 2 mechanical hygiene
@@ -27,10 +28,10 @@ with the detailed task checklist in
   - Step 5 CIF to BCIF conversion review
   - Step 6 ColabFold converter and manifest resolver review
 
-The immediate next action is Step 7 review work on
-`integration-pr-26-gpu-step-7-gpu-analysis`. The Step 7 branch was created
-from the verified parent after Step 6 was merged and documented; no Step 7
-implementation has started yet.
+The immediate next action is to review the completed Step 7 branch
+`integration-pr-26-gpu-step-7-gpu-analysis`, decide whether any follow-up is
+needed, and only merge it back into `integration-pr-26-gpu` when explicitly
+requested.
 
 ## Why We Created This Integration Structure
 
@@ -128,6 +129,22 @@ Step 6 branch:
   - `0024936 docs: document colabfold fixture handoff`
 - Merge status:
   - Merged into `integration-pr-26-gpu` with merge commit `4c4a158`.
+
+Step 7 branch:
+
+- Branch: `integration-pr-26-gpu-step-7-gpu-analysis`
+- Scope note before implementation:
+  - `e9fa837 docs: clarify step 7 gpu analysis scope`
+- Current branch status:
+  - Package import is now lazy: `import afdb_integration_kit.gpu` no longer
+    requires `torch`, `fastpdb`, or `biotite`.
+  - Production analysis entry points now support `device="auto"` and fail
+    early with a clear error when `device="cuda"` is requested without CUDA.
+  - `parse.py` now imports `fastpdb` and Biotite lazily, so parsing
+    dependencies are only required when PDB parsing is actually invoked.
+  - Added `tests/test_gpu_analysis.py` for import behavior, dependency error
+    messaging, schema conversion, device resolution, and CPU/fallback coverage
+    when PyTorch is available.
 
 ## Decisions Made
 
@@ -321,6 +338,51 @@ Reasoning:
 - Keeping source IDs as metadata preserves provenance while making tests target
   the naming contract the toolkit is expected to support.
 
+### 11. Keep The GPU Package Optional At Import Time
+
+Decision:
+
+- `afdb_integration_kit.gpu` must remain importable in a core-only
+  environment.
+- The package `__init__` should export production analysis APIs lazily instead
+  of importing Torch, parsing, and GPU modules eagerly.
+- Production analysis modules should raise clear, actionable
+  optional-dependency errors when `torch`, `fastpdb`, or related packages are
+  missing.
+- `parse.py` should load `fastpdb` and Biotite lazily so
+  `analyze_proteins()`/schema helpers are not coupled to PDB parsing.
+
+Implemented in Step 7:
+
+- Added `afdb_integration_kit.gpu._runtime` helpers for optional dependency
+  imports and device resolution.
+- Reworked `afdb_integration_kit.gpu.__init__` to lazy-load production
+  symbols.
+- Verified `import afdb_integration_kit.gpu`, `import
+  afdb_integration_kit.gpu.parse`, and `main.py --help` work in this sandbox
+  even though `.venv` does not contain `torch` or `fastpdb`.
+
+### 12. Make Device Selection Explicit And Conservative
+
+Decision:
+
+- Public GPU analysis entry points should accept `device="cpu"`,
+  `device="cuda"`, and `device="auto"`.
+- `device="auto"` should resolve to CUDA when available, otherwise CPU.
+- `device="cuda"` should fail before parsing or batching work starts if CUDA is
+  unavailable.
+- CPU execution is supported for small correctness workloads; CUDA remains the
+  intended production path.
+
+Implemented in Step 7:
+
+- Updated the public analysis and batching entry points to normalize device
+  selection through one helper.
+- Changed the CLI default in `afdb_integration_kit.gpu.analyze` to
+  `device="auto"`.
+- Documented the CPU-only verification boundary: API/correctness checks were
+  exercised here, but CUDA throughput and GPU memory behavior were not.
+
 ## Verification Results Reported So Far
 
 After merging Steps 1 and 2 into the parent branch:
@@ -416,6 +478,23 @@ After merging Step 6 into the parent branch:
 - `git diff --check`: passed.
 - `.venv/bin/python -m pytest -q`: passed with `73 passed, 1 skipped, 1
   warning`.
+
+After Step 7 on `integration-pr-26-gpu-step-7-gpu-analysis`:
+
+- `.venv/bin/python -m pytest -q tests/test_gpu_analysis.py`: passed with
+  `6 passed, 1 skipped`.
+- `.venv/bin/python -m pytest -q tests/test_cif2bcif.py tests/test_dssp.py
+  tests/test_gpu_analysis.py`: passed with `23 passed, 2 skipped, 1 warning`.
+- `.venv/bin/python -m compileall -q afdb_integration_kit/gpu
+  tests/test_gpu_analysis.py`: passed.
+- `.venv/bin/python main.py --help`: passed.
+- `.venv/bin/python scripts/production_pipeline.py --help`: passed.
+- Import probe in `.venv`:
+  `afdb_integration_kit.gpu`, `.gpu.protein`, `.gpu.parse`, and `.gpu.schema`
+  all import successfully without production dependencies installed.
+- Environment note: `.venv` is missing `torch`, `fastpdb`, and
+  `torch_cluster`, so the Step 7 CPU execution/fallback test is skip-marked and
+  CUDA behavior remains unverified here.
 
 ## Known Caveats And Follow-Up Needs
 

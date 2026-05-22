@@ -8,69 +8,54 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""
-Clashes - GPU-accelerated protein structure analysis.
+"""GPU clash/interface analysis with lazy optional imports."""
+from __future__ import annotations
 
-Computes atomic clashes and interface residues using efficient
-batched processing on GPU with torch_cluster.
+from importlib import import_module
 
-Example (small datasets):
-    >>> from clashes import analyze_pdb_files
-    >>> results = analyze_pdb_files(
-    ...     ["complex1.pdb", "complex2.pdb"],
-    ...     output_dir="results/",
-    ...     device="cuda",
-    ... )
+from .protein import AA_ORDER_HEAVY, MAX_HEAVY_ATOMS, Protein, empty_protein
+from .schema import result_to_clash_schema, result_to_interface_schema
 
-Example (large datasets, >500 proteins):
-    >>> from clashes import analyze_pdb_files_pipelined
-    >>> results = analyze_pdb_files_pipelined(
-    ...     pdb_paths,  # List of 10M paths
-    ...     output_dir="results/",
-    ...     device="cuda",
-    ... )
-    # ~1.4x faster due to pipelined parsing/compute/writing
-"""
+_LAZY_EXPORTS = {
+    "parse_protein": ".parse",
+    "parse_proteins": ".parse",
+    "ProteinBatch": ".batch",
+    "create_batch": ".batch",
+    "iter_batches": ".batch",
+    "VDW_RADII": ".batch",
+    "count_clashes": ".clashes",
+    "get_clash_pairs": ".clashes",
+    "compute_clashes_from_batch": ".clashes",
+    "compute_clashing_residues_from_batch": ".clashes",
+    "SULFUR_VDW": ".clashes",
+    "DISULFIDE_MAX": ".clashes",
+    "compute_interface_residues": ".interface",
+    "compute_interface_residues_flat": ".interface",
+    "ALL_ANALYSES": ".analyze",
+    "ClashContact": ".analyze",
+    "InterfaceContact": ".analyze",
+    "ProteinAnalysisResult": ".analyze",
+    "analyze_batch": ".analyze",
+    "analyze_proteins": ".analyze",
+    "analyze_pdb_files": ".analyze",
+    "analyze_pdb_files_pipelined": ".analyze",
+}
 
-# Core data structures
-from .protein import Protein, empty_protein, MAX_HEAVY_ATOMS, AA_ORDER_HEAVY
 
-# Parsing
-from .parse import parse_protein, parse_proteins
+def __getattr__(name: str):
+    """Load production-analysis modules only when requested."""
+    module_name = _LAZY_EXPORTS.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    module = import_module(module_name, __name__)
+    value = getattr(module, name)
+    globals()[name] = value
+    return value
 
-# Batching
-from .batch import ProteinBatch, create_batch, iter_batches, VDW_RADII
 
-# Clash detection
-from .clashes import (
-    count_clashes,
-    get_clash_pairs,
-    compute_clashes_from_batch,
-    compute_clashing_residues_from_batch,
-    SULFUR_VDW,
-    DISULFIDE_MAX,
-)
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__))
 
-# Interface detection
-from .interface import (
-    compute_interface_residues,
-    compute_interface_residues_flat,
-)
-
-# High-level analysis
-from .analyze import (
-    ALL_ANALYSES,
-    ClashContact,
-    InterfaceContact,
-    ProteinAnalysisResult,
-    analyze_batch,
-    analyze_proteins,
-    analyze_pdb_files,
-    analyze_pdb_files_pipelined,
-)
-
-# Schema conversion
-from .schema import result_to_interface_schema, result_to_clash_schema
 
 __all__ = [
     # Protein
