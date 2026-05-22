@@ -379,20 +379,43 @@ merge/status documentation commit. No Step 7 implementation has started yet.
 
 - [x] (Model: GPT-5.4) Create branch
   `integration-pr-26-gpu-step-7-gpu-analysis`.
+- [ ] (Model: GPT-5.4) Preserve existing toolkit behavior outside the new
+  clash/interface analysis package.
+  - Core toolkit imports and commands must not require Torch, fastpdb, Biotite,
+    CUDA, or torch_cluster unless the user calls production analysis code.
+  - Shared behavior between the current toolkit and PR #26 should remain
+    functionally similar unless there is an explicit integration decision and
+    test coverage for the change.
 - [ ] (Model: GPT-5.4) Review `afdb_integration_kit/gpu/*` as a package.
   - Confirm imports are optional and do not affect core package import.
   - Consider making `afdb_integration_kit.gpu.__init__` lazy or minimal so
     missing `fastpdb`, `torch`, or `torch_cluster` produce clear errors.
+  - Treat the package as Torch-based clash/interface analysis that can run on
+    CPU for small/correctness workloads and on CUDA for production-scale
+    throughput.
+  - Support a clear device contract for public entry points:
+    `device="cpu"`, `device="cuda"`, and preferably `device="auto"`.
+  - If `device="cuda"` is requested without CUDA availability, fail early with
+    a clear message instead of failing later during tensor transfer.
 - [ ] (Model: GPT-5.4) Check licensing headers and provenance for copied GPU
   code.
 - [ ] (Model: GPT-5.4) Add CPU-compatible tests where possible.
   - Test schema conversion.
   - Test small clash/interface calculations if torch is available.
-  - Skip GPU-specific tests unless CUDA is available.
+  - Test CPU execution explicitly for tiny synthetic `Protein` objects.
+  - Test `device="auto"` resolution if added.
+  - Skip CUDA-specific tests unless CUDA is available.
 - [ ] (Model: GPT-5.4) Check `torch_cluster` fallback behavior in
   `clashes.py`.
+  - Confirm the pure-PyTorch fallback produces correct small-case results when
+    `torch_cluster` is unavailable or intentionally bypassed.
+  - Keep `torch_cluster` documented as an optional accelerator with
+    environment-specific wheel installation.
 - [ ] (Model: GPT-5.5) Review performance-sensitive code for memory pressure
   and batching assumptions.
+  - Document that CPU tests validate correctness and API behavior, while CUDA
+    throughput and GPU memory behavior remain unverified in this CPU-only
+    environment.
 
 ## Step 8: iPSAE C++ Tool Review
 
