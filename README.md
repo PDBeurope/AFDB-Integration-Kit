@@ -378,6 +378,9 @@ uv run main.py run-modelpdb-gen \
 ### CIF to BCIF Converter
 
 Converts mmCIF files to Binary CIF format for efficient storage and transmission.
+The default backend preserves the original toolkit behavior by using the
+external Mol* `cif2bcif` command. Biotite remains optional and can be selected
+explicitly or used as an `auto` fallback.
 
 **Command:**
 ```bash
@@ -387,6 +390,7 @@ uv run main.py run-cif2bcif -i <input_cif> -o <output_bcif>
 **Parameters:**
 - `-i, --input`: Input mmCIF file path
 - `-o, --output`: Output BCIF file path
+- `-b, --backend`: `molstar` (default), `biotite`, or `auto`
 
 ### DSSP Secondary Structure Assignment
 

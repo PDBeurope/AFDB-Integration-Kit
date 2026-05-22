@@ -10,6 +10,8 @@ with the detailed task checklist in
 - PR being integrated: GitHub PR #26 for `PDBeurope/AFDB-Integration-Kit`.
 - PR snapshot branch: `review/pr-26`.
 - Parent integration branch: `integration-pr-26-gpu`.
+- Current active branch:
+  `integration-pr-26-gpu-step-5-cif2bcif`.
 - Current verified parent branch:
   `integration-pr-26-gpu`.
 - Step branches completed so far:
@@ -17,15 +19,16 @@ with the detailed task checklist in
   - `integration-pr-26-gpu-step-2-hygiene`
   - `integration-pr-26-gpu-step-3-install-docs`
   - `integration-pr-26-gpu-step-4-dssp`
+  - `integration-pr-26-gpu-step-5-cif2bcif`
 - Merged into `integration-pr-26-gpu` so far:
   - Step 1 dependencies/test baseline
   - Step 2 mechanical hygiene
   - Step 3 install documentation
   - Step 4 DSSP refactor branch
 
-The immediate next action should be to create Step 5 from the verified parent
-branch and review CIF to BCIF conversion. Do not implement CIF/BCIF changes
-until that Step 5 branch is active.
+The immediate next action should be to review the completed Step 5 branch and,
+if approved, merge it back into `integration-pr-26-gpu`. Step 6 should start
+only after that parent-branch merge and verification.
 
 ## Why We Created This Integration Structure
 
@@ -99,6 +102,15 @@ Step 4 branch:
   - `3e97327 docs: add PR 26 integration decision log`
 - Merge status:
   - Merged into `integration-pr-26-gpu` with merge commit `f2e5bb0`.
+
+Step 5 branch:
+
+- Branch: `integration-pr-26-gpu-step-5-cif2bcif`
+- Commits:
+  - `98c6600 fix: restore molstar as default cif2bcif backend`
+  - `2778ca9 test: cover cif2bcif backends and temp safety`
+- Merge status:
+  - Not yet merged into `integration-pr-26-gpu` at the time of this update.
 
 ## Decisions Made
 
@@ -205,6 +217,37 @@ Implemented in Step 4:
   `run-dssp`/`batch-dssp` path and for Nextflow workflows, while the production
   pipeline defaults to `pydssp`.
 
+### 7. Preserve Original CIF To BCIF Behavior By Default
+
+Decision:
+
+- The original toolkit converted CIF to BCIF by delegating to the external Mol*
+  `cif2bcif` command.
+- Step 5 should preserve that original behavior as the default/source-of-truth
+  conversion path.
+- The PR's Biotite in-process conversion logic should not be discarded, but it
+  must be additive and explicit rather than silently replacing Mol*.
+- Biotite should remain in the `production` extra and must continue to be lazily
+  imported. Do not move Biotite into core dependencies for Step 5.
+- Preferred backend shape:
+  - `molstar`: use only external Mol* `cif2bcif`; this is the original and
+    safest default behavior.
+  - `biotite`: use only the Biotite in-process converter; useful for targeted
+    testing and intentionally provisioned production environments.
+  - `auto`: try Mol* first, then fall back to Biotite when Mol* is unavailable
+    or fails.
+- Do not make Biotite-first the implicit default.
+
+Reasoning:
+
+- Mol* `cif2bcif` is the established converter used by the original toolkit and
+  is the lowest-risk path for downstream Mol*/gemmi/AFDB compatibility.
+- The Biotite implementation may be useful in environments where Node/Mol* is
+  hard to provision, but it makes this repository responsible for BinaryCIF
+  encoding details such as column typing and `.`/`?` masks.
+- Keeping Biotite explicit or fallback-only incorporates the PR's work without
+  increasing the default integration risk.
+
 ## Verification Results Reported So Far
 
 After merging Steps 1 and 2 into the parent branch:
@@ -251,8 +294,21 @@ After merging Step 4 into the parent branch:
 - `.venv/bin/python -m pytest -q`: passed with `46 passed, 2 skipped, 1
   warning`.
 
+After Step 5 on `integration-pr-26-gpu-step-5-cif2bcif`:
+
+- `uv run pytest tests/test_cif2bcif.py -q`: passed with `9 passed`.
+- `uv run main.py run-cif2bcif --help`: passed.
+- `uv run main.py batch-cif2bcif --help`: passed.
+- `.venv/bin/python -m compileall -q afdb_integration_kit/cif2bcif tests`:
+  passed.
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `55 passed, 2 skipped, 1
+  warning`.
+
 ## Known Caveats And Follow-Up Needs
 
+- Step 5 is complete on `integration-pr-26-gpu-step-5-cif2bcif` but not yet
+  merged into `integration-pr-26-gpu`.
 - The production pipeline intentionally defaults to `pydssp`; this is the one
   explicit DSSP-default exception. The shared CLI/library default is `mkdssp`.
 - Python algorithms (`psea`, `pydssp`, `tmalign`) are 3-state approximations and
@@ -265,33 +321,29 @@ After merging Step 4 into the parent branch:
 
 ## Immediate Next Action
 
-Create `integration-pr-26-gpu-step-5-cif2bcif` from the verified
-`integration-pr-26-gpu` parent branch, then begin the Step 5 CIF to BCIF
-conversion review from
-[`docs/PR26_INTEGRATION_HANDOVER_PLAN.md`](./PR26_INTEGRATION_HANDOVER_PLAN.md).
+Review and, if approved, merge `integration-pr-26-gpu-step-5-cif2bcif` back
+into `integration-pr-26-gpu`. After parent verification, create the Step 6
+branch from the updated parent.
 
-## Next Planned Step After Step 4 Merge
+## Next Planned Step After Step 5
 
-Step 5 in
+Step 6 in
 [`docs/PR26_INTEGRATION_HANDOVER_PLAN.md`](./PR26_INTEGRATION_HANDOVER_PLAN.md)
 is:
 
-> CIF To BCIF Conversion Review
+> ColabFold Converter And Manifest Resolver Review
 
-Recommended model for Step 5:
+Recommended model for Step 6:
 
 - Model: `GPT-5.4`
 - Reasoning: `medium`
 
-Purpose of Step 5:
+Purpose of Step 6:
 
-- Review the new Biotite-first CIF to BCIF conversion path.
-- Decide whether Biotite should remain optional/production-only or move back
-  into core.
-- Add tests for `.bcif`, `.bcif.gz`, fallback behavior, missing value masks, and
-  temporary-file safety.
-- Make sure the existing Mol* external path remains available and behavior is
-  clear.
+- Review `afdb_integration_kit/colabfold/converter.py` and
+  `afdb_integration_kit/manifest/resolver.py`.
+- Confirm chain-span parsing, PAE rounding, caching behavior, and AFID
+  normalization assumptions before merging.
 
 ## Prompt Pattern For Future Coordinator Sessions
 
