@@ -135,9 +135,15 @@ Without nvm:
 npm install -g molstar
 ```
 
-### 5. Install DSSP (Nextflow workflow only)
+### 5. Install DSSP
 
-The production pipeline uses built-in Python DSSP algorithms (`pydssp`, `psea`, `tmalign`) and does **not** require an external DSSP binary. This step is only needed if you use the Nextflow workflow.
+The default `run-dssp` and `batch-dssp` commands use the external `mkdssp`
+binary, so install DSSP when using the default secondary-structure path. DSSP is
+also needed for Nextflow workflows.
+
+The standalone production pipeline defaults to the built-in `pydssp` algorithm
+and does **not** require an external DSSP binary unless you select
+`--dssp-algorithm mkdssp`.
 
 We use the modern DSSP implementation by the PDB-REDO team:
 
@@ -384,9 +390,12 @@ uv run main.py run-cif2bcif -i <input_cif> -o <output_bcif>
 
 ### DSSP Secondary Structure Assignment
 
-Assigns 3-state secondary structure annotations (helix, strand, coil) based on atomic coordinates. Three algorithms are available:
+Assigns secondary structure annotations based on atomic coordinates. The default
+uses the external DSSP binary, preserving the historical CLI behavior. Python
+algorithms are available as opt-in 3-state alternatives:
 
-- **pydssp** (default) — hydrogen-bond based assignment
+- **mkdssp** (default) — external DSSP binary
+- **pydssp** — hydrogen-bond based assignment
 - **psea** — geometry-based assignment using CA coordinates
 - **tmalign** — CA-CA distance-based assignment
 
@@ -398,6 +407,8 @@ uv run main.py run-dssp -i <input_cif> -o <output_cif>
 **Parameters:**
 - `-i, --input`: Input mmCIF file path
 - `-o, --output`: Output annotated mmCIF file path
+- `-a, --algorithm`: `mkdssp` (default), `pydssp`, `psea`, or `tmalign`
+- `-d, --device`: `cpu` (default) or `cuda` for PyDSSP
 
 ### Validation Toolkit
 
@@ -556,7 +567,7 @@ The `--input-dir` may contain raw ColabFold outputs (long suffixes like `_unrela
 | `--resume` | Resume from previous run (skip completed stages) |
 | `--skip-stages stage_12,stage_13` | Skip specific stages (comma-separated) |
 | `--dry-run` | Show what would be executed without running |
-| `--dssp-algorithm` | Secondary structure algorithm: `psea`, `pydssp` (default), or `tmalign` |
+| `--dssp-algorithm` | Production pipeline secondary structure algorithm: `mkdssp`, `psea`, `pydssp` (production default), or `tmalign` |
 | `--workers N` | Parallel workers (default: all CPUs) |
 | `--pae-cutoff` / `--dist-cutoff` | ipSAE thresholds (default: 10.0 / 15.0) |
 | `--clash-cutoff` / `--interface-cutoff` | Clash/interface thresholds (default: 0.4 / 8.0 Å) |
