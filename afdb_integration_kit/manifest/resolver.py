@@ -36,11 +36,11 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# Matches heterodimer composite IDs like AF_0000_AF_1111
-_HETERODIMER_PATTERN = re.compile(r"^(AF_\d+)_(AF_\d+)$")
+# Matches heterodimer composite IDs like AF_0000000000000001_AF_0000000000000002
+_HETERODIMER_PATTERN = re.compile(r"^(AF_\d{16})_(AF_\d{16})$")
 
-# Matches a single AF ID: AF_0000 (underscore) or AF-0000 (canonical hyphen)
-_SINGLE_AF_PATTERN = re.compile(r"^(AF[_-]\d+)$")
+# Matches a single AF ID: AF_0000000000000001 or AF-0000000000000001.
+_SINGLE_AF_PATTERN = re.compile(r"^(AF[_-]\d{16})$")
 
 
 # ---------------------------------------------------------------------------
@@ -228,17 +228,17 @@ def _deduplicate_accessions(
 
     if uniprot_db_path is None or input_dir is None:
         logger.warning(
-            "No uniprot_db_path or input_dir provided; using first accession "
-            "alphabetically for %d ambiguous models",
+            "No uniprot_db_path or input_dir provided; failing %d ambiguous "
+            "models instead of choosing an arbitrary accession",
             len(ambiguous),
         )
-        for af_id, accs in ambiguous.items():
-            picked = sorted(accs)[0]
+        for af_id, accs in sorted(ambiguous.items()):
             logger.warning(
-                "  %s: picked %s from %s (alphabetical fallback)",
-                _af_underscore_to_hyphen(af_id), picked, sorted(accs),
+                "  %s: ambiguous accessions %s",
+                _af_underscore_to_hyphen(af_id),
+                sorted(accs),
             )
-            clean[af_id] = picked
+            failed.append(af_id)
         return clean, failed
 
     all_candidates: Set[str] = set()

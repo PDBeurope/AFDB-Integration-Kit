@@ -1,0 +1,326 @@
+{
+  "examples": [
+    {
+      "category": "monomer",
+      "example_id": "AF-0000000300000001",
+      "source_example_id": "ACATN_HUMAN_19de7",
+      "source": "/home/mitsenkov/monomer_examples/ACATN_HUMAN_19de7.result.zip",
+      "files": [
+        {
+          "name": "AF-0000000300000001-model_v1.pdb",
+          "size_bytes": 348867
+        },
+        {
+          "name": "AF-0000000300000001-scores_v1.json",
+          "size_bytes": 1889498
+        },
+        {
+          "name": "AF-0000000300000001-input.csv",
+          "size_bytes": 579
+        }
+      ],
+      "plddt_length": 549,
+      "pae_dimension": 549,
+      "chain_spans": [
+        {
+          "chain_id": "A",
+          "sequence_start": 1,
+          "sequence_end": 549,
+          "residue_count": 549,
+          "uniprot_ac": "O00400"
+        }
+      ]
+    },
+    {
+      "category": "monomer",
+      "example_id": "AF-0000000300000002",
+      "source_example_id": "C76C2_ARATH_6db51",
+      "source": "/home/mitsenkov/monomer_examples/C76C2_ARATH_6db51.result.zip",
+      "files": [
+        {
+          "name": "AF-0000000300000002-model_v1.pdb",
+          "size_bytes": 327321
+        },
+        {
+          "name": "AF-0000000300000002-scores_v1.json",
+          "size_bytes": 1600870
+        },
+        {
+          "name": "AF-0000000300000002-input.csv",
+          "size_bytes": 542
+        }
+      ],
+      "plddt_length": 512,
+      "pae_dimension": 512,
+      "chain_spans": [
+        {
+          "chain_id": "A",
+          "sequence_start": 1,
+          "sequence_end": 512,
+          "residue_count": 512,
+          "uniprot_ac": "O64637"
+        }
+      ]
+    },
+    {
+      "category": "monomer",
+      "example_id": "AF-0000000300000003",
+      "source_example_id": "CDK9_CAEEL_5ca86",
+      "source": "/home/mitsenkov/monomer_examples/CDK9_CAEEL_5ca86.result.zip",
+      "files": [
+        {
+          "name": "AF-0000000300000003-model_v1.pdb",
+          "size_bytes": 304803
+        },
+        {
+          "name": "AF-0000000300000003-scores_v1.json",
+          "size_bytes": 1471353
+        },
+        {
+          "name": "AF-0000000300000003-input.csv",
+          "size_bytes": 507
+        }
+      ],
+      "plddt_length": 478,
+      "pae_dimension": 478,
+      "chain_spans": [
+        {
+          "chain_id": "A",
+          "sequence_start": 1,
+          "sequence_end": 478,
+          "residue_count": 478,
+          "uniprot_ac": "Q9TVL3"
+        }
+      ]
+    },
+    {
+      "category": "homodimer",
+      "example_id": "AF-0000000065760001",
+      "source_example_id": "AF-0000000065760001",
+      "source": "/home/mitsenkov/homodimer_examples/AF-0000000065760001-meta_v1.json",
+      "files": [
+        {
+          "name": "AF-0000000065760001-model_v1.pdb",
+          "size_bytes": 339795
+        },
+        {
+          "name": "AF-0000000065760001-scores_v1.json",
+          "size_bytes": 1494612
+        }
+      ],
+      "plddt_length": 512,
+      "pae_dimension": 512,
+      "chain_spans": [
+        {
+          "chain_id": "A",
+          "sequence_start": 1,
+          "sequence_end": 256,
+          "residue_count": 256,
+          "uniprot_ac": "Q6GZX4"
+        },
+        {
+          "chain_id": "B",
+          "sequence_start": 257,
+          "sequence_end": 512,
+          "residue_count": 256,
+          "uniprot_ac": "Q6GZX4"
+        }
+      ]
+    },
+    {
+      "category": "homodimer",
+      "example_id": "AF-0000000065760002",
+      "source_example_id": "AF-0000000065760002",
+      "source": "/home/mitsenkov/homodimer_examples/AF-0000000065760002-meta_v1.json",
+      "files": [
+        {
+          "name": "AF-0000000065760002-model_v1.pdb",
+          "size_bytes": 392607
+        },
+        {
+          "name": "AF-0000000065760002-scores_v1.json",
+          "size_bytes": 2337594
+        }
+      ],
+      "plddt_length": 640,
+      "pae_dimension": 640,
+      "chain_spans": [
+        {
+          "chain_id": "A",
+          "sequence_start": 1,
+          "sequence_end": 320,
+          "residue_count": 320,
+          "uniprot_ac": "Q6GZX3"
+        },
+        {
+          "chain_id": "B",
+          "sequence_start": 321,
+          "sequence_end": 640,
+          "residue_count": 320,
+          "uniprot_ac": "Q6GZX3"
+        }
+      ]
+    },
+    {
+      "category": "homodimer",
+      "example_id": "AF-0000000065760003",
+      "source_example_id": "AF-0000000065760003",
+      "source": "/home/mitsenkov/homodimer_examples/AF-0000000065760003-meta_v1.json",
+      "files": [
+        {
+          "name": "AF-0000000065760003-model_v1.pdb",
+          "size_bytes": 616491
+        },
+        {
+          "name": "AF-0000000065760003-scores_v1.json",
+          "size_bytes": 4948515
+        }
+      ],
+      "plddt_length": 916,
+      "pae_dimension": 916,
+      "chain_spans": [
+        {
+          "chain_id": "A",
+          "sequence_start": 1,
+          "sequence_end": 458,
+          "residue_count": 458,
+          "uniprot_ac": "Q197F8"
+        },
+        {
+          "chain_id": "B",
+          "sequence_start": 459,
+          "sequence_end": 916,
+          "residue_count": 458,
+          "uniprot_ac": "Q197F8"
+        }
+      ]
+    },
+    {
+      "category": "heterodimer",
+      "example_id": "AF-0000000300000101",
+      "source_example_id": "AF_0000000066426974_AF_0000000066426875",
+      "source": "/home/mitsenkov/afcdb_260224_1859_00000.tar.lz4",
+      "files": [
+        {
+          "name": "AF-0000000300000101-model_v1.pdb",
+          "size_bytes": 44442
+        },
+        {
+          "name": "AF-0000000300000101-scores_v1.json",
+          "size_bytes": 26607
+        }
+      ],
+      "plddt_length": 63,
+      "pae_dimension": 63,
+      "chain_spans": [
+        {
+          "chain_id": "A",
+          "sequence_start": 1,
+          "sequence_end": 30,
+          "residue_count": 30,
+          "uniprot_ac": "A0ABS2QMZ4"
+        },
+        {
+          "chain_id": "B",
+          "sequence_start": 31,
+          "sequence_end": 63,
+          "residue_count": 33,
+          "uniprot_ac": "A0ABS2QMF5"
+        }
+      ],
+      "source_component_model_ids": [
+        "AF-0000000066426974",
+        "AF-0000000066426875"
+      ],
+      "component_reassigned_model_ids": [
+        "AF-0000000166426974",
+        "AF-0000000166426875"
+      ]
+    },
+    {
+      "category": "heterodimer",
+      "example_id": "AF-0000000300000102",
+      "source_example_id": "AF_0000000066576660_AF_0000000066577761",
+      "source": "/home/mitsenkov/afcdb_260224_1859_00000.tar.lz4",
+      "files": [
+        {
+          "name": "AF-0000000300000102-model_v1.pdb",
+          "size_bytes": 43875
+        },
+        {
+          "name": "AF-0000000300000102-scores_v1.json",
+          "size_bytes": 28058
+        }
+      ],
+      "plddt_length": 67,
+      "pae_dimension": 67,
+      "chain_spans": [
+        {
+          "chain_id": "A",
+          "sequence_start": 1,
+          "sequence_end": 37,
+          "residue_count": 37,
+          "uniprot_ac": "A0ABS8Y874"
+        },
+        {
+          "chain_id": "B",
+          "sequence_start": 38,
+          "sequence_end": 67,
+          "residue_count": 30,
+          "uniprot_ac": "A0ABS8RL98"
+        }
+      ],
+      "source_component_model_ids": [
+        "AF-0000000066576660",
+        "AF-0000000066577761"
+      ],
+      "component_reassigned_model_ids": [
+        "AF-0000000166576660",
+        "AF-0000000166577761"
+      ]
+    },
+    {
+      "category": "heterodimer",
+      "example_id": "AF-0000000300000103",
+      "source_example_id": "AF_0000000066908168_AF_0000000066909825",
+      "source": "/home/mitsenkov/afcdb_260224_1859_00000.tar.lz4",
+      "files": [
+        {
+          "name": "AF-0000000300000103-model_v1.pdb",
+          "size_bytes": 53190
+        },
+        {
+          "name": "AF-0000000300000103-scores_v1.json",
+          "size_bytes": 43997
+        }
+      ],
+      "plddt_length": 80,
+      "pae_dimension": 80,
+      "chain_spans": [
+        {
+          "chain_id": "A",
+          "sequence_start": 1,
+          "sequence_end": 41,
+          "residue_count": 41,
+          "uniprot_ac": "A0AAV6YE70"
+        },
+        {
+          "chain_id": "B",
+          "sequence_start": 42,
+          "sequence_end": 80,
+          "residue_count": 39,
+          "uniprot_ac": "A0AAV6YAU6"
+        }
+      ],
+      "source_component_model_ids": [
+        "AF-0000000066908168",
+        "AF-0000000066909825"
+      ],
+      "component_reassigned_model_ids": [
+        "AF-0000000166908168",
+        "AF-0000000166909825"
+      ]
+    }
+  ],
+  "total_size_bytes": 16314123
+}

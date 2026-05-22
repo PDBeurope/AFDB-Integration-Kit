@@ -18,6 +18,8 @@ with the detailed task checklist in
   - `integration-pr-26-gpu-step-3-install-docs`
   - `integration-pr-26-gpu-step-4-dssp`
   - `integration-pr-26-gpu-step-5-cif2bcif`
+  - `integration-pr-26-gpu-step-6-colabfold-manifest` (reviewed on branch,
+    not yet merged)
 - Merged into `integration-pr-26-gpu` so far:
   - Step 1 dependencies/test baseline
   - Step 2 mechanical hygiene
@@ -25,9 +27,10 @@ with the detailed task checklist in
   - Step 4 DSSP refactor branch
   - Step 5 CIF to BCIF conversion review
 
-The immediate next action should be to create `integration-pr-26-gpu-step-6-colabfold-manifest`
-from the verified parent branch and begin the Step 6 ColabFold/manifest
-review there.
+The immediate next action is to merge the completed Step 6 branch
+`integration-pr-26-gpu-step-6-colabfold-manifest` back into
+`integration-pr-26-gpu`, verify the parent branch, record the Step 6 merge
+status, and then create the Step 7 branch from the verified parent.
 
 ## Why We Created This Integration Structure
 
@@ -111,6 +114,20 @@ Step 5 branch:
   - `1488930 docs: record step 5 cif2bcif status`
 - Merge status:
   - Merged into `integration-pr-26-gpu` with merge commit `2c6d225`.
+
+Step 6 branch:
+
+- Branch: `integration-pr-26-gpu-step-6-colabfold-manifest`
+- Commits:
+  - `830e12f docs: mark step 6 branch prepared`
+  - `a7d28c6 fix: preserve colabfold manifest semantics`
+  - `de7e51f docs: record step 6 colabfold review status`
+  - `77ccadc test: add curated colabfold real example fixtures`
+  - `c7549eb test: normalize colabfold real fixtures`
+  - `30de578 docs: update step 6 commit list`
+- Merge status:
+  - Complete and verified on the Step 6 branch only; not yet merged into
+    `integration-pr-26-gpu`.
 
 ## Decisions Made
 
@@ -248,6 +265,62 @@ Reasoning:
 - Keeping Biotite explicit or fallback-only incorporates the PR's work without
   increasing the default integration risk.
 
+### 8. Preserve Global Chain Spans In ColabFold JSON Outputs
+
+Decision:
+
+- Keep `chains.sequenceStart` and `chains.sequenceEnd` aligned to the global
+  flattened pLDDT/PAE indexing used by the original toolkit outputs.
+- Keep the gemmi parser as an implementation detail, but do not change the
+  external chain-span contract.
+
+Reasoning:
+
+- `origin/main` emitted global chain spans.
+- The PR branch changed those spans to per-chain local numbering while still
+  emitting a global `residueNumber` array, which creates a mixed indexing
+  contract.
+- Step 6 keeps the performance improvement and parser fallback, but restores
+  the original output semantics.
+
+### 9. Do Not Guess Ambiguous UniProt Accessions
+
+Decision:
+
+- If an AF ID maps to multiple candidate accessions and no DuckDB-plus-meta
+  evidence is available to disambiguate them, fail that AF ID instead of
+  choosing the first accession alphabetically.
+- Keep the pLDDT-length-based disambiguation path when the necessary evidence
+  is available.
+
+Reasoning:
+
+- Alphabetical fallback is not scientifically meaningful.
+- A failed mapping is easier to detect and repair than a silently incorrect
+  accession assignment.
+- This keeps Step 6 conservative while still allowing deterministic resolution
+  when the accession lengths and ColabFold metadata provide direct evidence.
+
+### 10. Use Single AF-Style IDs For Real ColabFold Fixtures
+
+Decision:
+
+- Curated real ColabFold fixtures should use single AF-style `model_entity_id`
+  names in directories, copied files, and fixture metadata.
+- Heterodimer source files that were named with two component AF IDs should be
+  normalized to a single fixture AF ID; the original composite source ID and
+  component reassigned AF IDs are retained in `manifest.json`.
+- Chain UniProt accessions should be recorded in `manifest.json` so later
+  integration and end-to-end tests can build real-style chain manifests without
+  relying on filename parsing.
+
+Reasoning:
+
+- The production `model_entity_id` convention is a single AF-style ID, not a
+  composite ID made from both components.
+- Keeping source IDs as metadata preserves provenance while making tests target
+  the naming contract the toolkit is expected to support.
+
 ## Verification Results Reported So Far
 
 After merging Steps 1 and 2 into the parent branch:
@@ -317,6 +390,20 @@ After merging Step 5 into the parent branch:
 - `.venv/bin/python -m pytest -q`: passed with `55 passed, 2 skipped, 1
   warning`.
 
+After Step 6 on `integration-pr-26-gpu-step-6-colabfold-manifest`:
+
+- `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_colabfold_converter.py
+  -q`: passed with `14 passed`.
+- `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_manifest_resolver.py
+  -q`: passed with `4 passed`.
+- `.venv/bin/python -m compileall -q afdb_integration_kit/colabfold
+  afdb_integration_kit/manifest tests`: passed.
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `73 passed, 1 skipped, 1
+  warning`.
+- Real-fixture coverage now includes all 9 curated ColabFold examples under
+  `tests/fixtures/colabfold_real_examples`.
+
 ## Known Caveats And Follow-Up Needs
 
 - The production pipeline intentionally defaults to `pydssp`; this is the one
@@ -331,29 +418,31 @@ After merging Step 5 into the parent branch:
 
 ## Immediate Next Action
 
-Create `integration-pr-26-gpu-step-6-colabfold-manifest` from the verified
-`integration-pr-26-gpu` parent branch and begin the Step 6 review from
-[`docs/PR26_INTEGRATION_HANDOVER_PLAN.md`](./PR26_INTEGRATION_HANDOVER_PLAN.md).
+Merge `integration-pr-26-gpu-step-6-colabfold-manifest` into the verified
+parent branch `integration-pr-26-gpu`, rerun the Step 6 verification commands
+on the parent, update this decision log and the handover plan with the merge
+commit and parent verification results, then create
+`integration-pr-26-gpu-step-7-gpu-analysis` from the verified parent.
 
-## Next Planned Step After Step 5
+## Next Planned Step After Step 6
 
-Step 6 in
+Step 7 in
 [`docs/PR26_INTEGRATION_HANDOVER_PLAN.md`](./PR26_INTEGRATION_HANDOVER_PLAN.md)
 is:
 
-> ColabFold Converter And Manifest Resolver Review
+> GPU Clash/Interface Package Review
 
-Recommended model for Step 6:
+Recommended model for Step 7:
 
 - Model: `GPT-5.4`
 - Reasoning: `medium`
 
-Purpose of Step 6:
+Purpose of Step 7:
 
-- Review `afdb_integration_kit/colabfold/converter.py` and
-  `afdb_integration_kit/manifest/resolver.py`.
-- Confirm chain-span parsing, PAE rounding, caching behavior, and AFID
-  normalization assumptions before merging.
+- Review `afdb_integration_kit/gpu/*` without broadening core dependency
+  requirements.
+- Confirm optional import boundaries, licensing/provenance, and CPU-safe test
+  coverage where feasible.
 
 ## Prompt Pattern For Future Coordinator Sessions
 

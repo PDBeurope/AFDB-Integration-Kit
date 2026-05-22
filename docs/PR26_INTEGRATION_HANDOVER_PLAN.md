@@ -290,29 +290,81 @@ commit `2c6d225`. Parent-branch verification after the merge:
 
 ## Step 6: ColabFold Converter And Manifest Resolver Review
 
-- [ ] (Model: GPT-5.4) Create branch
+- [x] (Model: GPT-5.4) Create branch
   `integration-pr-26-gpu-step-6-colabfold-manifest`.
-- [ ] (Model: GPT-5.4) Review `afdb_integration_kit/colabfold/converter.py`
+- [x] (Model: GPT-5.4) Review `afdb_integration_kit/colabfold/converter.py`
   changes.
   - Confirm gemmi parsing gives identical chain spans to the previous parser
     for representative PDBs.
+    - Evidence: new synthetic multi-chain test compares
+      `_chain_spans_from_pdb_gemmi()` with `_chain_spans_from_pdb_legacy()`
+      and preserves the original global flattened spans.
   - Confirm PAE rounding and `orjson.OPT_SERIALIZE_NUMPY` are intended.
+    - Evidence: `tests/test_colabfold_converter.py` now verifies rounded JSON
+      output from `convert_file()` and confirms NumPy-backed payloads are
+      written as normal JSON arrays.
   - Confirm DuckDB prefetch cache is safe across repeated conversions.
-- [ ] (Model: GPT-5.4) Review `afdb_integration_kit/manifest/resolver.py`.
+    - Evidence: partial-prefetch test now covers the previous stale-cache risk
+      where a same-path DuckDB cache could be populated for only one accession
+      and then incorrectly reused for a different accession later.
+- [x] (Model: GPT-5.4) Review `afdb_integration_kit/manifest/resolver.py`.
   - Confirm supported model ID formats: `AF-...`, `AF_...`, and
     `AF_..._AF_...`.
+    - Evidence: tests cover all three supported shapes.
   - Confirm 16-digit AF IDs are accepted if that is the production convention.
+    - Evidence: classifier now explicitly accepts only 16-digit AF IDs.
   - Confirm hyphen/underscore normalization is consistent with filenames,
     manifests, and metadata.
+    - Evidence: manifest-row builder test covers underscore input and
+      hyphenated output `model_entity_id` rows.
   - Confirm ambiguous accession deduplication is scientifically valid.
-- [ ] (Model: GPT-5.4) Add tests for model-ID classification and manifest row
+    - Decision: when no UniProt DuckDB plus ColabFold metadata evidence is
+      available, ambiguous accession sets now fail instead of choosing an
+      arbitrary alphabetical accession.
+- [x] (Model: GPT-5.4) Add tests for model-ID classification and manifest row
   building.
-- [ ] (Model: GPT-5.4) Add tests for chain mapping behavior in
+- [x] (Model: GPT-5.4) Add tests for chain mapping behavior in
   `convert_file`.
-- [ ] (Model: GPT-5.4-mini) Run:
+- [x] (Model: GPT-5.4) Add curated real ColabFold fixtures for later
+  integration and end-to-end smoke tests.
+  - Evidence: `tests/fixtures/colabfold_real_examples` now contains 3
+    monomers, 3 homodimers, and 3 heterodimers with minimal raw score JSON,
+    PDB, and small metadata/input files.
+  - Fixture names use single AF-style `model_entity_id` values. Heterodimer
+    source files that were originally named with two component AF IDs now use
+    reserved single fixture IDs, while source component IDs are retained in
+    `manifest.json`.
+  - Chain UniProt accessions are recorded in `manifest.json` from the corrected
+    merged ColabFold manifest and related corrected mapping outputs.
+  - Real-fixture tests now run `convert_file()` across all 9 curated examples
+    and assert output confidence lengths, PAE dimensions, global chain spans,
+    source IDs, and chain accessions from `manifest.json`.
+- [x] (Model: GPT-5.4-mini) Run:
   - `pytest tests/test_colabfold_converter.py -q`
+    - Result: `14 passed` via
+      `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_colabfold_converter.py -q`.
   - new manifest resolver tests
-- [ ] (Model: GPT-5.5) Review data-model assumptions before merging.
+    - Result: `4 passed` via
+      `UV_CACHE_DIR=/tmp/uv-cache uv run pytest tests/test_manifest_resolver.py -q`.
+  - `.venv/bin/python -m compileall -q afdb_integration_kit/colabfold
+    afdb_integration_kit/manifest tests`
+    - Result: passed.
+  - `git diff --check`
+    - Result: passed.
+  - `.venv/bin/python -m pytest -q`
+    - Result: `73 passed, 1 skipped, 1 warning`.
+- [x] (Model: GPT-5.5) Review data-model assumptions before merging.
+  - Remaining assumption: `build_colabfold_manifest()` still treats a single
+    AF ID as a homodimer and emits two chains. This matches the PR branch
+    implementation but is only indirectly justified by the AFCDB/ColabFold
+    multimer workflow context; no broader monomer claim was added in Step 6.
+
+Note: Step 6 is complete on
+`integration-pr-26-gpu-step-6-colabfold-manifest` but has not yet been merged
+back into `integration-pr-26-gpu`. The next coordinator should merge Step 6
+into the parent branch, rerun the Step 6 verification commands on the parent,
+record the merge/status in this file and the decision log, then create the
+Step 7 branch from the verified parent.
 
 ## Step 7: GPU Clash/Interface Package Review
 
