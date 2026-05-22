@@ -222,27 +222,59 @@ commit `f2e5bb0`. Parent-branch verification after the merge:
 
 ## Step 5: CIF To BCIF Conversion Review
 
-- [ ] (Model: GPT-5.4) Create branch
+- [x] (Model: GPT-5.4) Create branch
   `integration-pr-26-gpu-step-5-cif2bcif`.
-- [ ] (Model: GPT-5.4) Review the new Biotite-first conversion path in
+- [ ] (Model: GPT-5.4) Review the new Biotite conversion path in
   `afdb_integration_kit/cif2bcif/convert.py`.
-- [ ] (Model: GPT-5.4) Decide whether Biotite should be a production extra or
-  a core dependency for CIF to BCIF.
-  - If core `run-cif2bcif` should be fast in-process, Biotite may need to move
-    back to core.
-  - If core should stay small, keep Mol* fallback and document Biotite as
-    production/optional.
-- [ ] (Model: GPT-5.4) Add tests for:
+- [x] (Model: GPT-5.4) Decide the integration direction for Biotite.
+  - Decision: preserve the original toolkit contract that Mol* `cif2bcif` is
+    the default/source-of-truth conversion path.
+  - Decision: do not move Biotite into core dependencies. Keep it in the
+    `production` extra and import it lazily.
+  - Decision: keep the PR's Biotite conversion work, but make it explicit and
+    additive rather than silently replacing the original behavior.
+- [x] (Model: GPT-5.4) Implement backend selection conservatively.
+  - Add or preserve a backend option with values equivalent to:
+    `molstar`, `biotite`, and `auto`.
+  - `molstar`: run only the external Mol* `cif2bcif` command. This is the
+    original behavior and should remain the safest/default behavior unless the
+    user explicitly chooses otherwise.
+  - `biotite`: run only the Biotite in-process converter. This is useful for
+    targeted testing or production environments that intentionally install
+    Biotite.
+  - `auto`: try Mol* first, then fall back to Biotite if Mol* is unavailable or
+    fails.
+  - Do not make Biotite-first the implicit default.
+- [x] (Model: GPT-5.4) Add tests for:
+  - default Mol* command selection and subprocess behavior.
+  - explicit Biotite backend behavior, skip-marked if Biotite is not installed.
+  - `auto` fallback from Mol* to Biotite when Mol* is unavailable or fails.
+  - no import-time Biotite requirement.
   - `.bcif` output creation.
   - `.bcif.gz` output creation.
-  - fallback behavior when Biotite is unavailable.
-  - missing value mask behavior for `.` and `?`.
-- [ ] (Model: GPT-5.4) Check temporary-file handling.
+  - missing value mask behavior for `.` and `?` in the Biotite backend.
+- [x] (Model: GPT-5.4) Check temporary-file handling.
   - Ensure concurrent workers cannot collide on the same temp filename.
   - Ensure cross-device rename fallback is safe.
-- [ ] (Model: GPT-5.4-mini) Run existing and new CIF/BCIF tests.
-- [ ] (Model: GPT-5.5) Review compatibility with downstream Mol* and gemmi
+- [x] (Model: GPT-5.4) Update README/help text only as needed so users know
+  Mol* is the default path and Biotite is optional/explicit/fallback.
+- [x] (Model: GPT-5.4-mini) Run existing and new CIF/BCIF tests.
+  - Evidence: `uv run pytest tests/test_cif2bcif.py -q` passed with `9 passed`.
+  - Evidence: `uv run main.py run-cif2bcif --help` passed and documents
+    `molstar` as the default backend with `biotite` and `auto` available.
+  - Evidence: `uv run main.py batch-cif2bcif --help` passed and documents the
+    same backend choices.
+  - Evidence: `.venv/bin/python -m compileall -q afdb_integration_kit/cif2bcif
+    tests` passed.
+  - Evidence: `git diff --check` passed.
+  - Evidence: `.venv/bin/python -m pytest -q` passed with `55 passed, 2
+    skipped, 1 warning`.
+- [x] (Model: GPT-5.5) Review compatibility with downstream Mol* and gemmi
   consumers before merging.
+  - Risk note: keeping Mol* as the default backend preserves the original
+    converter contract for downstream Mol*/gemmi consumers. The Biotite backend
+    remains explicit or fallback-only so BinaryCIF encoding changes do not
+    silently replace the established path.
 
 ## Step 6: ColabFold Converter And Manifest Resolver Review
 
