@@ -276,6 +276,18 @@ commit `f2e5bb0`. Parent-branch verification after the merge:
     remains explicit or fallback-only so BinaryCIF encoding changes do not
     silently replace the established path.
 
+Note: Step 5 has been merged back into `integration-pr-26-gpu` with merge
+commit `2c6d225`. Parent-branch verification after the merge:
+
+- `uv run pytest tests/test_cif2bcif.py -q`: passed with `9 passed`.
+- `uv run main.py run-cif2bcif --help`: passed.
+- `uv run main.py batch-cif2bcif --help`: passed.
+- `.venv/bin/python -m compileall -q afdb_integration_kit/cif2bcif tests`:
+  passed.
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `55 passed, 2 skipped, 1
+  warning`.
+
 ## Step 6: ColabFold Converter And Manifest Resolver Review
 
 - [ ] (Model: GPT-5.4) Create branch

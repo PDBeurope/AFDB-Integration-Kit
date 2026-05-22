@@ -10,8 +10,6 @@ with the detailed task checklist in
 - PR being integrated: GitHub PR #26 for `PDBeurope/AFDB-Integration-Kit`.
 - PR snapshot branch: `review/pr-26`.
 - Parent integration branch: `integration-pr-26-gpu`.
-- Current active branch:
-  `integration-pr-26-gpu-step-5-cif2bcif`.
 - Current verified parent branch:
   `integration-pr-26-gpu`.
 - Step branches completed so far:
@@ -25,10 +23,11 @@ with the detailed task checklist in
   - Step 2 mechanical hygiene
   - Step 3 install documentation
   - Step 4 DSSP refactor branch
+  - Step 5 CIF to BCIF conversion review
 
-The immediate next action should be to review the completed Step 5 branch and,
-if approved, merge it back into `integration-pr-26-gpu`. Step 6 should start
-only after that parent-branch merge and verification.
+The immediate next action should be to create `integration-pr-26-gpu-step-6-colabfold-manifest`
+from the verified parent branch and begin the Step 6 ColabFold/manifest
+review there.
 
 ## Why We Created This Integration Structure
 
@@ -109,8 +108,9 @@ Step 5 branch:
 - Commits:
   - `98c6600 fix: restore molstar as default cif2bcif backend`
   - `2778ca9 test: cover cif2bcif backends and temp safety`
+  - `1488930 docs: record step 5 cif2bcif status`
 - Merge status:
-  - Not yet merged into `integration-pr-26-gpu` at the time of this update.
+  - Merged into `integration-pr-26-gpu` with merge commit `2c6d225`.
 
 ## Decisions Made
 
@@ -305,10 +305,20 @@ After Step 5 on `integration-pr-26-gpu-step-5-cif2bcif`:
 - `.venv/bin/python -m pytest -q`: passed with `55 passed, 2 skipped, 1
   warning`.
 
+After merging Step 5 into the parent branch:
+
+- Merge commit: `2c6d225`.
+- `uv run pytest tests/test_cif2bcif.py -q`: passed with `9 passed`.
+- `uv run main.py run-cif2bcif --help`: passed.
+- `uv run main.py batch-cif2bcif --help`: passed.
+- `.venv/bin/python -m compileall -q afdb_integration_kit/cif2bcif tests`:
+  passed.
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `55 passed, 2 skipped, 1
+  warning`.
+
 ## Known Caveats And Follow-Up Needs
 
-- Step 5 is complete on `integration-pr-26-gpu-step-5-cif2bcif` but not yet
-  merged into `integration-pr-26-gpu`.
 - The production pipeline intentionally defaults to `pydssp`; this is the one
   explicit DSSP-default exception. The shared CLI/library default is `mkdssp`.
 - Python algorithms (`psea`, `pydssp`, `tmalign`) are 3-state approximations and
@@ -321,9 +331,9 @@ After Step 5 on `integration-pr-26-gpu-step-5-cif2bcif`:
 
 ## Immediate Next Action
 
-Review and, if approved, merge `integration-pr-26-gpu-step-5-cif2bcif` back
-into `integration-pr-26-gpu`. After parent verification, create the Step 6
-branch from the updated parent.
+Create `integration-pr-26-gpu-step-6-colabfold-manifest` from the verified
+`integration-pr-26-gpu` parent branch and begin the Step 6 review from
+[`docs/PR26_INTEGRATION_HANDOVER_PLAN.md`](./PR26_INTEGRATION_HANDOVER_PLAN.md).
 
 ## Next Planned Step After Step 5
 
