@@ -10,11 +10,14 @@
  *   ./ipsae_cpp --batch <data_dir> <pae_cutoff> <dist_cutoff> [--summary <csv_file>] [--workers N]
  */
 
+#include <atomic>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
+#include <iomanip>
+#include <map>
 #include <unordered_map>
 #include <unordered_set>
 #include <set>
@@ -129,7 +132,6 @@ StructureData parse_pdb(const std::string& pdb_path) {
         atom_name.erase(0, atom_name.find_first_not_of(" "));
         atom_name.erase(atom_name.find_last_not_of(" ") + 1);
 
-        std::string res_name = line.substr(17, 3);
         char chain_id = line[21];
         int res_num = std::stoi(line.substr(22, 4));
         float x = std::stof(line.substr(30, 8));
@@ -160,7 +162,7 @@ StructureData parse_pdb(const std::string& pdb_path) {
         if (it != cb_map.end()) {
             cb_coords[i] = it->second;
         } else {
-            cb_coords[i] = ca_coords[i];  // Use CA for GLY
+            cb_coords[i] = ca_coords[i];  // Fallback when CB is unavailable, including GLY.
         }
     }
 
