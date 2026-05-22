@@ -1003,13 +1003,31 @@ def run_cif2bcif(
         readable=False,
         resolve_path=True,
     ),
+    backend: str = typer.Option(
+        "molstar",
+        "-b",
+        "--backend",
+        help="Conversion backend: 'molstar' (default), 'biotite', or 'auto'.",
+    ),
 ):
     """
-    Convert CIF to BinaryCIF or BinaryCIF.GZ using gemmi.
+    Convert CIF to BinaryCIF or BinaryCIF.GZ.
+
+    The default backend preserves the original toolkit behavior by using the
+    external Mol* `cif2bcif` command. The optional Biotite backend remains
+    explicit, and `auto` uses Mol* first with Biotite fallback.
     """
+    if backend not in ("molstar", "biotite", "auto"):
+        console.print(
+            "[red]Invalid backend. Use 'molstar', 'biotite', or 'auto'.[/red]"
+        )
+        raise typer.Exit(1)
     require_non_empty_file(input_file, description="cif2bcif input CIF file")
-    logger.info(f"Converting {input_file} to {output_file}")
-    cif2bcif_helper(input_file, output_file)
+    logger.info(
+        f"Converting {input_file} to {output_file} using {backend} backend"
+    )
+    if not cif2bcif_helper(input_file, output_file, backend=backend):
+        raise typer.Exit(1)
     logger.info("Conversion complete.")
 
 
@@ -1042,15 +1060,34 @@ def batch_cif2bcif(
     gzip: bool = typer.Option(
         False, "--gzip", "-gz", help="Output .bcif.gz files instead of .bcif"
     ),
+    backend: str = typer.Option(
+        "molstar",
+        "-b",
+        "--backend",
+        help="Conversion backend: 'molstar' (default), 'biotite', or 'auto'.",
+    ),
 ):
     """
     Batch process all CIF files in a directory to BCIF or BCIF.GZ.
     """
+    if backend not in ("molstar", "biotite", "auto"):
+        console.print(
+            "[red]Invalid backend. Use 'molstar', 'biotite', or 'auto'.[/red]"
+        )
+        raise typer.Exit(1)
     logger.info(
         f"Batch converting CIF files from {input_dir} to {output_dir} "
-        f"using {workers} workers. Gzip: {gzip}"
+        f"using {workers} workers. Gzip: {gzip}. Backend: {backend}"
     )
-    run_batch_cif2bcif(input_dir, output_dir, workers=workers, gzip=gzip)
+    success, errors = run_batch_cif2bcif(
+        input_dir,
+        output_dir,
+        workers=workers,
+        gzip=gzip,
+        backend=backend,
+    )
+    if errors:
+        raise typer.Exit(1)
     logger.info("Batch conversion complete.")
 
 

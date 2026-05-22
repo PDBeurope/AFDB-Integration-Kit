@@ -1,10 +1,9 @@
 """
 CIF to BinaryCIF conversion.
 
-Prefers Biotite (when version is supported) for in-process table-copy conversion;
-falls back to Mol* cif2bcif CLI for Mol*/gemmi compatibility when Biotite is
-unavailable, too old, or conversion fails.
-Uses ProcessPoolExecutor for CPU-bound parallel execution.
+Preserves the historical Mol* `cif2bcif` CLI as the default conversion path.
+Biotite remains an optional in-process backend for explicit use or `auto`
+fallback. Uses ProcessPoolExecutor for parallel execution.
 """
 import gzip
 import logging
@@ -19,6 +18,8 @@ from typing import Any, Tuple
 import numpy as np
 
 MOLSTAR_CIF2BCIF_CMD = "cif2bcif"
+DEFAULT_BACKEND = "molstar"
+VALID_BACKENDS = ("molstar", "biotite", "auto")
 
 # BinaryCIF mask values: 0=present, 1="." (inapplicable), 2="?" (missing)
 _MASK_PRESENT = np.uint8(0)
@@ -104,19 +105,28 @@ if not logger.handlers:
     logger.addHandler(handler)
 
 
-def _process_single_cif(args: Tuple[Path, Path, str]) -> Tuple[str, bool]:
+def _normalize_backend(backend: str) -> str:
+    normalized = backend.lower()
+    if normalized not in VALID_BACKENDS:
+        raise ValueError(
+            f"Invalid backend '{backend}'. Use one of: {', '.join(VALID_BACKENDS)}."
+        )
+    return normalized
+
+
+def _process_single_cif(args: Tuple[Path, Path, str, str]) -> Tuple[str, bool]:
     """
     Process a single CIF file. Module-level function for ProcessPoolExecutor pickling.
 
     Args:
-        args: Tuple of (input_file, output_dir, extension)
+        args: Tuple of (input_file, output_dir, extension, backend)
 
     Returns:
         Tuple of (filename, success)
     """
-    input_file, output_dir, ext = args
+    input_file, output_dir, ext, backend = args
     output_file = output_dir / (input_file.stem + ext)
-    success = run_cif2bcif(input_file, output_file)
+    success = run_cif2bcif(input_file, output_file, backend=backend)
     return input_file.name, success
 
 
@@ -189,23 +199,27 @@ def _run_biotite_cif2bcif(
             bcif[block_name] = bcif_block
 
         if output_str.endswith(".bcif.gz"):
-            tmp_path = Path(base_tmpdir) / (output_file.name + ".tmp.bcif")
-            bcif.write(str(tmp_path))
+            raw_tmp_path = _reserve_temp_output_path(
+                base_tmpdir, output_file, suffix=".tmp.bcif"
+            )
+            gz_tmp_path = _reserve_temp_output_path(
+                base_tmpdir, output_file, suffix=".tmp.bcif.gz"
+            )
+            bcif.write(str(raw_tmp_path))
             try:
-                with open(tmp_path, "rb") as f_in:
-                    with gzip.open(output_file, "wb") as f_out:
+                with open(raw_tmp_path, "rb") as f_in:
+                    with gzip.open(gz_tmp_path, "wb") as f_out:
                         f_out.write(f_in.read())
+                _finalize_temp_output(gz_tmp_path, output_file)
             finally:
-                if tmp_path.exists():
-                    tmp_path.unlink(missing_ok=True)
+                raw_tmp_path.unlink(missing_ok=True)
+                gz_tmp_path.unlink(missing_ok=True)
         else:
-            tmp_path = Path(base_tmpdir) / (output_file.name + ".tmp")
+            tmp_path = _reserve_temp_output_path(
+                base_tmpdir, output_file, suffix=".tmp"
+            )
             bcif.write(str(tmp_path))
-            try:
-                tmp_path.replace(output_file)
-            except OSError:
-                # Cross-device rename (e.g. /tmp -> /lustre); fall back to copy+delete
-                shutil.move(str(tmp_path), str(output_file))
+            _finalize_temp_output(tmp_path, output_file)
         return True
 
     except Exception as e:
@@ -215,16 +229,38 @@ def _run_biotite_cif2bcif(
         return False
 
 
+def _reserve_temp_output_path(base_tmpdir: str, output_file: Path, suffix: str) -> Path:
+    prefix = f"{output_file.stem}."
+    fd, tmp_name = tempfile.mkstemp(
+        dir=base_tmpdir,
+        prefix=prefix,
+        suffix=suffix,
+    )
+    os.close(fd)
+    return Path(tmp_name)
+
+
+def _finalize_temp_output(tmp_path: Path, output_file: Path) -> None:
+    try:
+        tmp_path.replace(output_file)
+    except OSError:
+        # Cross-device rename (e.g. /tmp -> /lustre); fall back to move/copy.
+        shutil.move(str(tmp_path), str(output_file))
+
+
 def run_cif2bcif(
-    input_file: Path, output_file: Path, tmpdir: str | None = None
+    input_file: Path,
+    output_file: Path,
+    backend: str = DEFAULT_BACKEND,
+    tmpdir: str | None = None,
 ) -> bool:
     """
-    Convert CIF to BinaryCIF. Prefers Biotite (when version supported) for in-process
-    table-copy; falls back to Mol* cif2bcif CLI for Mol*/gemmi compatibility.
+    Convert CIF to BinaryCIF using the requested backend.
 
     Args:
         input_file: Input CIF file path
         output_file: Output BCIF file path (.bcif or .bcif.gz)
+        backend: Conversion backend: "molstar", "biotite", or "auto"
         tmpdir: Optional directory for temporary writes. Defaults to TMPDIR or
                 the system temp directory.
 
@@ -237,23 +273,44 @@ def run_cif2bcif(
             f"Output file extension '{output_file.suffix}' is not '.bcif' or '.bcif.gz'"
         )
 
+    backend = _normalize_backend(backend)
     logger.info(f"Converting {input_file} to {output_file}")
 
-    if _biotite_version_ok():
+    if backend == "molstar":
+        if _run_molstar_cif2bcif(input_file, output_file):
+            logger.info(f"Conversion complete (Mol*): {output_file}")
+            return True
+        logger.error(f"Conversion failed for {input_file} with Mol* backend")
+        return False
+
+    if backend == "biotite":
+        if not _biotite_version_ok():
+            logger.error(
+                "Biotite missing or version < %s; cannot use Biotite backend.",
+                ".".join(str(x) for x in BIOTITE_MIN_VERSION),
+            )
+            return False
         if _run_biotite_cif2bcif(input_file, output_file, tmpdir=tmpdir):
             logger.info(f"Conversion complete (Biotite): {output_file}")
             return True
-        logger.warning("Biotite conversion failed; trying Mol* cif2bcif.")
-    else:
-        logger.warning(
-            "Biotite missing or version < %s; using Mol* cif2bcif. "
-            "Install/upgrade biotite for faster in-process conversion.",
-            ".".join(str(x) for x in BIOTITE_MIN_VERSION),
-        )
+        logger.error(f"Conversion failed for {input_file} with Biotite backend")
+        return False
+
     if _run_molstar_cif2bcif(input_file, output_file):
         logger.info(f"Conversion complete (Mol*): {output_file}")
         return True
-    logger.error(f"Conversion failed for {input_file} (Biotite and Mol* both failed)")
+
+    logger.warning("Mol* conversion failed; trying Biotite backend.")
+    if not _biotite_version_ok():
+        logger.error(
+            "Biotite missing or version < %s; auto backend has no fallback.",
+            ".".join(str(x) for x in BIOTITE_MIN_VERSION),
+        )
+        return False
+    if _run_biotite_cif2bcif(input_file, output_file, tmpdir=tmpdir):
+        logger.info(f"Conversion complete (Biotite fallback): {output_file}")
+        return True
+    logger.error(f"Conversion failed for {input_file} (Mol* and Biotite backends failed)")
     return False
 
 
@@ -262,11 +319,11 @@ def run_batch_cif2bcif(
     output_dir: Path,
     workers: int = 8,
     gzip: bool = False,
-    pattern: str = "*.cif"
+    pattern: str = "*.cif",
+    backend: str = DEFAULT_BACKEND,
 ) -> Tuple[int, int]:
     """
-    Batch CIF to BinaryCIF conversion. Uses Biotite first (when version supported),
-    then Mol* CLI on failure; ProcessPoolExecutor for parallel execution.
+    Batch CIF to BinaryCIF conversion using the requested backend.
 
     Args:
         input_dir: Directory containing input CIF files
@@ -274,6 +331,7 @@ def run_batch_cif2bcif(
         workers: Number of parallel workers
         gzip: Whether to gzip output files (.bcif.gz)
         pattern: Glob pattern for input files
+        backend: Conversion backend: "molstar", "biotite", or "auto"
 
     Returns:
         Tuple of (success_count, error_count)
@@ -283,12 +341,13 @@ def run_batch_cif2bcif(
         logger.warning(f"No files matching '{pattern}' in {input_dir}")
         return 0, 0
 
+    backend = _normalize_backend(backend)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     ext = ".bcif.gz" if gzip else ".bcif"
 
     # Prepare arguments for each file (module-level function for pickling)
-    work_items = [(f, output_dir, ext) for f in input_files]
+    work_items = [(f, output_dir, ext, backend) for f in input_files]
 
     logger.info(
         f"Processing {len(input_files)} files with {workers} workers (ProcessPool)"
