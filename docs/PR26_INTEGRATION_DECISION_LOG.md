@@ -18,6 +18,8 @@ with the detailed task checklist in
   - `integration-pr-26-gpu-step-3-install-docs`
   - `integration-pr-26-gpu-step-4-dssp`
   - `integration-pr-26-gpu-step-5-cif2bcif`
+  - `integration-pr-26-gpu-step-6-colabfold-manifest` (reviewed on branch,
+    not yet merged)
 - Merged into `integration-pr-26-gpu` so far:
   - Step 1 dependencies/test baseline
   - Step 2 mechanical hygiene
@@ -25,9 +27,10 @@ with the detailed task checklist in
   - Step 4 DSSP refactor branch
   - Step 5 CIF to BCIF conversion review
 
-The immediate next action should be to create `integration-pr-26-gpu-step-6-colabfold-manifest`
-from the verified parent branch and begin the Step 6 ColabFold/manifest
-review there.
+The immediate next action is to review the completed Step 6 branch and decide
+whether to merge `integration-pr-26-gpu-step-6-colabfold-manifest` back into
+`integration-pr-26-gpu`, or to continue directly to Step 7 on a fresh branch
+if Step 6 is intentionally being held unmerged.
 
 ## Why We Created This Integration Structure
 
@@ -111,6 +114,15 @@ Step 5 branch:
   - `1488930 docs: record step 5 cif2bcif status`
 - Merge status:
   - Merged into `integration-pr-26-gpu` with merge commit `2c6d225`.
+
+Step 6 branch:
+
+- Branch: `integration-pr-26-gpu-step-6-colabfold-manifest`
+- Commits:
+  - `a7d28c6 fix: preserve colabfold manifest semantics`
+- Merge status:
+  - Reviewed and verified on the Step 6 branch only; not merged into
+    `integration-pr-26-gpu`.
 
 ## Decisions Made
 
@@ -218,6 +230,42 @@ Implemented in Step 4:
   pipeline defaults to `pydssp`.
 
 ### 7. Preserve Original CIF To BCIF Behavior By Default
+
+### 8. Preserve Global Chain Spans In ColabFold JSON Outputs
+
+Decision:
+
+- Keep `chains.sequenceStart` and `chains.sequenceEnd` aligned to the global
+  flattened pLDDT/PAE indexing used by the original toolkit outputs.
+- Keep the gemmi parser as an implementation detail, but do not change the
+  external chain-span contract.
+
+Reasoning:
+
+- `origin/main` emitted global chain spans.
+- The PR branch changed those spans to per-chain local numbering while still
+  emitting a global `residueNumber` array, which creates a mixed indexing
+  contract.
+- Step 6 keeps the performance improvement and parser fallback, but restores
+  the original output semantics.
+
+### 9. Do Not Guess Ambiguous UniProt Accessions
+
+Decision:
+
+- If an AF ID maps to multiple candidate accessions and no DuckDB-plus-meta
+  evidence is available to disambiguate them, fail that AF ID instead of
+  choosing the first accession alphabetically.
+- Keep the pLDDT-length-based disambiguation path when the necessary evidence
+  is available.
+
+Reasoning:
+
+- Alphabetical fallback is not scientifically meaningful.
+- A failed mapping is easier to detect and repair than a silently incorrect
+  accession assignment.
+- This keeps Step 6 conservative while still allowing deterministic resolution
+  when the accession lengths and ColabFold metadata provide direct evidence.
 
 Decision:
 
@@ -332,29 +380,29 @@ After merging Step 5 into the parent branch:
 ## Immediate Next Action
 
 Continue on `integration-pr-26-gpu-step-6-colabfold-manifest`, which was
-created from the verified `integration-pr-26-gpu` parent branch, and begin the
-Step 6 review from
+created from the verified `integration-pr-26-gpu` parent branch, and use the
+recorded Step 6 evidence in
 [`docs/PR26_INTEGRATION_HANDOVER_PLAN.md`](./PR26_INTEGRATION_HANDOVER_PLAN.md).
 
-## Next Planned Step After Step 5
+## Next Planned Step After Step 6
 
-Step 6 in
+Step 7 in
 [`docs/PR26_INTEGRATION_HANDOVER_PLAN.md`](./PR26_INTEGRATION_HANDOVER_PLAN.md)
 is:
 
-> ColabFold Converter And Manifest Resolver Review
+> GPU Clash/Interface Package Review
 
-Recommended model for Step 6:
+Recommended model for Step 7:
 
 - Model: `GPT-5.4`
 - Reasoning: `medium`
 
-Purpose of Step 6:
+Purpose of Step 7:
 
-- Review `afdb_integration_kit/colabfold/converter.py` and
-  `afdb_integration_kit/manifest/resolver.py`.
-- Confirm chain-span parsing, PAE rounding, caching behavior, and AFID
-  normalization assumptions before merging.
+- Review `afdb_integration_kit/gpu/*` without broadening core dependency
+  requirements.
+- Confirm optional import boundaries, licensing/provenance, and CPU-safe test
+  coverage where feasible.
 
 ## Prompt Pattern For Future Coordinator Sessions
 
