@@ -445,8 +445,8 @@ commit `0529ffa`. Parent-branch verification after the merge:
   warning`.
 
 The Step 8 branch was created from this verified parent after the Step 7
-merge/status documentation commit. Step 8 has now been implemented and
-verified on that branch, but it has not been merged back into the parent yet.
+merge/status documentation commit. Step 8 has now been merged back into the
+parent and re-verified there.
 
 ## Step 8: iPSAE C++ Tool Review
 
@@ -507,12 +507,24 @@ verified on that branch, but it has not been merged back into the parent yet.
 
 Step 8 status:
 
-- Completed on branch `integration-pr-26-gpu-step-8-ipsae`.
-- Not merged back into `integration-pr-26-gpu` yet.
+- Merged back into `integration-pr-26-gpu` with merge commit `e4cef38`.
+
+Parent-branch verification after the merge:
+
+- `make check` in `afdb_integration_kit/ipsae`: passed.
+- `make clean && make` in `afdb_integration_kit/ipsae`: passed and rebuilt
+  `ipsae_cpp`.
+  - Caveat: the static link may emit a host `libgomp.a`/`dlopen` warning, but
+    the build still succeeds.
+- `.venv/bin/python -m pytest -q tests/test_ipsae_cpp.py
+  tests/test_shard_analysis_metadata.py`: passed with `3 passed`.
+- `.venv/bin/python -m compileall -q afdb_integration_kit tests`: passed.
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `80 passed, 2 skipped, 1 warning`.
 
 ## Step 9: Production Pipeline Scripts Review
 
-- [ ] (Model: GPT-5.4) Create branch
+- [x] (Model: GPT-5.4) Create branch
   `integration-pr-26-gpu-step-9-production-pipeline`.
 - [ ] (Model: GPT-5.4) Review `scripts/prepare_inputs.py` and
   `scripts/production_pipeline.py`.

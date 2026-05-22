@@ -20,6 +20,7 @@ with the detailed task checklist in
   - `integration-pr-26-gpu-step-5-cif2bcif`
   - `integration-pr-26-gpu-step-6-colabfold-manifest`
   - `integration-pr-26-gpu-step-7-gpu-analysis`
+  - `integration-pr-26-gpu-step-8-ipsae`
 - Merged into `integration-pr-26-gpu` so far:
   - Step 1 dependencies/test baseline
   - Step 2 mechanical hygiene
@@ -28,11 +29,12 @@ with the detailed task checklist in
   - Step 5 CIF to BCIF conversion review
   - Step 6 ColabFold converter and manifest resolver review
   - Step 7 GPU clash/interface analysis package review
+  - Step 8 iPSAE C++ tool review
 
-The current in-progress integration branch is
-`integration-pr-26-gpu-step-8-ipsae`. Step 8 has been implemented and verified
-on that branch, but it has not been merged back into `integration-pr-26-gpu`
-yet.
+The current verified parent branch remains `integration-pr-26-gpu`, now with
+Step 8 merged and verified. The immediate next action is to prepare Step 9 on
+`integration-pr-26-gpu-step-9-production-pipeline` without starting its
+implementation yet.
 
 ## Why We Created This Integration Structure
 
@@ -148,6 +150,15 @@ Step 7 branch:
     when PyTorch is available.
 - Merge status:
   - Merged into `integration-pr-26-gpu` with merge commit `0529ffa`.
+
+Step 8 branch:
+
+- Branch: `integration-pr-26-gpu-step-8-ipsae`
+- Commits:
+  - `3ac94e8 fix: harden ipsae cpp build and smoke test`
+  - `7eb3116 docs: record ipsae script caveat`
+- Merge status:
+  - Merged into `integration-pr-26-gpu` with merge commit `e4cef38`.
 
 ## Decisions Made
 
@@ -527,9 +538,8 @@ After merging Step 7 into the parent branch:
 
 ## Immediate Next Action
 
-Review Step 8 on `integration-pr-26-gpu-step-8-ipsae` for merge readiness, or
-continue with the next scoped branch only after Step 8 is accepted. Do not
-start Step 9 work on this branch.
+Create and hand off `integration-pr-26-gpu-step-9-production-pipeline` from
+the verified parent branch. Step 9 implementation should not start yet.
 
 ## Step 8 Plan Reference
 
@@ -557,6 +567,7 @@ Purpose of Step 8:
 Branch:
 
 - `integration-pr-26-gpu-step-8-ipsae`
+- Merged back into `integration-pr-26-gpu` with merge commit `e4cef38`
 
 Scope completed on the branch:
 
@@ -612,6 +623,19 @@ Step 8 verification on the branch:
   `ipsae_cpp`.
   - Caveat: the static link emitted a `libgomp.a`/`dlopen` warning from the
     host toolchain, but the build completed successfully.
+- `.venv/bin/python -m pytest -q tests/test_ipsae_cpp.py
+  tests/test_shard_analysis_metadata.py`: passed with `3 passed`.
+- `.venv/bin/python -m compileall -q afdb_integration_kit tests`: passed.
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `80 passed, 2 skipped, 1 warning`.
+
+Parent-branch verification after the merge:
+
+- `make check` in `afdb_integration_kit/ipsae`: passed.
+- `make clean && make` in `afdb_integration_kit/ipsae`: passed and rebuilt
+  `ipsae_cpp`.
+  - Caveat: the static build may emit a host `libgomp.a`/`dlopen` warning, but
+    it still succeeds.
 - `.venv/bin/python -m pytest -q tests/test_ipsae_cpp.py
   tests/test_shard_analysis_metadata.py`: passed with `3 passed`.
 - `.venv/bin/python -m compileall -q afdb_integration_kit tests`: passed.
