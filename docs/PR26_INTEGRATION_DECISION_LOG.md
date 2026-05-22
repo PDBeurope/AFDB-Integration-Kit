@@ -29,10 +29,10 @@ with the detailed task checklist in
   - Step 6 ColabFold converter and manifest resolver review
   - Step 7 GPU clash/interface analysis package review
 
-The immediate next action is Step 8 review work on
-`integration-pr-26-gpu-step-8-ipsae`. The Step 8 branch was created from the
-verified parent after Step 7 was merged and documented; no Step 8
-implementation has started yet.
+The current in-progress integration branch is
+`integration-pr-26-gpu-step-8-ipsae`. Step 8 has been implemented and verified
+on that branch, but it has not been merged back into `integration-pr-26-gpu`
+yet.
 
 ## Why We Created This Integration Structure
 
@@ -527,12 +527,11 @@ After merging Step 7 into the parent branch:
 
 ## Immediate Next Action
 
-Continue with Step 8 on
-`integration-pr-26-gpu-step-8-ipsae`. That branch was created from the verified
-parent after the Step 7 merge/status documentation commit. Do not assume any
-Step 8 implementation or review work has already started.
+Review Step 8 on `integration-pr-26-gpu-step-8-ipsae` for merge readiness, or
+continue with the next scoped branch only after Step 8 is accepted. Do not
+start Step 9 work on this branch.
 
-## Next Planned Step After Step 7
+## Step 8 Plan Reference
 
 Step 8 in
 [`docs/PR26_INTEGRATION_HANDOVER_PLAN.md`](./PR26_INTEGRATION_HANDOVER_PLAN.md)
@@ -552,6 +551,68 @@ Purpose of Step 8:
   source/version/license if retained.
 - Confirm the C++ tool builds locally where compiler support is available.
 - Add a minimal fixture and smoke test for expected CSV output where feasible.
+
+## Step 8 Outcome
+
+Branch:
+
+- `integration-pr-26-gpu-step-8-ipsae`
+
+Scope completed on the branch:
+
+- Reviewed `afdb_integration_kit/ipsae/ipsae_cpp.cpp`,
+  `afdb_integration_kit/ipsae/Makefile`,
+  `afdb_integration_kit/ipsae/deps/json.hpp`,
+  `afdb_integration_kit/ipsae/README.md`,
+  `scripts/production_pipeline.py`, and the repo/script references that mention
+  iPSAE.
+- Kept `deps/json.hpp` vendored and documented its provenance/license in the
+  local iPSAE README.
+- Updated the iPSAE `Makefile` so the default `make` path prefers an already
+  installed Eigen tree before attempting a network fetch into `deps/`.
+- Added `tests/test_ipsae_cpp.py` as a minimal build-and-run smoke test for the
+  batch CSV contract.
+
+Step 8 decisions:
+
+- Vendored `nlohmann/json` is acceptable here.
+  - Version in `deps/json.hpp`: `3.11.3`.
+  - License in the retained upstream header: `MIT`.
+  - Reasoning: it is header-only, already carries SPDX metadata, and keeping it
+    in-repo avoids introducing a separate package-manager dependency for the
+    production pipeline's C++ build path.
+- Eigen remains non-vendored.
+  - Reasoning: the repo already had a Makefile flow that fetched Eigen on
+    demand; Step 8 kept that model but made it less network-dependent by
+    preferring system/local Eigen headers when present.
+- The Step 8 code change stayed scoped to build correctness and testability.
+  - No scoring algorithm rewrite was attempted.
+
+Numerical/scientific caveats recorded during Step 8 review:
+
+- `pae_cutoff` directly controls which residue pairs contribute to ipSAE, but
+  `dist_cutoff` is only used for the reported `dist_nres1`/`dist_nres2` counts.
+  It does not alter the ipSAE score itself.
+- pDockQ uses a fixed 8.0 A contact cutoff in the C++ implementation.
+- LIS uses a fixed 12.0 A PAE cutoff in the C++ implementation.
+- Missing `CB` atoms fall back to `CA` coordinates; the code comment now states
+  this explicitly rather than implying it is glycine-only.
+- The batch summary column naming assumes single-character chain IDs (for
+  example `ipsae_AB` and `ipsae_BA`).
+
+Step 8 verification on the branch:
+
+- `make check` in `afdb_integration_kit/ipsae`: passed, resolving Eigen from
+  `/usr/include/eigen3`.
+- `make clean && make` in `afdb_integration_kit/ipsae`: passed and built
+  `ipsae_cpp`.
+  - Caveat: the static link emitted a `libgomp.a`/`dlopen` warning from the
+    host toolchain, but the build completed successfully.
+- `.venv/bin/python -m pytest -q tests/test_ipsae_cpp.py
+  tests/test_shard_analysis_metadata.py`: passed with `3 passed`.
+- `.venv/bin/python -m compileall -q afdb_integration_kit tests`: passed.
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `80 passed, 2 skipped, 1 warning`.
 
 ## Prompt Pattern For Future Coordinator Sessions
 

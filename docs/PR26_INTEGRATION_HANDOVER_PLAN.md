@@ -445,23 +445,65 @@ commit `0529ffa`. Parent-branch verification after the merge:
   warning`.
 
 The Step 8 branch was created from this verified parent after the Step 7
-merge/status documentation commit. No Step 8 implementation has started yet.
+merge/status documentation commit. Step 8 has now been implemented and
+verified on that branch, but it has not been merged back into the parent yet.
 
 ## Step 8: iPSAE C++ Tool Review
 
 - [x] (Model: GPT-5.4) Create branch
   `integration-pr-26-gpu-step-8-ipsae`.
-- [ ] (Model: GPT-5.4) Review `afdb_integration_kit/ipsae/ipsae_cpp.cpp` and
+- [x] (Model: GPT-5.4) Review `afdb_integration_kit/ipsae/ipsae_cpp.cpp` and
   `Makefile`.
-- [ ] (Model: GPT-5.4) Decide whether vendored `json.hpp` is acceptable.
+  - Added direct standard-library includes used by `ipsae_cpp.cpp`
+    (`<atomic>`, `<iomanip>`, `<map>`) instead of relying on transitive
+    includes from other headers.
+  - Updated the iPSAE `Makefile` so plain `make` prefers an existing local or
+    system Eigen install (`/usr/include/eigen3`, `/usr/local/include/eigen3`,
+    or a repo-local cached copy) before attempting a network fetch.
+- [x] (Model: GPT-5.4) Decide whether vendored `json.hpp` is acceptable.
   - If vendored, document source/version/license.
   - If not, switch to a system/package dependency.
-- [ ] (Model: GPT-5.4) Confirm the C++ tool builds locally with available
+  - Decision: retain vendored `afdb_integration_kit/ipsae/deps/json.hpp`.
+  - Rationale: it is a header-only dependency, already carries upstream SPDX
+    metadata, and keeps the iPSAE build self-contained without adding a new
+    package-manager dependency.
+  - Documentation: added provenance/license notes to
+    `afdb_integration_kit/ipsae/README.md`.
+- [x] (Model: GPT-5.4) Confirm the C++ tool builds locally with available
   compilers.
-- [ ] (Model: GPT-5.4) Add a minimal fixture and test for expected CSV output,
+  - `make check`: passed after the Makefile change, resolving Eigen from
+    `/usr/include/eigen3`.
+  - `make clean && make`: passed and produced `afdb_integration_kit/ipsae/ipsae_cpp`.
+  - Build note: the static link produced a `libgomp.a`/`dlopen` warning from
+    the host toolchain, but the build still succeeded.
+- [x] (Model: GPT-5.4) Add a minimal fixture and test for expected CSV output,
   if build tooling is available.
-- [ ] (Model: GPT-5.4-mini) Run C++ build and smoke test where supported.
-- [ ] (Model: GPT-5.5) Review numerical correctness and threshold handling.
+  - Added `tests/test_ipsae_cpp.py`.
+  - The test builds the tool through the iPSAE `Makefile`, runs a tiny
+    two-chain batch fixture, and checks the summary CSV columns plus basic
+    numeric expectations for `ipsae_AB`, `ipsae_BA`, `LIS_AB`, `LIS_BA`,
+    `iptm_af`, `n0chn`, and `d0chn`.
+- [x] (Model: GPT-5.4-mini) Run C++ build and smoke test where supported.
+  - `.venv/bin/python -m pytest -q tests/test_ipsae_cpp.py
+    tests/test_shard_analysis_metadata.py`: passed with `3 passed`.
+  - `.venv/bin/python -m compileall -q afdb_integration_kit tests`: passed.
+  - `git diff --check`: passed.
+  - `.venv/bin/python -m pytest -q`: passed with `80 passed, 2 skipped, 1 warning`.
+- [x] (Model: GPT-5.5) Review numerical correctness and threshold handling.
+  - Review note: `pae_cutoff` directly gates ipSAE accumulation, while
+    `dist_cutoff` only affects the reported `dist_nres1`/`dist_nres2` counts;
+    it does not change the ipSAE score itself.
+  - Review note: pDockQ contact detection is hard-coded at 8.0 A and LIS uses
+    a hard-coded 12.0 A PAE cutoff; neither is driven by CLI thresholds.
+  - Review note: missing `CB` atoms fall back to `CA` coordinates, including
+    but not limited to glycine residues.
+  - Review note: the batch summary schema assumes single-character chain IDs
+    when constructing columns such as `ipsae_AB` and `ipsae_BA`.
+
+Step 8 status:
+
+- Completed on branch `integration-pr-26-gpu-step-8-ipsae`.
+- Not merged back into `integration-pr-26-gpu` yet.
 
 ## Step 9: Production Pipeline Scripts Review
 

@@ -9,7 +9,9 @@
 
 ### Build
 
-The provided `Makefile` will auto-fetch Eigen on first build:
+The provided `Makefile` prefers an already-available Eigen install (for example
+`/usr/include/eigen3` or `/usr/local/include/eigen3`) and only fetches Eigen
+into `deps/eigen-3.4.0/` when no usable local copy is available:
 
 ```bash
 make            # fetch Eigen if needed, then build static portable binary
@@ -34,6 +36,20 @@ Or pin a different Eigen release:
 ```bash
 make EIGEN_VERSION=3.4.0
 ```
+
+### Dependency provenance and licensing
+
+- `deps/json.hpp` is the upstream [nlohmann/json](https://github.com/nlohmann/json)
+  single-header release, version **3.11.3**.
+- The vendored header retains the upstream SPDX metadata:
+  `SPDX-FileCopyrightText: 2013-2023 Niels Lohmann`
+  and `SPDX-License-Identifier: MIT`.
+- Step 8 integration review keeps `json.hpp` vendored because it is a
+  header-only dependency that keeps the iPSAE build self-contained and avoids
+  adding a separate package-manager requirement for the production pipeline.
+- Eigen is **not** vendored. The build uses Eigen **3.4.0** headers either from
+  a local/system install or from the upstream tarball fetched by `make deps`.
+  Eigen is distributed under the MPL-2.0 license.
 
 ### Manual build (without `make`)
 
