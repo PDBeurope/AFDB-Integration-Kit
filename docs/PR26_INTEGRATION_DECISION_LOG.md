@@ -119,7 +119,11 @@ Step 6 branch:
 
 - Branch: `integration-pr-26-gpu-step-6-colabfold-manifest`
 - Commits:
+  - `830e12f docs: mark step 6 branch prepared`
   - `a7d28c6 fix: preserve colabfold manifest semantics`
+  - `de7e51f docs: record step 6 colabfold review status`
+  - `77ccadc test: add curated colabfold real example fixtures`
+  - `c7549eb test: normalize colabfold real fixtures`
 - Merge status:
   - Reviewed and verified on the Step 6 branch only; not merged into
     `integration-pr-26-gpu`.
