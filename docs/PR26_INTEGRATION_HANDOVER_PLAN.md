@@ -208,6 +208,18 @@ dependency import boundaries from Step 1.
     rather than byte-for-byte `mkdssp` replacements. The shared default remains
     `mkdssp`; the Python algorithms should be treated as opt-in alternatives.
 
+Note: Step 4 has been merged back into `integration-pr-26-gpu` with merge
+commit `f2e5bb0`. Parent-branch verification after the merge:
+
+- `uv run pytest tests/test_pdb.py tests/validation/test_runner.py -q`: passed
+  with `21 passed`.
+- `uv run pytest tests/test_dssp.py -q`: passed with `8 passed, 1 skipped, 1
+  warning`.
+- `.venv/bin/python -m compileall -q afdb_integration_kit/dssp tests`: passed.
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `46 passed, 2 skipped, 1
+  warning`.
+
 ## Step 5: CIF To BCIF Conversion Review
 
 - [ ] (Model: GPT-5.4) Create branch

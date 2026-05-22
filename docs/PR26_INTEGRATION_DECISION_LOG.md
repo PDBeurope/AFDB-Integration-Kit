@@ -10,8 +10,8 @@ with the detailed task checklist in
 - PR being integrated: GitHub PR #26 for `PDBeurope/AFDB-Integration-Kit`.
 - PR snapshot branch: `review/pr-26`.
 - Parent integration branch: `integration-pr-26-gpu`.
-- Current active branch at the end of this conversation:
-  `integration-pr-26-gpu-step-4-dssp`.
+- Current verified parent branch:
+  `integration-pr-26-gpu`.
 - Step branches completed so far:
   - `integration-pr-26-gpu-step-1-dependencies`
   - `integration-pr-26-gpu-step-2-hygiene`
@@ -21,12 +21,11 @@ with the detailed task checklist in
   - Step 1 dependencies/test baseline
   - Step 2 mechanical hygiene
   - Step 3 install documentation
-- Not yet merged into `integration-pr-26-gpu` at the end of this conversation:
   - Step 4 DSSP refactor branch
 
-The immediate next action should be to merge Step 4 back into
-`integration-pr-26-gpu`, verify the parent branch, and then begin Step 5 from
-the updated parent branch.
+The immediate next action should be to create Step 5 from the verified parent
+branch and review CIF to BCIF conversion. Do not implement CIF/BCIF changes
+until that Step 5 branch is active.
 
 ## Why We Created This Integration Structure
 
@@ -97,9 +96,9 @@ Step 4 branch:
   - `ffa6647 docs: update step 4 dssp status`
   - `8508d7a fix: restore mkdssp as DSSP default`
   - `a9a9d15 docs: clarify DSSP install requirement`
+  - `3e97327 docs: add PR 26 integration decision log`
 - Merge status:
-  - Not merged into `integration-pr-26-gpu` at the time this decision log was
-    written.
+  - Merged into `integration-pr-26-gpu` with merge commit `f2e5bb0`.
 
 ## Decisions Made
 
@@ -240,11 +239,20 @@ After Step 4:
 - `.venv/bin/python -m compileall -q afdb_integration_kit/dssp tests`: passed.
 - `git diff --check`: passed.
 
+After merging Step 4 into the parent branch:
+
+- Merge commit: `f2e5bb0`.
+- `uv run pytest tests/test_pdb.py tests/validation/test_runner.py -q`: passed
+  with `21 passed`.
+- `uv run pytest tests/test_dssp.py -q`: passed with `8 passed, 1 skipped, 1
+  warning`.
+- `.venv/bin/python -m compileall -q afdb_integration_kit/dssp tests`: passed.
+- `git diff --check`: passed.
+- `.venv/bin/python -m pytest -q`: passed with `46 passed, 2 skipped, 1
+  warning`.
+
 ## Known Caveats And Follow-Up Needs
 
-- Step 4 is complete but not yet merged into `integration-pr-26-gpu`.
-- After merging Step 4, rerun the parent-branch verification before starting
-  Step 5.
 - The production pipeline intentionally defaults to `pydssp`; this is the one
   explicit DSSP-default exception. The shared CLI/library default is `mkdssp`.
 - Python algorithms (`psea`, `pydssp`, `tmalign`) are 3-state approximations and
@@ -257,24 +265,10 @@ After Step 4:
 
 ## Immediate Next Action
 
-Merge Step 4 back into the parent branch:
-
-1. Switch to `integration-pr-26-gpu`.
-2. Merge `integration-pr-26-gpu-step-4-dssp` with a normal merge commit.
-3. Resolve conflicts if any, especially in:
-   - `docs/PR26_INTEGRATION_HANDOVER_PLAN.md`
-   - `README.md`
-4. Run parent verification:
-   - `git status --short --branch`
-   - `git log --oneline --decorate --graph -14`
-   - `git diff --check`
-   - `.venv/bin/python -m pytest -q`
-   - `.venv/bin/python -m compileall -q main.py afdb_integration_kit uniprot scripts tests`
-   - `UV_CACHE_DIR=/tmp/uv-cache uv lock --locked`
-   - `UV_CACHE_DIR=/tmp/uv-cache uv export --locked --no-hashes --output-file=requirements.txt --no-dev`
-   - `UV_CACHE_DIR=/tmp/uv-cache uv export --locked --no-hashes --extra production --output-file /tmp/production-req.txt --no-dev`
-5. Leave `integration-pr-26-gpu` clean.
-6. Then Step 5 can start from the updated parent branch.
+Create `integration-pr-26-gpu-step-5-cif2bcif` from the verified
+`integration-pr-26-gpu` parent branch, then begin the Step 5 CIF to BCIF
+conversion review from
+[`docs/PR26_INTEGRATION_HANDOVER_PLAN.md`](./PR26_INTEGRATION_HANDOVER_PLAN.md).
 
 ## Next Planned Step After Step 4 Merge
 
