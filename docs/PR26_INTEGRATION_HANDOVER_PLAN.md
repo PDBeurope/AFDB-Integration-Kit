@@ -499,6 +499,11 @@ verified on that branch, but it has not been merged back into the parent yet.
     but not limited to glycine residues.
   - Review note: the batch summary schema assumes single-character chain IDs
     when constructing columns such as `ipsae_AB` and `ipsae_BA`.
+  - Deferred note: `uniprot/scripts/batch_ipsae.py` still appears fork-stale
+    relative to the reviewed binary path/CLI (`afdb_integration_kit/ipsae/ipsae_cpp`).
+    Step 8 did not widen scope into a UniProt script rewrite because the active
+    production path uses `scripts/production_pipeline.py`; revisit that script
+    in Step 10 if it is still intended to be supported.
 
 Step 8 status:
 

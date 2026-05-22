@@ -599,6 +599,10 @@ Numerical/scientific caveats recorded during Step 8 review:
   this explicitly rather than implying it is glycine-only.
 - The batch summary column naming assumes single-character chain IDs (for
   example `ipsae_AB` and `ipsae_BA`).
+- `uniprot/scripts/batch_ipsae.py` appears fork-stale relative to the reviewed
+  C++ binary path and CLI. Step 8 left it unchanged because the active
+  production path uses `scripts/production_pipeline.py`; if that UniProt script
+  is still meant to be supported, fix or retire it during Step 10.
 
 Step 8 verification on the branch:
 
