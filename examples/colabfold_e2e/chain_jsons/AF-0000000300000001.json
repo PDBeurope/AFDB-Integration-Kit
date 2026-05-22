@@ -1,0 +1,49 @@
+[
+  {
+    "uniqueId": "AF-0000000300000001_v1_A",
+    "toolUsed": "ColabFold v1.6.0 / AlphaFold-Multimer",
+    "modelCreatedDate": "2026-05-22T00:00:00Z",
+    "modelEntityId": "AF-0000000300000001",
+    "isComplex": false,
+    "complexName": null,
+    "uniprotAccession": "O00400",
+    "uniprotId": "ACATN_HUMAN",
+    "uniprotDescription": "Acetyl-coenzyme A transporter 1",
+    "gene": "SLC33A1",
+    "geneSynonyms": [
+      "ACATN",
+      "AT1"
+    ],
+    "taxId": 9606,
+    "organismScientificName": "Homo sapiens (Human)",
+    "organismCommonNames": [
+      "Human"
+    ],
+    "organismSynonyms": [],
+    "assemblyType": null,
+    "oligomericState": null,
+    "oligomericStateDescription": null,
+    "sequence": "MSPTISHKDSSRQRRPGNFSHSLDMKSGPLPPGGWDDSHLDSAGREGDREALLGDTGTGDFLKAPQSFRAELSSILLLLFLYVLQGIPLGLAGSIPLILQSKNVSYTDQAFFSFVFWPFSLKLLWAPLVDAVYVKNFGRRKSWLVPTQYILGLFMIYLSTQVDRLLGNTDDRTPDVIALTVAFFLFEFLAATQDIAVDGWALTMLSRENVGYASTCNSVGQTAGYFLGNVLFLALESADFCNKYLRFQPQPRGIVTLSDFLFFWGTVFLITTTLVALLKKENEVSVVKEETQGITDTYKLLFAIIKMPAVLTFCLLILTAKIGFSAADAVTGLKLVEEGVPKEHLALLAVPMVPLQIILPLIISKYTAGPQPLNTFYKAMPYRLLLGLEYALLVWWTPKVEHQGGFPIYYYIVVLLSYALHQVTVYSMYVSIMAFNAKVSDPLIGGTYMTLLNTVSNLGGNWPSTVALWLVDPLTVKECVGASNQNCRTPDAVELCKKLGGSCVTALDGYYVESIICVFIGFGWWFFLGPKFKKLQDEGSSSWKCKRNN",
+    "sequenceChecksum": "464c8b39b7d236c9c0eb7410cba3a93f",
+    "sequenceVersionDate": "1997-07-01T00:00:00Z",
+    "sequenceStart": 1,
+    "sequenceEnd": 549,
+    "isIsoform": false,
+    "isFragment": false,
+    "isUniProt": true,
+    "isUniProtReferenceProteome": true,
+    "isUniProtReviewed": true,
+    "globalMetricValue": 81.38,
+    "fractionPlddtVeryLow": 0.14,
+    "fractionPlddtLow": 0.03,
+    "fractionPlddtConfident": 0.33,
+    "fractionPlddtVeryHigh": 0.51,
+    "latestVersion": 1,
+    "allVersions": [
+      1
+    ],
+    "providerId": "EXAMPLE",
+    "entityType": "protein",
+    "isAMdata": false
+  }
+]

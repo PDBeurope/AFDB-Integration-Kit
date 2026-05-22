@@ -1,0 +1,4 @@
+model_entity_id,entity_id,chain_id,uniprot_ac,sequence_start,sequence_end
+AF-0000000300000001,1,A,O00400,1,549
+AF-0000000300000002,1,A,O64637,1,512
+AF-0000000300000003,1,A,Q9TVL3,1,478
