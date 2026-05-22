@@ -290,7 +290,7 @@ commit `2c6d225`. Parent-branch verification after the merge:
 
 ## Step 6: ColabFold Converter And Manifest Resolver Review
 
-- [ ] (Model: GPT-5.4) Create branch
+- [x] (Model: GPT-5.4) Create branch
   `integration-pr-26-gpu-step-6-colabfold-manifest`.
 - [ ] (Model: GPT-5.4) Review `afdb_integration_kit/colabfold/converter.py`
   changes.

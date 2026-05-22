@@ -331,8 +331,9 @@ After merging Step 5 into the parent branch:
 
 ## Immediate Next Action
 
-Create `integration-pr-26-gpu-step-6-colabfold-manifest` from the verified
-`integration-pr-26-gpu` parent branch and begin the Step 6 review from
+Continue on `integration-pr-26-gpu-step-6-colabfold-manifest`, which was
+created from the verified `integration-pr-26-gpu` parent branch, and begin the
+Step 6 review from
 [`docs/PR26_INTEGRATION_HANDOVER_PLAN.md`](./PR26_INTEGRATION_HANDOVER_PLAN.md).
 
 ## Next Planned Step After Step 5
