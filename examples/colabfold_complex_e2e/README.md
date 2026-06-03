@@ -59,10 +59,9 @@ The generated files follow the old Nextflow end-to-end order:
 - `mkdssp` was available locally and was used for the DSSP step.
 - Mol* `cif2bcif` was not on `PATH`, so the example uses the explicit
   `biotite` backend instead.
-- The local `biotite` backend could not convert the DSSP-enriched CIF files.
-  Each `.bcif` file in [`bcif/`](./bcif/) was therefore generated from the
-  pre-DSSP ModelCIF file instead. The per-model status is recorded in
-  [`run_summary.json`](./run_summary.json).
+- The committed `.bcif` files were generated directly from the
+  DSSP-enriched CIF files in [`dssp/`](./dssp/). The per-model status is
+  recorded in [`run_summary.json`](./run_summary.json).
 - `pydssp` is not installed in this environment, so it was not used.
 - The heterodimer fixture metadata is exported as fragment chains using local
   chain ranges from the curated fixture set. This example does not reconstruct

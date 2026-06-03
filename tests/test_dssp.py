@@ -15,6 +15,9 @@ from afdb_integration_kit.dssp.dssp import (
 
 
 EXAMPLE_CIF = Path("examples/AF-0000000000000001-model_v1.cif")
+COMPLEX_EXAMPLE_CIF = Path(
+    "examples/colabfold_complex_e2e/modelcif/AF-0000000065760001-model_v1.cif"
+)
 
 
 def _category_rows(block, category):
@@ -25,6 +28,10 @@ def _category_rows(block, category):
     ]
 
 
+def _unquote(value: str) -> str:
+    return value.strip("'").strip('"')
+
+
 def test_default_algorithm_preserves_mkdssp_behavior():
     assert DEFAULT_ALGORITHM == "mkdssp"
 
@@ -32,17 +39,113 @@ def test_default_algorithm_preserves_mkdssp_behavior():
 def test_default_dssp_uses_mkdssp_subprocess(monkeypatch, tmp_path):
     output = tmp_path / "mkdssp.cif"
     calls = []
+    raw_output = """data_mkdssp
+#
+loop_
+_struct_conf_type.id
+_struct_conf_type.criteria
+HELX_P DSSP
+#
+loop_
+_struct_conf.id
+_struct_conf.conf_type_id
+_struct_conf.beg_label_comp_id
+_struct_conf.beg_label_asym_id
+_struct_conf.beg_label_seq_id
+_struct_conf.pdbx_beg_PDB_ins_code
+_struct_conf.end_label_comp_id
+_struct_conf.end_label_asym_id
+_struct_conf.end_label_seq_id
+_struct_conf.pdbx_end_PDB_ins_code
+_struct_conf.beg_auth_comp_id
+_struct_conf.beg_auth_asym_id
+_struct_conf.beg_auth_seq_id
+_struct_conf.end_auth_comp_id
+_struct_conf.end_auth_asym_id
+_struct_conf.end_auth_seq_id
+HELX_P1 HELX_P ILE A 3 ? THR A 25 ? ILE A 3 THR A 25
+#
+loop_
+_citation_author.citation_id
+_citation_author.ordinal
+_citation_author.name
+1 2 'O'Neill, Michael'
+#
+"""
 
     def fake_run(command, capture_output, text):
         calls.append((command, capture_output, text))
-        output.write_text("data_mkdssp\n", encoding="utf-8")
+        Path(command[2]).write_text(raw_output, encoding="utf-8")
         return SimpleNamespace(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(dssp_module.subprocess, "run", fake_run)
 
     assert run_dssp(EXAMPLE_CIF, output)
-    assert calls == [(["mkdssp", str(EXAMPLE_CIF), str(output)], True, True)]
-    assert output.read_text(encoding="utf-8") == "data_mkdssp\n"
+    assert len(calls) == 1
+    assert calls[0][0][0] == "mkdssp"
+    assert calls[0][0][1] == str(EXAMPLE_CIF)
+    assert calls[0][0][2] != str(output)
+    block = gemmi.cif.read(str(output)).sole_block()
+    assert block.find_value("_entry.id") == "AF-0000000000000001-model_v1"
+    assert any(
+        _unquote(row[0]) == "HELX_P" and _unquote(row[1]) == "DSSP"
+        for row in _category_rows(block, "_struct_conf_type.")
+    )
+
+
+def test_merge_mkdssp_output_preserves_original_categories_and_avoids_bad_quotes(tmp_path):
+    output = tmp_path / "merged.cif"
+    raw_mkdssp = tmp_path / "raw.cif"
+    raw_mkdssp.write_text(
+        """data_mkdssp
+#
+loop_
+_struct_conf_type.id
+_struct_conf_type.criteria
+HELX_RH_AL_P DSSP
+#
+loop_
+_struct_conf.id
+_struct_conf.conf_type_id
+_struct_conf.beg_label_comp_id
+_struct_conf.beg_label_asym_id
+_struct_conf.beg_label_seq_id
+_struct_conf.pdbx_beg_PDB_ins_code
+_struct_conf.end_label_comp_id
+_struct_conf.end_label_asym_id
+_struct_conf.end_label_seq_id
+_struct_conf.pdbx_end_PDB_ins_code
+_struct_conf.beg_auth_comp_id
+_struct_conf.beg_auth_asym_id
+_struct_conf.beg_auth_seq_id
+_struct_conf.end_auth_comp_id
+_struct_conf.end_auth_asym_id
+_struct_conf.end_auth_seq_id
+HELX_RH_AL_P1 HELX_RH_AL_P ILE A 3 ? THR A 25 ? ILE A 3 THR A 25
+#
+loop_
+_citation_author.citation_id
+_citation_author.ordinal
+_citation_author.name
+1 2 'O'Neill, Michael'
+#
+""",
+        encoding="utf-8",
+    )
+
+    assert dssp_module._merge_mkdssp_annotations(COMPLEX_EXAMPLE_CIF, raw_mkdssp, output)
+
+    text = output.read_text(encoding="utf-8")
+    assert "\"O'Neill, Michael\"" in text
+    assert "'O'Neill, Michael'" not in text
+
+    block = gemmi.cif.read(str(output)).sole_block()
+    assert block.find_value("_entry.id") == "AF-0000000065760001"
+    assert block.find_mmcif_category("_ma_qa_metric_local.").width() > 0
+    assert any(
+        _unquote(row[0]) == "HELX_RH_AL_P" and _unquote(row[1]) == "DSSP"
+        for row in _category_rows(block, "_struct_conf_type.")
+    )
 
 
 def test_mkdssp_failure_is_reported_when_executable_is_missing(monkeypatch, tmp_path):

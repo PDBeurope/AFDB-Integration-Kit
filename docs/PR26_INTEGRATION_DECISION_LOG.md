@@ -646,10 +646,9 @@ Parent-branch verification after the merge:
 - Reproducing the Step 9 example metadata exports requires access to the local
   DuckDB at
   `/mnt/disks/toolkit-data/uniprot_extract_2025_04_merged_5way/db/uniprot_2025_04_merged_5way.duckdb`.
-- The local Biotite BCIF backend currently fails on the DSSP-enriched mmCIF
-  outputs with a `citation_author` deserialization error; the Step 9 example
-  falls back to pre-DSSP ModelCIF files for BCIF generation when Mol* is not
-  installed.
+- The `mkdssp` binary rewrites CIF metadata aggressively enough that the DSSP
+  wrapper now needs to treat its output as an intermediate annotation source
+  and merge `_struct_conf` categories back into the original ModelCIF.
 - Some future steps will require stronger review because they touch scientific
   correctness and output formats, especially ModelCIF, ColabFold conversion,
   GPU clash/interface analysis, iPSAE, and Nextflow.

@@ -14,6 +14,7 @@ insertion codes).
 """
 import logging
 import subprocess
+import tempfile
 from collections import namedtuple
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -372,7 +373,16 @@ def _add_struct_conf_to_cif(
 
 
 def _run_mkdssp(input_file: Path, output_file: Path) -> bool:
-    """Run the external mkdssp binary, preserving the legacy subprocess path."""
+    """Run mkdssp and merge its secondary-structure annotations into the input CIF."""
+    with tempfile.TemporaryDirectory(prefix="mkdssp-") as tmpdir:
+        intermediate = Path(tmpdir) / f"{input_file.stem}.mkdssp.cif"
+        if not _run_mkdssp_raw(input_file, intermediate):
+            return False
+        return _merge_mkdssp_annotations(input_file, intermediate, output_file)
+
+
+def _run_mkdssp_raw(input_file: Path, output_file: Path) -> bool:
+    """Run the external mkdssp binary and write its raw CIF output."""
     try:
         result = subprocess.run(
             ["mkdssp", str(input_file), str(output_file)],
@@ -389,6 +399,47 @@ def _run_mkdssp(input_file: Path, output_file: Path) -> bool:
     if result.returncode != 0:
         logger.error(f"mkdssp failed for {input_file}: {result.stderr}")
         return False
+    return True
+
+
+def _copy_mmcif_category(
+    source_block: gemmi.cif.Block,
+    target_block: gemmi.cif.Block,
+    category: str,
+) -> bool:
+    table = source_block.find_mmcif_category(category)
+    if table.width() == 0:
+        return False
+    target_block.set_mmcif_category(category, source_block.get_mmcif_category(category))
+    return True
+
+
+def _merge_mkdssp_annotations(
+    input_file: Path,
+    mkdssp_output_file: Path,
+    output_file: Path,
+) -> bool:
+    """Preserve the original ModelCIF and copy DSSP categories from mkdssp output."""
+    try:
+        source_doc = gemmi.cif.read(str(input_file))
+        source_block = source_doc.sole_block()
+        dssp_doc = gemmi.cif.read(str(mkdssp_output_file))
+        dssp_block = dssp_doc.sole_block()
+    except Exception as exc:
+        logger.error(f"Failed to read mkdssp annotation source for {input_file}: {exc}")
+        return False
+
+    copied = [
+        _copy_mmcif_category(dssp_block, source_block, "_struct_conf_type."),
+        _copy_mmcif_category(dssp_block, source_block, "_struct_conf."),
+    ]
+    if not all(copied):
+        logger.error(
+            f"mkdssp output for {input_file} is missing _struct_conf annotations"
+        )
+        return False
+
+    source_doc.write_file(str(output_file))
     return True
 
 

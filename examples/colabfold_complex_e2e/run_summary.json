@@ -8,16 +8,14 @@
   "bcif_backend": "biotite",
   "bcif_results": {
     "AF-0000000065760001": {
-      "status": "generated_with_fallback",
-      "source_cif": "modelcif/AF-0000000065760001-model_v1.cif",
-      "output_bcif": "bcif/AF-0000000065760001-model_v1.bcif",
-      "reason": "BCIF generation from the DSSP-enriched CIF failed with the local backend; the example BCIF was generated from the pre-DSSP ModelCIF instead."
+      "status": "generated",
+      "source_cif": "dssp/AF-0000000065760001-model_v1.cif",
+      "output_bcif": "bcif/AF-0000000065760001-model_v1.bcif"
     },
     "AF-0000000300000101": {
-      "status": "generated_with_fallback",
-      "source_cif": "modelcif/AF-0000000300000101-model_v1.cif",
-      "output_bcif": "bcif/AF-0000000300000101-model_v1.bcif",
-      "reason": "BCIF generation from the DSSP-enriched CIF failed with the local backend; the example BCIF was generated from the pre-DSSP ModelCIF instead."
+      "status": "generated",
+      "source_cif": "dssp/AF-0000000300000101-model_v1.cif",
+      "output_bcif": "bcif/AF-0000000300000101-model_v1.bcif"
     }
   },
   "tool_status": {

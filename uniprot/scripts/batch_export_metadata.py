@@ -657,7 +657,7 @@ def build_model_record(
             if oligomeric_state and oligomeric_state.lower().endswith("mer"):
                 prefix = f"Homo{oligomeric_state.lower()}"
             complex_name = f"{prefix.capitalize()} of {base_desc}"
-        else:
+        elif len(manifest_rows) == 2:
             name_parts = descriptions or accessions
             complex_name = "Complex of " + "/".join(name_parts)
 
@@ -786,7 +786,7 @@ def build_chain_records(
             if oligomeric_state and oligomeric_state.lower().endswith("mer"):
                 prefix = f"Homo{oligomeric_state.lower()}"
             complex_name = f"{prefix.capitalize()} of {base_desc}"
-        else:
+        elif len(manifest_rows) == 2:
             name_parts = [comp.uniprot_description or comp.accession for comp in components]
             complex_name = "Complex of " + "/".join(name_parts)
 
