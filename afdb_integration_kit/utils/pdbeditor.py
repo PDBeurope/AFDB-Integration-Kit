@@ -83,7 +83,7 @@ class PDBFileEditor:
         # final_lines.append("END")
 
         with open(filename, 'w') as f:
-            f.writelines(final_lines)
+            f.writelines(line.rstrip() + '\n' for line in final_lines)
     
     def _get_record_name(self, line):
         """Helper to get the record name from a line."""

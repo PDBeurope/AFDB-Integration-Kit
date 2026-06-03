@@ -68,6 +68,13 @@ The generated files follow the old Nextflow end-to-end order:
   chain ranges from the curated fixture set. This example does not reconstruct
   authoritative UniProt residue offsets beyond what is committed in the
   fixture corpus.
+- Those local fragment ranges are preserved through the generated ModelCIF
+  entity/reference alignment metadata and the heterodimer complex now gets an
+  AFDB-style fallback complex name (`Complex of .../...`) in the JSON and PDB
+  outputs.
+- Legacy PDB `DBREF` records remain a format caveat for long UniProt
+  accessions. The mmCIF/ModelCIF and JSON artifacts are the authoritative
+  metadata outputs for the heterodimer example.
 - iPSAE, clash, and interface analysis are intentionally not part of this
   example because the target here is the raw ColabFold -> final AFDB artifact
   path.

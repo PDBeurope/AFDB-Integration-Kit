@@ -841,8 +841,8 @@
         1
       ],
       "seq_db_align_end": [
-        136,
-        209
+        30,
+        33
       ],
       "seq_db_isoform": [
         "?",
@@ -917,8 +917,8 @@
         "no"
       ],
       "pdbx_seq_one_letter_code": [
-        "MFVQEVRRFYPFGPFLGARVRTDFTWNNCRFTKGRLVLLDMYGTNHDPRLWEQPYEFSPGFKDWEGSLFDLIPQGGGNPYNGHRCPGESITIEAMKISLDFLANKIAYEVPPQELDFSLTRMPAIPKSRFILKNVR",
-        "MTKGILGRKIGMTQVFAENGELIPVTVVEAAPNVVLQVKSVEADGYEAIQVGFETKREKLSNKPEKGHAEKAKTAPKRFVREFREVNLGEYEVGQEVQVNIFAEGDMVDVTGISKGKGFQGAIKRHGQSRGPMAHGSRYHRRPGSMGPVAPNRVFKGKLLPGRMGGEQITVQNLQIVRVDADRNLLLIKGNVPGARKALLKIKSAVKAK"
+        "MFVQEVRRFYPFGPFLGARVRTDFTWNNCR",
+        "MTKGILGRKIGMTQVFAENGELIPVTVVEAAPN"
       ],
       "type": [
         "polypeptide(L)",
@@ -969,16 +969,16 @@
         1
       ],
       "seq_align_end": [
-        136,
-        209
+        30,
+        33
       ],
       "db_align_beg": [
         1,
         1
       ],
       "db_align_end": [
-        136,
-        209
+        30,
+        33
       ]
     }
   },

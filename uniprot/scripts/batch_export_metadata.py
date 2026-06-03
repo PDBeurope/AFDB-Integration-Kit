@@ -650,12 +650,16 @@ def build_model_record(
         sequence_end_value = consistent_or_none(sequence_ends)
 
     complex_name = model_meta.complex_name if model_meta else None
-    if not complex_name and is_complex and assembly_type == "Homo":
-        base_desc = descriptions[0] if descriptions else accessions[0]
-        prefix = "Homomer" if not oligomeric_state else oligomeric_state.capitalize()
-        if oligomeric_state and oligomeric_state.lower().endswith("mer"):
-            prefix = f"Homo{oligomeric_state.lower()}"
-        complex_name = f"{prefix.capitalize()} of {base_desc}"
+    if not complex_name and is_complex:
+        if assembly_type == "Homo":
+            base_desc = descriptions[0] if descriptions else accessions[0]
+            prefix = "Homomer" if not oligomeric_state else oligomeric_state.capitalize()
+            if oligomeric_state and oligomeric_state.lower().endswith("mer"):
+                prefix = f"Homo{oligomeric_state.lower()}"
+            complex_name = f"{prefix.capitalize()} of {base_desc}"
+        else:
+            name_parts = descriptions or accessions
+            complex_name = "Complex of " + "/".join(name_parts)
 
     is_am_data = False
     if model_meta and model_meta.is_am_data is not None:
@@ -775,12 +779,16 @@ def build_chain_records(
     iptm_value = model_meta.iptm if (is_complex and model_meta) else None
 
     complex_name = model_meta.complex_name if model_meta else None
-    if not complex_name and is_complex and assembly_type == "Homo":
-        base_desc = components[0].uniprot_description if components else model_entity_id
-        prefix = "Homomer" if not oligomeric_state else oligomeric_state.capitalize()
-        if oligomeric_state and oligomeric_state.lower().endswith("mer"):
-            prefix = f"Homo{oligomeric_state.lower()}"
-        complex_name = f"{prefix.capitalize()} of {base_desc}"
+    if not complex_name and is_complex:
+        if assembly_type == "Homo":
+            base_desc = components[0].uniprot_description if components else model_entity_id
+            prefix = "Homomer" if not oligomeric_state else oligomeric_state.capitalize()
+            if oligomeric_state and oligomeric_state.lower().endswith("mer"):
+                prefix = f"Homo{oligomeric_state.lower()}"
+            complex_name = f"{prefix.capitalize()} of {base_desc}"
+        else:
+            name_parts = [comp.uniprot_description or comp.accession for comp in components]
+            complex_name = "Complex of " + "/".join(name_parts)
 
     is_am_data = False
     if model_meta and model_meta.is_am_data is not None:

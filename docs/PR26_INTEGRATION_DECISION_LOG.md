@@ -60,6 +60,19 @@ Completed on that branch:
   curated complex fragments to complete the example flow.
 - Adjusted the example helper so staged chain manifests use per-chain local
   residue ranges, which keeps downstream complex metadata export consistent.
+- Tightened the complex example exports against AFDB-style conventions:
+  heterodimer metadata now gets an AFDB-style fallback complex name,
+  fragment ranges are preserved in ModelCIF entity/reference alignment blocks,
+  and heterodimer PDB headers now keep separate molecule/chain sections per
+  entity instead of collapsing both chains onto the first component.
+
+Remaining targeted caveat on that branch:
+
+- The legacy PDB writer still emits placeholder `DBREF` values for long
+  UniProt accessions because only fixed-width `DBREF` output is implemented.
+  The committed complex example therefore treats the mmCIF/ModelCIF and JSON
+  metadata as authoritative for the heterodimer until DBREF1/DBREF2 support is
+  added.
 
 ## Why We Created This Integration Structure
 

@@ -15,8 +15,8 @@ _entity_poly.nstd_linkage
 _entity_poly.nstd_monomer
 _entity_poly.pdbx_seq_one_letter_code
 _entity_poly.type
-1 no no MFVQEVRRFYPFGPFLGARVRTDFTWNNCRFTKGRLVLLDMYGTNHDPRLWEQPYEFSPGFKDWEGSLFDLIPQGGGNPYNGHRCPGESITIEAMKISLDFLANKIAYEVPPQELDFSLTRMPAIPKSRFILKNVR polypeptide(L)
-2 no no MTKGILGRKIGMTQVFAENGELIPVTVVEAAPNVVLQVKSVEADGYEAIQVGFETKREKLSNKPEKGHAEKAKTAPKRFVREFREVNLGEYEVGQEVQVNIFAEGDMVDVTGISKGKGFQGAIKRHGQSRGPMAHGSRYHRRPGSMGPVAPNRVFKGKLLPGRMGGEQITVQNLQIVRVDADRNLLLIKGNVPGARKALLKIKSAVKAK polypeptide(L)
+1 no no MFVQEVRRFYPFGPFLGARVRTDFTWNNCR    polypeptide(L)
+2 no no MTKGILGRKIGMTQVFAENGELIPVTVVEAAPN polypeptide(L)
 
 loop_
 _struct_ref.id
@@ -36,8 +36,8 @@ _struct_ref_seq.seq_align_beg
 _struct_ref_seq.seq_align_end
 _struct_ref_seq.db_align_beg
 _struct_ref_seq.db_align_end
-1 1 AF-0000000300000101 A 1 30 1 136
-2 2 AF-0000000300000101 B 1 33 1 209
+1 1 AF-0000000300000101 A 1 30 1 30
+2 2 AF-0000000300000101 B 1 33 1 33
 
 loop_
 _chem_comp.formula
@@ -1017,8 +1017,8 @@ _ma_target_ref_db_details.seq_db_align_end
 _ma_target_ref_db_details.seq_db_isoform
 _ma_target_ref_db_details.seq_db_sequence_checksum
 _ma_target_ref_db_details.seq_db_sequence_version_date
-1 UNP A0ABS2QMZ4 'A0ABS2QMZ4_9BACI' 'JOC77_003991' 673318 'Peribacillus deserti' 1 136 ? F517D560CC54D2CD 2025-10-08
-2 UNP A0ABS2QMF5 'A0ABS2QMF5_9BACI' 'JOC77_003818' 673318 'Peribacillus deserti' 1 209 ? A3C21287E416CF8F 2025-10-08
+1 UNP A0ABS2QMZ4 'A0ABS2QMZ4_9BACI' 'JOC77_003991' 673318 'Peribacillus deserti' 1 30 ? F517D560CC54D2CD 2025-10-08
+2 UNP A0ABS2QMF5 'A0ABS2QMF5_9BACI' 'JOC77_003818' 673318 'Peribacillus deserti' 1 33 ? A3C21287E416CF8F 2025-10-08
 
 loop_
 _ma_target_entity.data_id
