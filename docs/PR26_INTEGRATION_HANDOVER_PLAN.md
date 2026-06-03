@@ -586,8 +586,44 @@ Parent-branch verification after the merge:
   - `.venv/bin/python scripts/generate_colabfold_e2e_example.py --duckdb
     /mnt/disks/toolkit-data/uniprot_extract_2025_04_merged_5way/db/uniprot_2025_04_merged_5way.duckdb
     --output-dir examples/colabfold_e2e`: passed.
-  - Merge commit on the parent branch: `a07e8ce` (`merge
+  - Merge commit on the parent branch: `ff96f0a` (`merge
     integration-pr-26-gpu-step-9-production-pipeline`).
+
+## Examples Follow-Up Track: Complex End-To-End References
+
+The broad PR #26 step checklist below is deferred for now. The current priority
+is to use this repository as a toolkit and script collection, not to support
+every possible orchestration style or fully certify the old Nextflow pipeline.
+
+Step 9 established a small monomer reference at `examples/colabfold_e2e/`.
+Future work should keep that reference reproducible and then add comparable
+runnable references for curated ColabFold-style complexes.
+
+- [ ] (Model: GPT-5.4) Create branch
+  `integration-pr-26-gpu-examples-complex-e2e` from `integration-pr-26-gpu`.
+- [ ] (Model: GPT-5.4) Re-run or inspect the committed monomer reference under
+  `examples/colabfold_e2e/` and confirm the README, commands, run summary, and
+  generated artifacts are coherent.
+- [ ] (Model: GPT-5.4) Use the old Nextflow workflow only as the required
+  sequence/output reference.
+  - Do not rewrite the Nextflow pipeline.
+  - Do not require users to use Nextflow.
+  - Treat the e2e examples as script-stitching proofs that individual toolkit
+    commands can be composed.
+- [ ] (Model: GPT-5.4) Add a small homodimer example using the curated fixtures
+  under `tests/fixtures/colabfold_real_examples/homodimers`.
+- [ ] (Model: GPT-5.4) Add a small heterodimer example using the curated
+  fixtures under `tests/fixtures/colabfold_real_examples/heterodimers`.
+- [ ] (Model: GPT-5.4) Use the supplied local DuckDB for metadata exports:
+  `/mnt/disks/toolkit-data/uniprot_extract_2025_04_merged_5way/db/uniprot_2025_04_merged_5way.duckdb`.
+- [ ] (Model: GPT-5.4) Fix only blockers that prevent the stitched script
+  sequence from producing reference artifacts.
+  - Keep broad UniProt/API/Nextflow/ModelCIF reviews deferred unless they
+    directly block the examples.
+- [ ] (Model: GPT-5.4-mini) Verify with focused helper tests and at least one
+  manual/example generation command.
+  - Record optional external-tool behavior clearly, including DSSP, Mol*
+    `cif2bcif`, Biotite fallback, iPSAE, Torch, and DuckDB requirements.
 
 ## Step 10: UniProt Script And Template Review
 

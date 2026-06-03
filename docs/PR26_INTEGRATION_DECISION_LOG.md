@@ -37,6 +37,13 @@ The current verified parent branch remains `integration-pr-26-gpu`, now with
 Step 9 merged and verified. The merged Step 9 work is a small runnable
 ColabFold-like end-to-end reference under `examples/colabfold_e2e/`.
 
+The active follow-up direction has shifted away from the remaining broad PR
+review steps. The priority is now examples-driven validation: keep the monomer
+end-to-end example working, then add comparable runnable examples for
+homodimer and heterodimer ColabFold-style complexes using the existing toolkit
+scripts in the same stitched-together order. The old Step 10+ sections remain
+as deferred review context, not the immediate work plan.
+
 ## Why We Created This Integration Structure
 
 PR #26 is not a small patch. It looks like a fork sync that brings in GPU
@@ -619,11 +626,27 @@ Parent-branch verification after the merge:
 
 ## Immediate Next Action
 
-Keep `integration-pr-26-gpu-step-9-production-pipeline` unmerged until an
-explicit merge request is given. When continuing PR #26 integration work, start
-with Step 10 or any narrower follow-up that directly addresses the remaining
-ModelCIF/metadata/Nextflow review items without undoing the Step 9 example
-reference.
+Start an examples-focused follow-up branch from `integration-pr-26-gpu`.
+Do not continue the broad Step 10 review by default. The next practical task is
+to verify and extend the runnable example path:
+
+- Re-run or inspect `examples/colabfold_e2e/` to confirm the committed monomer
+  reference is still coherent and reproducible.
+- Add equivalent small complex references for curated homodimer and
+  heterodimer fixtures where the existing tools can support them.
+- Use the old Nextflow pipeline only as the sequence/output reference; do not
+  rewrite or require Nextflow.
+- Fix only script/tool blockers that prevent the stitched command sequence from
+  producing example artifacts.
+
+Suggested branch name:
+
+- `integration-pr-26-gpu-examples-complex-e2e`
+
+Suggested model:
+
+- Model: `GPT-5.4`
+- Reasoning: `medium`
 
 ## Step 8 Plan Reference
 
