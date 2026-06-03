@@ -1,68 +1,101 @@
 from __future__ import annotations
 
-import csv
+import importlib.util
+import sys
 from pathlib import Path
 
-from scripts.generate_colabfold_e2e_example import (
-    DEFAULT_FIXTURE_MANIFEST,
-    DEFAULT_FIXTURES_ROOT,
-    DEFAULT_EXAMPLE_IDS,
-    chain_manifest_rows,
-    load_fixture_models,
-    merge_csv_files,
-)
+
+def _load_helper_module():
+    repo_root = Path(__file__).resolve().parent.parent
+    module_path = repo_root / "scripts" / "generate_colabfold_e2e_example.py"
+    spec = importlib.util.spec_from_file_location("generate_colabfold_e2e_example", module_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec is not None
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
-def test_load_fixture_models_defaults_are_present() -> None:
-    models = load_fixture_models(
-        DEFAULT_FIXTURE_MANIFEST,
-        DEFAULT_FIXTURES_ROOT,
-        DEFAULT_EXAMPLE_IDS,
-    )
+def test_chain_manifest_rows_use_local_chain_ranges() -> None:
+    module = _load_helper_module()
 
-    assert [model.example_id for model in models] == DEFAULT_EXAMPLE_IDS
-    assert all(model.category == "monomer" for model in models)
-    assert all(model.directory.exists() for model in models)
+    models = [
+        module.ExampleModel(
+            category="homodimer",
+            example_id="AF-0000000065760001",
+            directory=Path("/tmp/homodimer"),
+            chain_spans=[
+                {
+                    "chain_id": "A",
+                    "sequence_start": 1,
+                    "sequence_end": 256,
+                    "residue_count": 256,
+                    "uniprot_ac": "Q6GZX4",
+                },
+                {
+                    "chain_id": "B",
+                    "sequence_start": 257,
+                    "sequence_end": 512,
+                    "residue_count": 256,
+                    "uniprot_ac": "Q6GZX4",
+                },
+            ],
+        ),
+        module.ExampleModel(
+            category="heterodimer",
+            example_id="AF-0000000300000101",
+            directory=Path("/tmp/heterodimer"),
+            chain_spans=[
+                {
+                    "chain_id": "A",
+                    "sequence_start": 1,
+                    "sequence_end": 30,
+                    "residue_count": 30,
+                    "uniprot_ac": "A0ABS2QMZ4",
+                },
+                {
+                    "chain_id": "B",
+                    "sequence_start": 31,
+                    "sequence_end": 63,
+                    "residue_count": 33,
+                    "uniprot_ac": "A0ABS2QMF5",
+                },
+            ],
+        ),
+    ]
 
-
-def test_chain_manifest_rows_use_shared_entity_id_for_same_accession() -> None:
-    models = load_fixture_models(
-        DEFAULT_FIXTURE_MANIFEST,
-        DEFAULT_FIXTURES_ROOT,
-        ["AF-0000000065760001"],
-    )
-
-    rows = chain_manifest_rows(models)
-
-    assert len(rows) == 2
-    assert rows[0]["entity_id"] == "1"
-    assert rows[1]["entity_id"] == "1"
-    assert rows[0]["uniprot_ac"] == rows[1]["uniprot_ac"] == "Q6GZX4"
-
-
-def test_merge_csv_files_concatenates_rows_once(tmp_path: Path) -> None:
-    input_one = tmp_path / "a.csv"
-    input_two = tmp_path / "b.csv"
-    output = tmp_path / "merged.csv"
-    fieldnames = ["model_entity_id", "chain_id"]
-
-    for path, rows in [
-        (input_one, [{"model_entity_id": "AF-1", "chain_id": "A"}]),
-        (input_two, [{"model_entity_id": "AF-2", "chain_id": "B"}]),
-    ]:
-        with path.open("w", newline="", encoding="utf-8") as handle:
-            writer = csv.DictWriter(handle, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(rows)
-
-    merge_csv_files([input_one, input_two], output)
-
-    with output.open("r", newline="", encoding="utf-8") as handle:
-        reader = csv.DictReader(handle)
-        merged_rows = list(reader)
-
-    assert reader.fieldnames == fieldnames
-    assert merged_rows == [
-        {"model_entity_id": "AF-1", "chain_id": "A"},
-        {"model_entity_id": "AF-2", "chain_id": "B"},
+    assert module.chain_manifest_rows(models) == [
+        {
+            "model_entity_id": "AF-0000000065760001",
+            "entity_id": "1",
+            "chain_id": "A",
+            "uniprot_ac": "Q6GZX4",
+            "sequence_start": 1,
+            "sequence_end": 256,
+        },
+        {
+            "model_entity_id": "AF-0000000065760001",
+            "entity_id": "1",
+            "chain_id": "B",
+            "uniprot_ac": "Q6GZX4",
+            "sequence_start": 1,
+            "sequence_end": 256,
+        },
+        {
+            "model_entity_id": "AF-0000000300000101",
+            "entity_id": "1",
+            "chain_id": "A",
+            "uniprot_ac": "A0ABS2QMZ4",
+            "sequence_start": 1,
+            "sequence_end": 30,
+        },
+        {
+            "model_entity_id": "AF-0000000300000101",
+            "entity_id": "2",
+            "chain_id": "B",
+            "uniprot_ac": "A0ABS2QMF5",
+            "sequence_start": 1,
+            "sequence_end": 33,
+        },
     ]

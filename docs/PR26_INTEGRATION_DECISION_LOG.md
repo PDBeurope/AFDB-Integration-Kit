@@ -44,6 +44,23 @@ homodimer and heterodimer ColabFold-style complexes using the existing toolkit
 scripts in the same stitched-together order. The old Step 10+ sections remain
 as deferred review context, not the immediate work plan.
 
+Follow-up branch for this pivot:
+
+- `integration-pr-26-gpu-examples-complex-e2e`
+
+Completed on that branch:
+
+- Added `examples/colabfold_complex_e2e/` as a runnable complex reference with
+  one homodimer (`AF-0000000065760001` / `Q6GZX4`) and one heterodimer
+  (`AF-0000000300000101` / `A0ABS2QMZ4` + `A0ABS2QMF5`).
+- Kept the stitched workflow script-driven; no Nextflow dependency was added.
+- Fixed the ColabFold converter blocker that previously assumed DuckDB-backed
+  complex chains always covered full UniProt sequence lengths. Manifest-provided
+  chain ranges are now respected during DuckDB-backed conversion, which allows
+  curated complex fragments to complete the example flow.
+- Adjusted the example helper so staged chain manifests use per-chain local
+  residue ranges, which keeps downstream complex metadata export consistent.
+
 ## Why We Created This Integration Structure
 
 PR #26 is not a small patch. It looks like a fork sync that brings in GPU

@@ -169,14 +169,17 @@ def chain_manifest_rows(models: Iterable[ExampleModel]) -> list[dict[str, Any]]:
             entity_id = accession_to_entity.setdefault(accession, str(next_entity_id))
             if entity_id == str(next_entity_id):
                 next_entity_id += 1
+            residue_count = chain.get("residue_count")
+            if residue_count is None:
+                residue_count = chain["sequence_end"] - chain["sequence_start"] + 1
             rows.append(
                 {
                     "model_entity_id": model.example_id,
                     "entity_id": entity_id,
                     "chain_id": chain["chain_id"],
                     "uniprot_ac": accession,
-                    "sequence_start": chain["sequence_start"],
-                    "sequence_end": chain["sequence_end"],
+                    "sequence_start": 1,
+                    "sequence_end": residue_count,
                 }
             )
     return rows

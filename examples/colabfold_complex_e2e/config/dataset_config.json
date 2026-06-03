@@ -1,0 +1,12 @@
+{
+  "providerId": "EXAMPLE",
+  "toolUsed": "ColabFold v1.6.0 / AlphaFold-Multimer",
+  "latestVersion": 1,
+  "allVersions": [
+    1
+  ],
+  "entityType": "protein",
+  "modelCreatedDate": "2026-05-22T00:00:00Z",
+  "uniqueIdTemplate": "{model_entity_id}",
+  "versionTag": "v1"
+}

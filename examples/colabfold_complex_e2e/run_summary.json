@@ -1,0 +1,33 @@
+{
+  "example_ids": [
+    "AF-0000000065760001",
+    "AF-0000000300000101"
+  ],
+  "duckdb": "/mnt/disks/toolkit-data/uniprot_extract_2025_04_merged_5way/db/uniprot_2025_04_merged_5way.duckdb",
+  "dssp_algorithm": "mkdssp",
+  "bcif_backend": "biotite",
+  "bcif_results": {
+    "AF-0000000065760001": {
+      "status": "generated_with_fallback",
+      "source_cif": "modelcif/AF-0000000065760001-model_v1.cif",
+      "output_bcif": "bcif/AF-0000000065760001-model_v1.bcif",
+      "reason": "BCIF generation from the DSSP-enriched CIF failed with the local backend; the example BCIF was generated from the pre-DSSP ModelCIF instead."
+    },
+    "AF-0000000300000101": {
+      "status": "generated_with_fallback",
+      "source_cif": "modelcif/AF-0000000300000101-model_v1.cif",
+      "output_bcif": "bcif/AF-0000000300000101-model_v1.bcif",
+      "reason": "BCIF generation from the DSSP-enriched CIF failed with the local backend; the example BCIF was generated from the pre-DSSP ModelCIF instead."
+    }
+  },
+  "tool_status": {
+    "mkdssp_on_path": true,
+    "cif2bcif_on_path": false,
+    "pydssp_installed": false,
+    "biotite_installed": true
+  },
+  "notes": {
+    "dssp": "This example uses mkdssp.",
+    "bcif": "This example uses an explicit BCIF backend instead of relying on Mol* auto-detection."
+  }
+}

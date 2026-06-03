@@ -1,17 +1,13 @@
-# ColabFold End-to-End Reference
+# ColabFold Complex End-to-End Reference
 
 This directory is a small runnable reference that starts from curated
-ColabFold-like fixture outputs and produces the AFDB integration artifacts the
-toolkit is expected to emit.
-
-For curated complex references, see
-[`examples/colabfold_complex_e2e/`](../colabfold_complex_e2e/README.md).
+ColabFold-like complex fixture outputs and produces the AFDB integration
+artifacts the toolkit is expected to emit.
 
 Selected fixtures:
 
-- `AF-0000000300000001` -> `O00400`
-- `AF-0000000300000002` -> `O64637`
-- `AF-0000000300000003` -> `Q9TVL3`
+- Homodimer: `AF-0000000065760001` -> `Q6GZX4` / `Q6GZX4`
+- Heterodimer: `AF-0000000300000101` -> `A0ABS2QMZ4` / `A0ABS2QMF5`
 
 Input source:
 
@@ -21,6 +17,9 @@ Input source:
   [`input/`](./input/) using normalized AFDB-style names:
   `*-model_v1.pdb` and `*-meta_v1.json`.
 
+For the monomer reference example, see
+[`examples/colabfold_e2e/`](../colabfold_e2e/README.md).
+
 ## Regenerate
 
 Run the repo-owned helper from the repository root:
@@ -28,7 +27,9 @@ Run the repo-owned helper from the repository root:
 ```bash
 .venv/bin/python scripts/generate_colabfold_e2e_example.py \
   --duckdb /mnt/disks/toolkit-data/uniprot_extract_2025_04_merged_5way/db/uniprot_2025_04_merged_5way.duckdb \
-  --output-dir examples/colabfold_e2e
+  --output-dir examples/colabfold_complex_e2e \
+  --example-id AF-0000000065760001 \
+  --example-id AF-0000000300000101
 ```
 
 That helper executes the same script sequence used to populate this directory
@@ -63,6 +64,10 @@ The generated files follow the old Nextflow end-to-end order:
   pre-DSSP ModelCIF file instead. The per-model status is recorded in
   [`run_summary.json`](./run_summary.json).
 - `pydssp` is not installed in this environment, so it was not used.
+- The heterodimer fixture metadata is exported as fragment chains using local
+  chain ranges from the curated fixture set. This example does not reconstruct
+  authoritative UniProt residue offsets beyond what is committed in the
+  fixture corpus.
 - iPSAE, clash, and interface analysis are intentionally not part of this
-  Step 9 reference because the pivot target is the raw ColabFold -> final
-  AFDB artifact path.
+  example because the target here is the raw ColabFold -> final AFDB artifact
+  path.

@@ -401,13 +401,25 @@ def _load_manifest_chains(
         if not uniprot_ac:
             raise ValueError(f"Manifest row for chain {chain_id} is missing uniprot_ac.")
         entity_id = (row.get("entity_id") or "").strip()
-        chain_rows.append(
-            {
-                "chain_id": chain_id,
-                "uniprot_ac": uniprot_ac,
-                "entity_id": entity_id,
-            }
-        )
+        chain_row = {
+            "chain_id": chain_id,
+            "uniprot_ac": uniprot_ac,
+            "entity_id": entity_id,
+        }
+        for optional_key in (
+            "sequence_start",
+            "sequence_end",
+            "is_fragment",
+            "is_isoform",
+            "entity_type",
+        ):
+            value = row.get(optional_key)
+            if value is None:
+                continue
+            text = str(value).strip()
+            if text:
+                chain_row[optional_key] = text
+        chain_rows.append(chain_row)
     # Assign entity_id per accession if missing; preserve any provided values
     acc_to_entity: Dict[str, str] = {}
     next_id = 1
@@ -547,8 +559,28 @@ def _load_chain_metadata_from_duckdb(
         seqlen = len(seq)
         if seqlen == 0:
             raise ValueError(f"No sequence found in DuckDB entry table for accession {acc}.")
+        manifest_start = _parse_int(chain.get("sequence_start"))
+        manifest_end = _parse_int(chain.get("sequence_end"))
+        if (manifest_start is None) != (manifest_end is None):
+            raise ValueError(
+                f"Manifest row for chain {chain_id} must provide both sequence_start and "
+                "sequence_end or leave both blank."
+            )
+        if manifest_start is not None and manifest_end is not None:
+            if manifest_start < 1 or manifest_start > seqlen:
+                raise ValueError(
+                    f"sequence_start {manifest_start} is out of bounds for accession {acc}."
+                )
+            if manifest_end < manifest_start or manifest_end > seqlen:
+                raise ValueError(
+                    f"sequence_end {manifest_end} is out of bounds for accession {acc}."
+                )
+            chain_length = manifest_end - manifest_start + 1
+        else:
+            chain_length = seqlen
+
         seq_start = len(residue_numbers) + 1
-        seq_end = len(residue_numbers) + seqlen
+        seq_end = len(residue_numbers) + chain_length
         chains.append(
             {
                 "name": desc,
@@ -558,7 +590,9 @@ def _load_chain_metadata_from_duckdb(
             }
         )
         # Keep global residue numbering for the flattened confidence arrays.
-        residue_numbers.extend(range(len(residue_numbers) + 1, len(residue_numbers) + seqlen + 1))
+        residue_numbers.extend(
+            range(len(residue_numbers) + 1, len(residue_numbers) + chain_length + 1)
+        )
 
     return chains, residue_numbers, effective_chains
 
@@ -580,6 +614,14 @@ def _compute_plddt_metrics(
     total_count = 0
     running_offset = 0
     for chain in chains:
+        manifest_row = next(
+            (row for row in manifest_chains if row["chain_id"] == chain["label_asym_id"]),
+            None,
+        )
+        if manifest_row is None:
+            raise ValueError(
+                f"No manifest row found for chain {chain['label_asym_id']} while writing metrics."
+            )
         start = chain["sequenceStart"]
         end = chain["sequenceEnd"]
         length = end - start + 1
@@ -587,6 +629,13 @@ def _compute_plddt_metrics(
         if len(values) == 0:
             raise ValueError(f"No pLDDT values found for chain {chain['label_asym_id']}.")
         running_offset += length
+        sequence_start = _parse_int(manifest_row.get("sequence_start")) or 1
+        sequence_end = _parse_int(manifest_row.get("sequence_end")) or length
+        if sequence_end - sequence_start + 1 != length:
+            raise ValueError(
+                f"Manifest residue span ({sequence_start}, {sequence_end}) for chain "
+                f"{chain['label_asym_id']} does not match the derived chain length ({length})."
+            )
         n = len(values)
         chain_sum = float(np.sum(values))
         avg = round(chain_sum / n, 2)
@@ -602,8 +651,11 @@ def _compute_plddt_metrics(
                 "entity_id": entity_lookup.get(chain["label_asym_id"]) or "",
                 "chain_id": chain["label_asym_id"],
                 "uniprot_ac": acc_lookup.get(chain["label_asym_id"]) or "",
-                "sequence_start": 1,
-                "sequence_end": length,
+                "is_fragment": manifest_row.get("is_fragment", ""),
+                "is_isoform": manifest_row.get("is_isoform", ""),
+                "entity_type": manifest_row.get("entity_type", "protein"),
+                "sequence_start": sequence_start,
+                "sequence_end": sequence_end,
                 "average_plddt": avg,
                 "fraction_plddt_very_low": fraction_plddt_very_low,
                 "fraction_plddt_low": fraction_plddt_low,

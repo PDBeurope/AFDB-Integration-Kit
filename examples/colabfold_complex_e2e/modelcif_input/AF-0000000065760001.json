@@ -1,0 +1,968 @@
+{
+  "metadata": {
+    "version": "3.2",
+    "model_type": "ColabFold method"
+  },
+  "categories": {
+    "_audit_conform": {
+      "dict_name": [
+        "mmcif_ma.dic"
+      ],
+      "dict_version": [
+        "1.4.8"
+      ],
+      "dict_location": [
+        "https://raw.githubusercontent.com/ihmwg/ModelCIF/master/dist/mmcif_ma.dic"
+      ]
+    },
+    "_pdbx_data_usage": {
+      "id": [
+        "1",
+        "2"
+      ],
+      "type": [
+        "license",
+        "disclaimer"
+      ],
+      "details": [
+        "Data in this file is available under a CC-BY-4.0 license.",
+        "RESOURCE DATA, COPYRIGHT (2025) COMPANY LIMITED.\nTHE INFORMATION PROVIDED IS THEORETICAL MODELLING ONLY AND CAUTION SHOULD BE\nEXERCISED IN ITS USE. IT IS PROVIDED \"AS-IS\" WITHOUT ANY WARRANTY OF ANY KIND,\nWHETHER EXPRESSED OR IMPLIED. NO WARRANTY IS GIVEN THAT USE OF THE INFORMATION\nSHALL NOT INFRINGE THE RIGHTS OF ANY THIRD PARTY. DISCLAIMER: THE INFORMATION IS\nNOT INTENDED TO BE A SUBSTITUTE FOR PROFESSIONAL MEDICAL ADVICE, DIAGNOSIS, OR\nTREATMENT, AND DOES NOT CONSTITUTE MEDICAL OR OTHER PROFESSIONAL ADVICE. IT IS\nAVAILABLE FOR ACADEMIC AND COMMERCIAL PURPOSES, UNDER CC-BY 4.0 LICENCE."
+      ],
+      "url": [
+        "https://creativecommons.org/licenses/by/4.0/",
+        "?"
+      ],
+      "name": [
+        "CC-BY-4.0",
+        "?"
+      ]
+    },
+    "_citation": {
+      "id": [
+        "Primary",
+        1,
+        2,
+        3,
+        4
+      ],
+      "title": [
+        "AlphaFold Database expands to proteome-scale quaternary structures",
+        "Highly accurate protein structure prediction with AlphaFold",
+        "Protein complex prediction with AlphaFold-Multimer",
+        "GPU-accelerated homology search with MMseqs2",
+        "ColabFold: making protein folding accessible to all"
+      ],
+      "journal_full": [
+        "To be published",
+        "Nature",
+        "bioRxiv",
+        "Nature Methods",
+        "Nature Methods"
+      ],
+      "journal_volume": [
+        "?",
+        "596",
+        "?",
+        "22",
+        "19"
+      ],
+      "page_first": [
+        "?",
+        "583",
+        "?",
+        "2024",
+        "679"
+      ],
+      "page_last": [
+        "?",
+        "589",
+        "?",
+        "2027",
+        "682"
+      ],
+      "year": [
+        "?",
+        "2021",
+        "2021",
+        "2025",
+        "2022"
+      ],
+      "journal_id_ASTM": [
+        "?",
+        "NATUAS",
+        "?",
+        "NMAEA3",
+        "NMAEA3"
+      ],
+      "country": [
+        "?",
+        "?",
+        "?",
+        "?",
+        "?"
+      ],
+      "journal_id_ISSN": [
+        "?",
+        "0028-0836",
+        "2692-8205",
+        "1548-7091",
+        "1548-7091"
+      ],
+      "journal_id_CSD": [
+        "?",
+        "0006",
+        "?",
+        "2148",
+        "2148"
+      ],
+      "book_publisher": [
+        "?",
+        "?",
+        "?",
+        "?",
+        "?"
+      ],
+      "pdbx_database_id_PubMed": [
+        "?",
+        "34265844",
+        "39052676",
+        "40968302",
+        "35637307"
+      ],
+      "pdbx_database_id_DOI": [
+        "?",
+        "https://www.nature.com/articles/s41586-021-03819-2",
+        "https://doi.org/10.1101/2021.10.04.463034",
+        "https://www.nature.com/articles/s41592-025-02819-8",
+        "https://www.nature.com/articles/s41592-022-01488-1"
+      ]
+    },
+    "_citation_author": {
+      "citation_id": [
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        "Primary",
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ],
+      "ordinal": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "name": [
+        "Han, Yewon",
+        "Tsenkov, Maxim I.",
+        "Venanzi, Niccolo A. E.",
+        "Austin, Jeannie",
+        "Bertoni, Damian",
+        "Cha, Sooyoung",
+        "Chacon, Alejandro",
+        "Didi, Kieran",
+        "Dietrich, Nick",
+        "Ellaway, Joseph I. J.",
+        "Fomitchev, Boris",
+        "Goldtzvik, Yonathan",
+        "Hsu, Darren",
+        "Kovalevskiy, Oleg",
+        "Lasecki, Dariusz",
+        "Laydon, Agata",
+        "Livne, Micha",
+        "Magana, Paulyna",
+        "Majewski, Maciej",
+        "Nair, Sreenath",
+        "Paramval, Urmila",
+        "Patel, Nilkanth",
+        "Patel, Risha",
+        "Pidruchna, Ivanna",
+        "Lopez Santini, Brianda",
+        "Sohani, Prashant",
+        "Tanweer, Ahsan",
+        "Tran, Duc",
+        "Tretina, Kyle",
+        "Vu, Quan",
+        "Zidek, Augustin",
+        "Velankar, Sameer",
+        "Steinegger, Martin",
+        "Fleming, Jennifer",
+        "Mirdita, Milot",
+        "Dallago, Christian",
+        "Evans, Richard",
+        "O'Neill, Michael",
+        "Pritzel, Alexander",
+        "Antropova, Natasha",
+        "Senior, Andrew",
+        "Green, Tim",
+        "Zidek, Augustin",
+        "Bates, Russ",
+        "Blackwell, Sam",
+        "Yim, Jason",
+        "Ronneberger, Olaf",
+        "Bodenstein, Sebastian",
+        "Zielinski, Michal",
+        "Bridgland, Alex",
+        "Potapenko, Anna",
+        "Cowie, Andrew",
+        "Tunyasuvunakool, Kathryn",
+        "Jain, Rishub",
+        "Clancy, Ellen",
+        "Kohli, Pushmeet",
+        "Jumper, John",
+        "Hassabis, Demis",
+        "Jumper, John",
+        "Evans, Richard",
+        "Pritzel, Alexander",
+        "Green, Tim",
+        "Figurnov, Michael",
+        "Ronneberger, Olaf",
+        "Tunyasuvunakool, Kathryn",
+        "Bates, Russ",
+        "Zidek, Augustin",
+        "Potapenko, Anna",
+        "Bridgland, Alex",
+        "Meyer, Clemens",
+        "Kohl, Simon A. A.",
+        "Ballard, Andrew J.",
+        "Cowie, Andrew",
+        "Romera-Paredes, Bernardino",
+        "Nikolov, Stanislav",
+        "Jain, Rishub",
+        "Adler, Jonas",
+        "Back, Trevor",
+        "Petersen, Stig",
+        "Reiman, David",
+        "Clancy, Ellen",
+        "Zielinski, Michal",
+        "Steinegger, Martin",
+        "Pacholska, Michalina",
+        "Berghammer, Tamas",
+        "Bodenstein, Sebastian",
+        "Silver, David",
+        "Vinyals, Oriol",
+        "Senior, Andrew W.",
+        "Kavukcuoglu, Koray",
+        "Kohli, Pushmeet",
+        "Hassabis, Demis",
+        "Kallenborn, Fabian",
+        "Chacon, Alejandro",
+        "Hundt, Christian",
+        "Sirelkhatim, Hassan",
+        "Didi, Khaled",
+        "Cha, Seongwon",
+        "Dallago, Christian",
+        "Mirdita, Milot",
+        "Schmidt, Bertil",
+        "Steinegger, Martin",
+        "Mirdita, Milot",
+        "Schutze, Kristian",
+        "Moriwaki, Yuki",
+        "Heo, Lim",
+        "Ovchinnikov, Sergei",
+        "Steinegger, Martin"
+      ]
+    },
+    "_ma_data": {
+      "id": [
+        "1"
+      ],
+      "name": [
+        "Model"
+      ],
+      "content_type": [
+        "model coordinates"
+      ]
+    },
+    "_ma_model_list": {
+      "ordinal_id": [
+        "1"
+      ],
+      "model_name": [
+        "Predicted model"
+      ],
+      "data_id": [
+        "1"
+      ],
+      "model_type": [
+        "Ab initio model"
+      ]
+    },
+    "_software": {
+      "pdbx_ordinal": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "name": [
+        "ColabFold",
+        "MMseqs2-GPU",
+        "AlphaFold-Multimer",
+        "ipSAE",
+        "PyDSSP"
+      ],
+      "type": [
+        "package",
+        "package",
+        "package",
+        "package",
+        "library"
+      ],
+      "description": [
+        "Pipeline wrapper coordinating MSA search and AlphaFold-Multimer inference",
+        "MSA/search backend used by ColabFold (release 18)",
+        "Complex structure prediction model used by ColabFold",
+        "Interface scoring / QA metrics (ipSAE, pDockQ, pDockQ2, LIS)",
+        "Secondary-structure assignment and annotation extraction from predicted coordinates"
+      ],
+      "classification": [
+        "model building",
+        "data collection",
+        "model building",
+        "data processing",
+        "data extraction"
+      ],
+      "version": [
+        "1.6.0",
+        "18",
+        "?",
+        "?",
+        "0.9.1"
+      ]
+    },
+    "_ma_software_group": {
+      "ordinal_id": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "group_id": [
+        "1",
+        "1",
+        "1",
+        "2",
+        "3"
+      ],
+      "software_id": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "parameter_group_id": [
+        "?",
+        "?",
+        "?",
+        "2",
+        "?"
+      ]
+    },
+    "_ma_software_parameter": {
+      "parameter_id": [
+        "1",
+        "2"
+      ],
+      "group_id": [
+        "2",
+        "2"
+      ],
+      "data_type": [
+        "float",
+        "float"
+      ],
+      "name": [
+        "pae_cutoff",
+        "dist_cutoff"
+      ],
+      "value": [
+        "10.0",
+        "15.0"
+      ],
+      "description": [
+        "PAE cutoff used by IPSAE",
+        "Distance cutoff used by IPSAE"
+      ]
+    },
+    "_ma_protocol_step": {
+      "ordinal_id": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "protocol_id": [
+        "1",
+        "1",
+        "2",
+        "2"
+      ],
+      "step_id": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "method_type": [
+        "coevolution MSA",
+        "modeling",
+        "other",
+        "other"
+      ],
+      "step_name": [
+        "paired MSA generation",
+        "complex model inference",
+        "interface scoring",
+        "secondary structure assignment"
+      ],
+      "details": [
+        "Filtered paired MSA generation using MMseqs2-GPU via ColabFold",
+        "AlphaFold-Multimer inference via ColabFold with no templates, 1 model, max 4 recycles, ipTM early stopping threshold 0.1",
+        "Post-processing interface QA metrics computed with ipSAE",
+        "Post-processing secondary-structure assignment with PyDSSP"
+      ],
+      "software_group_id": [
+        "1",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "_ma_qa_metric": {
+      "id": [
+        "1",
+        "2"
+      ],
+      "name": [
+        "pLDDT",
+        "pLDDT"
+      ],
+      "type": [
+        "pLDDT",
+        "pLDDT"
+      ],
+      "mode": [
+        "global",
+        "local"
+      ],
+      "software_group_id": [
+        "1",
+        "1"
+      ]
+    },
+    "_ma_qa_metric_global": {
+      "ordinal_id": [
+        "1"
+      ],
+      "model_id": [
+        "1"
+      ],
+      "metric_id": [
+        "1"
+      ]
+    },
+    "_entry": {
+      "id": [
+        "AF-0000000065760001"
+      ]
+    },
+    "_database_2": {
+      "database_id": [
+        "AlphaFoldDB"
+      ],
+      "database_code": [
+        "AF-0000000065760001"
+      ]
+    },
+    "_pdbx_database_status": {
+      "status_code": [
+        "REL"
+      ],
+      "entry_id": [
+        "AF-0000000065760001"
+      ],
+      "recvd_initial_deposition_date": [
+        "2026-02-21"
+      ]
+    },
+    "_pdbx_audit_revision_history": {
+      "ordinal": [
+        1
+      ],
+      "data_content_type": [
+        "Structure model"
+      ],
+      "major_revision": [
+        1
+      ],
+      "minor_revision": [
+        0
+      ],
+      "revision_date": [
+        "2025-11-17"
+      ]
+    },
+    "_pdbx_audit_revision_details": {
+      "ordinal": [
+        1
+      ],
+      "revision_ordinal": [
+        1
+      ],
+      "data_content_type": [
+        "Structure model"
+      ],
+      "provider": [
+        "repository"
+      ],
+      "type": [
+        "Initial release"
+      ]
+    },
+    "_audit_author": {
+      "pdbx_ordinal": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+      ],
+      "name": [
+        "Han, Yewon",
+        "Tsenkov, Maxim I.",
+        "Venanzi, Niccolo A. E.",
+        "Austin, Jeannie",
+        "Bertoni, Damian",
+        "Cha, Sooyoung",
+        "Chacon, Alejandro",
+        "Didi, Kieran",
+        "Dietrich, Nick",
+        "Ellaway, Joseph I. J.",
+        "Fomitchev, Boris",
+        "Goldtzvik, Yonathan",
+        "Hsu, Darren",
+        "Kovalevskiy, Oleg",
+        "Lasecki, Dariusz",
+        "Laydon, Agata",
+        "Livne, Micha",
+        "Magana, Paulyna",
+        "Majewski, Maciej",
+        "Nair, Sreenath",
+        "Paramval, Urmila",
+        "Patel, Nilkanth",
+        "Patel, Risha",
+        "Pidruchna, Ivanna",
+        "Lopez Santini, Brianda",
+        "Sohani, Prashant",
+        "Tanweer, Ahsan",
+        "Tran, Duc",
+        "Tretina, Kyle",
+        "Vu, Quan",
+        "Zidek, Augustin",
+        "Velankar, Sameer",
+        "Steinegger, Martin",
+        "Fleming, Jennifer",
+        "Mirdita, Milot",
+        "Dallago, Christian"
+      ]
+    },
+    "_ma_target_ref_db_details": {
+      "target_entity_id": [
+        "1"
+      ],
+      "db_name": [
+        "UNP"
+      ],
+      "db_accession": [
+        "Q6GZX4"
+      ],
+      "db_code": [
+        "001R_FRG3G"
+      ],
+      "gene_name": [
+        "FV3-001R"
+      ],
+      "ncbi_taxonomy_id": [
+        "654924"
+      ],
+      "organism_scientific": [
+        "Frog virus 3 (isolate Goorha) (FV-3)"
+      ],
+      "seq_db_align_begin": [
+        1
+      ],
+      "seq_db_align_end": [
+        256
+      ],
+      "seq_db_isoform": [
+        "?"
+      ],
+      "seq_db_sequence_checksum": [
+        "B3C1C23E34258613"
+      ],
+      "seq_db_sequence_version_date": [
+        "2004-07-19"
+      ]
+    },
+    "_ma_target_entity": {
+      "data_id": [
+        "1"
+      ],
+      "entity_id": [
+        "1"
+      ],
+      "origin": [
+        "reference database"
+      ]
+    },
+    "_ma_target_entity_instance": {
+      "asym_id": [
+        "A",
+        "B"
+      ],
+      "details": [
+        "Chain A from UniProt Q6GZX4",
+        "Chain B from UniProt Q6GZX4"
+      ],
+      "entity_id": [
+        "1",
+        "1"
+      ]
+    },
+    "_entity": {
+      "id": [
+        "1"
+      ],
+      "type": [
+        "polymer"
+      ],
+      "src_method": [
+        "man"
+      ],
+      "pdbx_description": [
+        "Putative transcription factor 001R"
+      ]
+    },
+    "_entity_poly": {
+      "entity_id": [
+        "1"
+      ],
+      "nstd_linkage": [
+        "no"
+      ],
+      "nstd_monomer": [
+        "no"
+      ],
+      "pdbx_seq_one_letter_code": [
+        "MAFSAEDVLKEYDRRRRMEALLLSLYYPNDRKLLDYKEWSPPRVQVECPKAPVEWNNPPSEKGLIVGHFSGIKYKGEKAQASEVDVNKMCCWVSKFKDAMRRYQGIQTCKIPGKVLSDLDAKIKAYNLTVEGVEGFVRYSRVTKQHVAAFLKELRHSKQYENVNLIHYILTDKRVDIQHLEKDLVKDFKALVESAHRMRQGHMINVKYILYQLLKKHGHGPDGPDILTVKTGSKGVLYDDSFRKIYTDLGWKFTPL"
+      ],
+      "type": [
+        "polypeptide(L)"
+      ]
+    },
+    "_struct_ref": {
+      "id": [
+        1
+      ],
+      "db_code": [
+        "001R_FRG3G"
+      ],
+      "db_name": [
+        "UNP"
+      ],
+      "entity_id": [
+        "1"
+      ],
+      "pdbx_db_accession": [
+        "Q6GZX4"
+      ]
+    },
+    "_struct_ref_seq": {
+      "align_id": [
+        1,
+        2
+      ],
+      "ref_id": [
+        "1",
+        "1"
+      ],
+      "pdbx_PDB_id_code": [
+        "AF-0000000065760001",
+        "AF-0000000065760001"
+      ],
+      "pdbx_strand_id": [
+        "A",
+        "B"
+      ],
+      "seq_align_beg": [
+        1,
+        1
+      ],
+      "seq_align_end": [
+        256,
+        256
+      ],
+      "db_align_beg": [
+        1,
+        1
+      ],
+      "db_align_end": [
+        256,
+        256
+      ]
+    }
+  },
+  "chains": [
+    {
+      "chain_id": "A",
+      "entity_id": "1",
+      "uniprot_accession": "Q6GZX4"
+    },
+    {
+      "chain_id": "B",
+      "entity_id": "1",
+      "uniprot_accession": "Q6GZX4"
+    }
+  ]
+}

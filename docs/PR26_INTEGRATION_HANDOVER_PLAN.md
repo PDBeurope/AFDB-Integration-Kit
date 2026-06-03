@@ -12,6 +12,10 @@ Current branch structure:
 - Base branch for comparison: `origin/main`
 - Step branches should be named `integration-pr-26-gpu-step-N-<short-topic>`
 
+Current examples follow-up branch:
+
+- `integration-pr-26-gpu-examples-complex-e2e`
+
 General rules for every step:
 
 - [ ] (Model: GPT-5.4) Start by checking `git status --short --branch` and
@@ -219,6 +223,34 @@ commit `f2e5bb0`. Parent-branch verification after the merge:
 - `git diff --check`: passed.
 - `.venv/bin/python -m pytest -q`: passed with `46 passed, 2 skipped, 1
   warning`.
+
+## Examples Follow-Up: Complex End-to-End References
+
+- [x] Create branch `integration-pr-26-gpu-examples-complex-e2e` from
+  `integration-pr-26-gpu`.
+- [x] Keep the monomer reference under `examples/colabfold_e2e/` unchanged in
+  scope and add a sibling complex reference under
+  `examples/colabfold_complex_e2e/`.
+- [x] Select one curated homodimer and one curated heterodimer fixture that
+  complete against the supplied DuckDB.
+  - Homodimer: `AF-0000000065760001` -> `Q6GZX4`
+  - Heterodimer: `AF-0000000300000101` -> `A0ABS2QMZ4` + `A0ABS2QMF5`
+- [x] Reuse the existing stitched script flow rather than adding a Nextflow
+  dependency.
+- [x] Fix only the example blocker encountered in the stitched flow.
+  - `afdb_integration_kit.colabfold.converter` now respects manifest-provided
+    chain ranges when DuckDB metadata is used, instead of assuming every chain
+    spans the full UniProt sequence length.
+  - `scripts/generate_colabfold_e2e_example.py` now stages per-chain local
+    residue ranges in its input manifest, which keeps complex metadata export
+    consistent for the curated example set.
+- [x] Add focused regression coverage for the converter and helper manifest
+  behavior.
+- [x] Record exact commands in
+  `examples/colabfold_complex_e2e/config/commands.txt` and tool caveats in
+  `examples/colabfold_complex_e2e/README.md`.
+- [ ] If this branch is later merged, update the parent-branch status section
+  with the merge commit and parent verification summary.
 
 ## Step 5: CIF To BCIF Conversion Review
 

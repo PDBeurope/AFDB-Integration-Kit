@@ -167,6 +167,77 @@ def test_convert_file_auto_expands_homomultimer_manifest_with_duckdb(tmp_path: P
     assert plddt_payload["residueNumber"] == [1, 2, 3, 4]
 
 
+def test_convert_file_uses_manifest_sequence_overrides_with_duckdb(tmp_path: Path) -> None:
+    duckdb_path = tmp_path / "entries.duckdb"
+    manifest_path = tmp_path / "manifest.csv"
+    scores_json = tmp_path / "scores.json"
+    pdb_file = tmp_path / "test.pdb"
+
+    _create_duckdb(
+        duckdb_path,
+        [
+            ("P11111", "Protein one", "ABCDEFGH"),
+            ("Q22222", "Protein two", "JKLMNOPQR"),
+        ],
+    )
+    manifest_path.write_text(
+        "model_entity_id,entity_id,chain_id,uniprot_ac,sequence_start,sequence_end,is_fragment\n"
+        "AF-0000000000000002,1,A,P11111,1,2,true\n"
+        "AF-0000000000000002,2,B,Q22222,1,3,true\n",
+        encoding="utf-8",
+    )
+    _write_scores_json(
+        scores_json,
+        plddt=[90.0, 80.0, 70.0, 60.0, 50.0],
+        pae=[
+            [0.0, 1.0, 2.0, 3.0, 4.0],
+            [1.0, 0.0, 2.0, 3.0, 4.0],
+            [2.0, 2.0, 0.0, 1.0, 2.0],
+            [3.0, 3.0, 1.0, 0.0, 1.0],
+            [4.0, 4.0, 2.0, 1.0, 0.0],
+        ],
+        max_pae=4.0,
+    )
+    _write_test_pdb(pdb_file)
+
+    output_paths = convert_file(
+        str(scores_json),
+        str(pdb_file),
+        outdir=str(tmp_path),
+        manifest_path=str(manifest_path),
+        model_entity_id="AF-0000000000000002",
+        duckdb_path=str(duckdb_path),
+        out_chain_manifest=str(tmp_path / "chain_manifest.csv"),
+        out_model_manifest=str(tmp_path / "model_manifest.csv"),
+    )
+
+    with open(output_paths["plddt"], encoding="utf-8") as handle:
+        plddt_payload = json.load(handle)
+
+    assert plddt_payload["chains"] == [
+        {
+            "name": "Protein one",
+            "label_asym_id": "A",
+            "sequenceStart": 1,
+            "sequenceEnd": 2,
+        },
+        {
+            "name": "Protein two",
+            "label_asym_id": "B",
+            "sequenceStart": 3,
+            "sequenceEnd": 5,
+        },
+    ]
+    assert plddt_payload["residueNumber"] == [1, 2, 3, 4, 5]
+
+    chain_manifest_lines = (tmp_path / "chain_manifest.csv").read_text(encoding="utf-8").splitlines()
+    assert chain_manifest_lines == [
+        "model_entity_id,entity_id,chain_id,uniprot_ac,is_fragment,is_isoform,entity_type,sequence_start,sequence_end,average_plddt,fraction_plddt_very_low,fraction_plddt_low,fraction_plddt_confident,fraction_plddt_very_high",
+        "AF-0000000000000002,1,A,P11111,true,,protein,1,2,85.0,0.0,0.0,1.0,0.0",
+        "AF-0000000000000002,2,B,Q22222,true,,protein,1,3,60.0,0.0,0.667,0.333,0.0",
+    ]
+
+
 def test_partial_prefetch_does_not_break_later_duckdb_lookups(tmp_path: Path) -> None:
     duckdb_path = tmp_path / "entries.duckdb"
     _create_duckdb(

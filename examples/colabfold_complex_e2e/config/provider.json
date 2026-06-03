@@ -1,0 +1,8 @@
+{
+  "providerId": "EXAMPLE",
+  "providerName": "AFDB Integration Kit Example",
+  "providerUrl": "https://github.com/PDBeurope/AFDB-Integration-Kit",
+  "copyrights": [
+    "Example fixture data for local AFDB toolkit verification only."
+  ]
+}
