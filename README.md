@@ -278,14 +278,15 @@ uv run main.py run-dssp \
 ### Validate Example Outputs
 
 The committed end-to-end examples under [`examples/`](examples/README.md)
-can be validated directly from the repo root. The committed e2e
-`model_jsons/*.json` files are model-level summary outputs; they are not the
-full model metadata entries covered by the canonical `model` schema. Use
-`run-schema-validation -t provider` for the example provider metadata, and use
-the score and ModelCIF checks below for the generated artifacts.
+can be validated directly from the repo root. Use `model-summary` for committed
+e2e `model_jsons/*.json`; the canonical `model` schema remains reserved for
+full model metadata entries and `AF-metadata-*-of-*.json` batches.
 
 ```bash
-# Provider metadata JSON
+# Summary and provider metadata JSONs
+.venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_monomer_e2e/model_jsons/AF-0000000300000001.json \
+  -t model-summary
 .venv/bin/python main.py run-schema-validation \
   -i examples/colabfold_monomer_e2e/config/provider.json \
   -t provider
@@ -458,11 +459,13 @@ Use these commands to sanity-check individual artifacts or entire datasets befor
 
 #### Schema Validation
 
-Validate metadata JSON files (`model` or `provider`) against the required JSON schemas to ensure data consistency and compliance.
+Validate metadata JSON files against the required JSON schemas to ensure data consistency and compliance.
 
 **Schemas:**
 
-* Model: `afdb_integration_kit/metadata/resources/model_schema.json`
+* Model: `afdb_integration_kit/metadata/resources/model_schema.json` for full model metadata entries and batches
+* Model summary: `afdb_integration_kit/metadata/resources/model_summary_schema.json` for e2e `model_jsons/*.json` and search summary documents
+* Collection doc: `afdb_integration_kit/metadata/resources/collection_doc_schema.json` for e2e `chain_jsons/*.json` and collection documents
 * Provider: `afdb_integration_kit/metadata/resources/provider_schema.json`
 
 **Command:**
@@ -474,12 +477,14 @@ uv run main.py run-schema-validation -i <metadata_json_file> -t <type>
 **Parameters:**
 
 * `-i, --input`: Path to the metadata JSON file to validate
-* `-t, --type`: Type of metadata to validate (`model` or `provider`)
+* `-t, --type`: Type of metadata to validate (`model`, `model-summary`, `collection-doc`, or `provider`)
 
 **Examples:**
 
 ```bash
 uv run main.py run-schema-validation -i model.json -t model
+uv run main.py run-schema-validation -i model_summary.json -t model-summary
+uv run main.py run-schema-validation -i collection_doc.json -t collection-doc
 uv run main.py run-schema-validation -i provider.json -t provider
 ```
 

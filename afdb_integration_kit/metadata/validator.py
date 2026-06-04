@@ -19,12 +19,20 @@ logger.setLevel(logging.INFO)
 # --- Constants ---
 class SchemaType(Enum):
     MODEL = "model"
+    MODEL_SUMMARY = "model-summary"
+    COLLECTION_DOC = "collection-doc"
     PROVIDER = "provider"
 
 
 SCHEMA_PATHS = {
     SchemaType.MODEL: files("afdb_integration_kit.metadata.resources").joinpath(
         "model_schema.json"
+    ),
+    SchemaType.MODEL_SUMMARY: files("afdb_integration_kit.metadata.resources").joinpath(
+        "model_summary_schema.json"
+    ),
+    SchemaType.COLLECTION_DOC: files("afdb_integration_kit.metadata.resources").joinpath(
+        "collection_doc_schema.json"
     ),
     SchemaType.PROVIDER: files("afdb_integration_kit.metadata.resources").joinpath(
         "provider_schema.json"
@@ -45,6 +53,21 @@ def _load_json_file(file_path: Path) -> dict:
         raise
 
 
+def _instances_to_validate(data, schema_enum: SchemaType):
+    if schema_enum is SchemaType.PROVIDER:
+        return [data]
+    if (
+        schema_enum in {SchemaType.MODEL_SUMMARY, SchemaType.COLLECTION_DOC}
+        and isinstance(data, dict)
+        and isinstance(data.get("response"), dict)
+        and isinstance(data["response"].get("docs"), list)
+    ):
+        return data["response"]["docs"]
+    if isinstance(data, list):
+        return data
+    return [data]
+
+
 def validate_against_schema(input_file: Path, schema_type: str):
     """
     Validate the input JSON file against the specified schema.
@@ -61,11 +84,12 @@ def validate_against_schema(input_file: Path, schema_type: str):
     try:
         schema_enum = SchemaType(schema_type.lower())
     except ValueError:
+        expected = ", ".join(schema.value for schema in SchemaType)
         logger.error(
-            "Unknown schema type '%s'. Expected 'model' or 'provider'.", schema_type
+            "Unknown schema type '%s'. Expected one of: %s.", schema_type, expected
         )
         raise ValueError(
-            f"Unknown schema type '{schema_type}'. Expected 'model' or 'provider'."
+            f"Unknown schema type '{schema_type}'. Expected one of: {expected}."
         )
 
     schema_path = SCHEMA_PATHS[schema_enum]
@@ -77,11 +101,11 @@ def validate_against_schema(input_file: Path, schema_type: str):
     data = _load_json_file(input_file)
 
     try:
-        if schema_enum is SchemaType.MODEL and isinstance(data, list) and data:
-            for entry in data:
-                jsonschema.validate(instance=entry, schema=schema)
-        else:
-            jsonschema.validate(instance=data, schema=schema)
+        instances = _instances_to_validate(data, schema_enum)
+        if not instances:
+            raise jsonschema.ValidationError("No documents found to validate")
+        for entry in instances:
+            jsonschema.validate(instance=entry, schema=schema)
         logger.info(
             "Validation successful for '%s' against schema '%s'",
             input_file.name,

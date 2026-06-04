@@ -60,23 +60,35 @@ the committed reference trees.
 
 ### Metadata JSONs
 
-Use `run-schema-validation` for committed `config/provider.json` files:
+Use `run-schema-validation` with the dedicated example-output schemas for
+committed `model_jsons/*.json`, `chain_jsons/*.json`, and
+`config/provider.json` files:
 
 ```bash
+.venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_monomer_e2e/model_jsons/AF-0000000300000001.json \
+  -t model-summary
+.venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_monomer_e2e/chain_jsons/AF-0000000300000001.json \
+  -t collection-doc
 .venv/bin/python main.py run-schema-validation \
   -i examples/colabfold_monomer_e2e/config/provider.json \
   -t provider
 
 .venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_complex_e2e/model_jsons/AF-0000000300000101.json \
+  -t model-summary
+.venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_complex_e2e/chain_jsons/AF-0000000300000101.json \
+  -t collection-doc
+.venv/bin/python main.py run-schema-validation \
   -i examples/colabfold_complex_e2e/config/provider.json \
   -t provider
 ```
 
-The committed e2e `model_jsons/*.json` files are model-level summary outputs,
-not the full model metadata entries covered by the canonical `model` schema.
-Do not validate those summary files with `run-schema-validation -t model`
-unless a dedicated summary schema is added. The canonical model schema remains
-for full model metadata entries and `AF-metadata-*-of-*.json` batches.
+The canonical `model` schema remains for full model metadata entries and
+`AF-metadata-*-of-*.json` batches. Do not use it for the e2e summary
+`model_jsons/*.json` files.
 
 ### Score JSONs
 
