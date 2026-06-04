@@ -47,6 +47,18 @@ def test_validate_with_overridden_schema(tmp_path, fake_model_schema):
         schema_validator.validate_against_schema(input_file, "model")
 
 
+def test_validate_model_batch_with_overridden_schema(tmp_path, fake_model_schema):
+    input_data = [{"name": "Test Model"}, {"name": "Second Model"}]
+    input_file = tmp_path / "valid_model_batch.json"
+    input_file.write_text(json.dumps(input_data), encoding="utf-8")
+
+    with patch.dict(
+        schema_validator.SCHEMA_PATHS,
+        {schema_validator.SchemaType.MODEL: fake_model_schema},
+    ):
+        schema_validator.validate_against_schema(input_file, "model")
+
+
 def test_invalid_schema_type(temp_json_file):
     input_file = temp_json_file({"foo": "bar"})
     with pytest.raises(ValueError, match="Unknown schema type"):

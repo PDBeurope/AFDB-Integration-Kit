@@ -77,7 +77,11 @@ def validate_against_schema(input_file: Path, schema_type: str):
     data = _load_json_file(input_file)
 
     try:
-        jsonschema.validate(instance=data, schema=schema)
+        if schema_enum is SchemaType.MODEL and isinstance(data, list) and data:
+            for entry in data:
+                jsonschema.validate(instance=entry, schema=schema)
+        else:
+            jsonschema.validate(instance=data, schema=schema)
         logger.info(
             "Validation successful for '%s' against schema '%s'",
             input_file.name,

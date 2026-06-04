@@ -60,28 +60,23 @@ the committed reference trees.
 
 ### Metadata JSONs
 
-Use `run-schema-validation` for committed `model_jsons/*.json` and
-`config/provider.json` files:
+Use `run-schema-validation` for committed `config/provider.json` files:
 
 ```bash
-.venv/bin/python main.py run-schema-validation \
-  -i examples/colabfold_monomer_e2e/model_jsons/AF-0000000300000001.json \
-  -t model
 .venv/bin/python main.py run-schema-validation \
   -i examples/colabfold_monomer_e2e/config/provider.json \
   -t provider
 
 .venv/bin/python main.py run-schema-validation \
-  -i examples/colabfold_complex_e2e/model_jsons/AF-0000000300000101.json \
-  -t model
-.venv/bin/python main.py run-schema-validation \
   -i examples/colabfold_complex_e2e/config/provider.json \
   -t provider
 ```
 
-`validate-metadata-file` is useful for workflow-style metadata batch files, but
-`run-schema-validation` is the direct schema check for these committed example
-model and provider JSON files.
+The committed e2e `model_jsons/*.json` files are model-level summary outputs,
+not the full model metadata entries covered by the canonical `model` schema.
+Do not validate those summary files with `run-schema-validation -t model`
+unless a dedicated summary schema is added. The canonical model schema remains
+for full model metadata entries and `AF-metadata-*-of-*.json` batches.
 
 ### Score JSONs
 

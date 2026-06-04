@@ -278,17 +278,14 @@ uv run main.py run-dssp \
 ### Validate Example Outputs
 
 The committed end-to-end examples under [`examples/`](examples/README.md)
-can be validated directly from the repo root. Use `run-schema-validation` as
-the primary metadata check for committed `model_jsons/*.json` and
-`config/provider.json`; `validate-metadata-file` is intended for workflow-style
-metadata batch files and is not the clearest command for these example
-metadata artifacts.
+can be validated directly from the repo root. The committed e2e
+`model_jsons/*.json` files are model-level summary outputs; they are not the
+full model metadata entries covered by the canonical `model` schema. Use
+`run-schema-validation -t provider` for the example provider metadata, and use
+the score and ModelCIF checks below for the generated artifacts.
 
 ```bash
-# Metadata JSONs
-.venv/bin/python main.py run-schema-validation \
-  -i examples/colabfold_monomer_e2e/model_jsons/AF-0000000300000001.json \
-  -t model
+# Provider metadata JSON
 .venv/bin/python main.py run-schema-validation \
   -i examples/colabfold_monomer_e2e/config/provider.json \
   -t provider
