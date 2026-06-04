@@ -19,7 +19,7 @@ uniprot/
     parquet/                  # Parquet subset extracted from UniProt
     db/                       # DuckDB cache built from the parquet subset
   templates/
-    modelcif_metadata.json    # Starter template for ModelCIF metadata exports
+    colabfold_example_modelcif_metadata.json    # Starter template for ModelCIF metadata exports
   scripts/
     shard_uniprot.py          # Split UniProt releases into shards for parallel runs
     extract_subset.py         # Stream UniProt releases into entry.parquet
@@ -45,32 +45,6 @@ generate them locally.
 
 The `data/` directory contains symlinks to the UniProt releases.  Update them if
 your data lives elsewhere.
-
-## Per-model manifests from the ColabFold converter
-
-When you run `afdb-colabfold-convert` with `--chain-manifest-dir` and
-`--model-manifest-dir`, every model produces two CSV snippets:
-
-- `<model_entity_id>_afid_mapping.csv` (chain-level pLDDT stats and residue ranges)
-- `<model_entity_id>_model_metadata.csv` (model-level averages, e.g. pLDDT)
-
-Both land in the directories you pass to those flags (for example,
-`examples/per_accession/manifests/{chains,models}`). After processing a batch of
-models, concatenate the per-model CSVs into the global manifests expected by
-the UniProt tooling:
-
-```bash
-# Chain manifest (uniprot_afid_mapping.csv)
-head -n1 /path/to/manifests/chains/*_afid_mapping.csv > /path/to/config/uniprot_afid_mapping.csv
-tail -n +2 -q /path/to/manifests/chains/*_afid_mapping.csv >> /path/to/config/uniprot_afid_mapping.csv
-
-# Model manifest (uniprot_model_metadata.csv)
-head -n1 /path/to/manifests/models/*_model_metadata.csv > /path/to/config/uniprot_model_metadata.csv
-tail -n +2 -q /path/to/manifests/models/*_model_metadata.csv >> /path/to/config/uniprot_model_metadata.csv
-```
-
-Those consolidated CSVs become the `--mapping` and `--model-manifest` inputs
-referenced throughout the rest of this document.
 
 ## Optional: shard releases for parallel extraction
 
@@ -150,7 +124,7 @@ per release.
    ```
 
    - `--mapping` (chain manifest): `model_entity_id,entity_id,chain_id,uniprot_ac,sequence_start,sequence_end,is_fragment,is_isoform,entity_type,average_plddt,fraction_plddt_very_low,fraction_plddt_low,fraction_plddt_confident,fraction_plddt_very_high`
-   - `--model-manifest` (model manifest, optional): `model_entity_id,average_plddt,name,isAMdata`
+   - `--model-manifest` (model manifest, optional): `model_entity_id,ipTM,average_plddt,name,isAMdata`
    - Output: one JSON document per model.
 
 4. **Export per-chain metadata records (chain-level Solr schema)**
@@ -186,7 +160,7 @@ per release.
      --model-id AF-0000000000000004 \
      --manifest examples/config/subset_uniprot_afid_mapping.csv \
    --db uniprot/outputs/db/uniprot_2025_04.duckdb \
-     --template uniprot/templates/modelcif_metadata.json \
+     --template uniprot/templates/colabfold_example_modelcif_metadata.json \
      --out examples/AF-0000000000000004_model_gen.json
    ```
 
@@ -203,7 +177,7 @@ per release.
    The exporter deduplicates `_ma_target_ref_db_details` per entity while still
    emitting a `_ma_target_entity_instance` row for every chain.
 
-   Copy `uniprot/templates/modelcif_metadata.json` to your workspace if you need
+   Copy `uniprot/templates/colabfold_example_modelcif_metadata.json` to your workspace if you need
    to customise provider details, data-usage statements, or software fields
    before running large batches.
 
@@ -233,7 +207,7 @@ per release.
   nextflow run workflow/modelcif_metadata.nf \
     --db uniprot/outputs/db/uniprot_2025_04.duckdb \
      --manifest examples/config/subset_uniprot_afid_mapping.csv \
-     --template uniprot/templates/modelcif_metadata.json \
+     --template uniprot/templates/colabfold_example_modelcif_metadata.json \
      --output_dir examples/modelcif_metadata \
      -w "$PWD/work/modelcif"
    ```

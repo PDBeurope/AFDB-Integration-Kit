@@ -1,0 +1,98 @@
+[
+  {
+    "uniqueId": "AF-0000000065760001_v1_A",
+    "toolUsed": "ColabFold v1.6.0 / AlphaFold-Multimer",
+    "modelCreatedDate": "2026-05-22T00:00:00Z",
+    "modelEntityId": "AF-0000000065760001",
+    "isComplex": true,
+    "complexName": "Homodimer of Putative transcription factor 001R",
+    "uniprotAccession": "Q6GZX4",
+    "uniprotId": "001R_FRG3G",
+    "uniprotDescription": "Putative transcription factor 001R",
+    "gene": "FV3-001R",
+    "geneSynonyms": [],
+    "taxId": 654924,
+    "organismScientificName": "Frog virus 3 (isolate Goorha) (FV-3)",
+    "organismCommonNames": [
+      "isolate Goorha"
+    ],
+    "organismSynonyms": [
+      "FV-3"
+    ],
+    "assemblyType": "Homo",
+    "oligomericState": "dimer",
+    "oligomericStateDescription": "Homodimer",
+    "sequence": "MAFSAEDVLKEYDRRRRMEALLLSLYYPNDRKLLDYKEWSPPRVQVECPKAPVEWNNPPSEKGLIVGHFSGIKYKGEKAQASEVDVNKMCCWVSKFKDAMRRYQGIQTCKIPGKVLSDLDAKIKAYNLTVEGVEGFVRYSRVTKQHVAAFLKELRHSKQYENVNLIHYILTDKRVDIQHLEKDLVKDFKALVESAHRMRQGHMINVKYILYQLLKKHGHGPDGPDILTVKTGSKGVLYDDSFRKIYTDLGWKFTPL",
+    "sequenceChecksum": "20ed9f4d3d083764b96fa6f617769a1f",
+    "sequenceVersionDate": "2004-07-19T00:00:00Z",
+    "sequenceStart": 1,
+    "sequenceEnd": 256,
+    "isIsoform": false,
+    "isFragment": false,
+    "isUniProt": true,
+    "isUniProtReferenceProteome": true,
+    "isUniProtReviewed": true,
+    "globalMetricValue": 66.62,
+    "fractionPlddtVeryLow": 0.34,
+    "fractionPlddtLow": 0.06,
+    "fractionPlddtConfident": 0.37,
+    "fractionPlddtVeryHigh": 0.23,
+    "latestVersion": 1,
+    "allVersions": [
+      1
+    ],
+    "providerId": "EXAMPLE",
+    "entityType": "protein",
+    "isAMdata": false,
+    "complexComposition": "Q6GZX4_2",
+    "complexPredictionAccuracy_ipTM": 0.13
+  },
+  {
+    "uniqueId": "AF-0000000065760001_v1_B",
+    "toolUsed": "ColabFold v1.6.0 / AlphaFold-Multimer",
+    "modelCreatedDate": "2026-05-22T00:00:00Z",
+    "modelEntityId": "AF-0000000065760001",
+    "isComplex": true,
+    "complexName": "Homodimer of Putative transcription factor 001R",
+    "uniprotAccession": "Q6GZX4",
+    "uniprotId": "001R_FRG3G",
+    "uniprotDescription": "Putative transcription factor 001R",
+    "gene": "FV3-001R",
+    "geneSynonyms": [],
+    "taxId": 654924,
+    "organismScientificName": "Frog virus 3 (isolate Goorha) (FV-3)",
+    "organismCommonNames": [
+      "isolate Goorha"
+    ],
+    "organismSynonyms": [
+      "FV-3"
+    ],
+    "assemblyType": "Homo",
+    "oligomericState": "dimer",
+    "oligomericStateDescription": "Homodimer",
+    "sequence": "MAFSAEDVLKEYDRRRRMEALLLSLYYPNDRKLLDYKEWSPPRVQVECPKAPVEWNNPPSEKGLIVGHFSGIKYKGEKAQASEVDVNKMCCWVSKFKDAMRRYQGIQTCKIPGKVLSDLDAKIKAYNLTVEGVEGFVRYSRVTKQHVAAFLKELRHSKQYENVNLIHYILTDKRVDIQHLEKDLVKDFKALVESAHRMRQGHMINVKYILYQLLKKHGHGPDGPDILTVKTGSKGVLYDDSFRKIYTDLGWKFTPL",
+    "sequenceChecksum": "20ed9f4d3d083764b96fa6f617769a1f",
+    "sequenceVersionDate": "2004-07-19T00:00:00Z",
+    "sequenceStart": 1,
+    "sequenceEnd": 256,
+    "isIsoform": false,
+    "isFragment": false,
+    "isUniProt": true,
+    "isUniProtReferenceProteome": true,
+    "isUniProtReviewed": true,
+    "globalMetricValue": 66.68,
+    "fractionPlddtVeryLow": 0.34,
+    "fractionPlddtLow": 0.06,
+    "fractionPlddtConfident": 0.37,
+    "fractionPlddtVeryHigh": 0.23,
+    "latestVersion": 1,
+    "allVersions": [
+      1
+    ],
+    "providerId": "EXAMPLE",
+    "entityType": "protein",
+    "isAMdata": false,
+    "complexComposition": "Q6GZX4_2",
+    "complexPredictionAccuracy_ipTM": 0.13
+  }
+]

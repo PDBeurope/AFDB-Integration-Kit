@@ -1,6 +1,7 @@
 from __future__ import annotations
-import json
 import math
+
+import orjson
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -80,8 +81,7 @@ def _filter_entries(
 
 def _load_json(path: Path) -> Tuple[bool, Any, Optional[str]]:
     try:
-        with path.open("r", encoding="utf-8") as fh:
-            return True, json.load(fh), None
+        return True, orjson.loads(path.read_bytes()), None
     except Exception as e:
         return False, None, str(e)
 

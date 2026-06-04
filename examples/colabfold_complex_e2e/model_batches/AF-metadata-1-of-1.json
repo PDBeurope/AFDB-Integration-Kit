@@ -1,0 +1,77 @@
+[
+  {
+    "modelEntityId": "AF-0000000065760001",
+    "latestVersion": 1,
+    "providerId": "EXAMPLE",
+    "isComplex": true,
+    "complexName": "Homodimer of Putative transcription factor 001R",
+    "assemblyType": "Homo",
+    "oligomericState": "dimer",
+    "complexComposition": [
+      "Q6GZX4_2"
+    ],
+    "oligomericStateDescription": "Homodimer",
+    "uniprotAccession": [
+      "Q6GZX4"
+    ],
+    "uniprotDescription": [
+      "Putative transcription factor 001R"
+    ],
+    "isUniProtReferenceProteome": true,
+    "isUniProtReviewed": true,
+    "isIsoform": false,
+    "organismScientificName": [
+      "Frog virus 3 (isolate Goorha) (FV-3)"
+    ],
+    "gene": [
+      "FV3-001R"
+    ],
+    "taxId": [
+      654924
+    ],
+    "sequenceStart": 1,
+    "sequenceEnd": 256,
+    "globalMetricValue": 66.65,
+    "complexPredictionAccuracy_ipTM": 0.13,
+    "isAMdata": false
+  },
+  {
+    "modelEntityId": "AF-0000000300000101",
+    "latestVersion": 1,
+    "providerId": "EXAMPLE",
+    "isComplex": true,
+    "complexName": "Complex of Cytochrome P450/Large subunit ribosomal protein L3",
+    "assemblyType": "Hetero",
+    "oligomericState": "dimer",
+    "complexComposition": [
+      "A0ABS2QMZ4_1",
+      "A0ABS2QMF5_1"
+    ],
+    "oligomericStateDescription": "Heterodimer",
+    "uniprotAccession": [
+      "A0ABS2QMZ4",
+      "A0ABS2QMF5"
+    ],
+    "uniprotDescription": [
+      "Cytochrome P450",
+      "Large subunit ribosomal protein L3"
+    ],
+    "isUniProtReferenceProteome": true,
+    "isUniProtReviewed": false,
+    "isIsoform": false,
+    "organismScientificName": [
+      "Peribacillus deserti"
+    ],
+    "gene": [
+      "JOC77_003991",
+      "JOC77_003818"
+    ],
+    "taxId": [
+      673318,
+      673318
+    ],
+    "globalMetricValue": 51.81,
+    "complexPredictionAccuracy_ipTM": 0.16,
+    "isAMdata": false
+  }
+]

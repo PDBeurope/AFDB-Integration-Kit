@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-import json
 import logging
+import os
+
+import orjson
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -89,7 +91,8 @@ def run_validations(
     results: Dict[str, List[ValidationResult]] = {name: [] for name in selected}
 
     if parallel and len(selected) > 1:
-        with ThreadPoolExecutor(max_workers=min(len(selected), 8)) as executor:
+        # Scale workers to available CPUs
+        with ThreadPoolExecutor(max_workers=min(len(selected), os.cpu_count() or 4)) as executor:
             futures = {
                 executor.submit(_run_single_check, name, files_by_check[name], ctx): name for name in selected
             }
@@ -152,12 +155,12 @@ def write_results(results: Sequence[ValidationResult], path: Path, fmt: Literal[
     path.parent.mkdir(parents=True, exist_ok=True)
     if fmt == "json":
         payload = [res.to_dict() for res in results]
-        path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        path.write_bytes(orjson.dumps(payload, option=orjson.OPT_INDENT_2) + b"\n")
         return
     if fmt == "jsonl":
-        with path.open("w", encoding="utf-8") as handle:
+        with path.open("wb") as handle:
             for res in results:
-                handle.write(json.dumps(res.to_dict()) + "\n")
+                handle.write(orjson.dumps(res.to_dict()) + b"\n")
         return
     raise ValueError(f"Unsupported format: {fmt}")
 

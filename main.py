@@ -6,12 +6,17 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set
 
 import typer
+from rich.console import Console
+
+console = Console()
 
 from afdb_integration_kit.cif2bcif.convert import (
     run_batch_cif2bcif,
 )
 from afdb_integration_kit.cif2bcif.convert import run_cif2bcif as cif2bcif_helper
+from afdb_integration_kit.dssp.dssp import DEFAULT_ALGORITHM
 from afdb_integration_kit.dssp.dssp import run_dssp as dssp_helper
+from afdb_integration_kit.dssp.dssp import run_batch_dssp
 from afdb_integration_kit.metadata.validator import validate_against_schema
 from afdb_integration_kit.modelcif.generate import generate
 from afdb_integration_kit.modelcif_replace.replace import replace_mmcif_with_json as replace_mmcif_with_json
@@ -30,6 +35,82 @@ from afdb_integration_kit.validation import (
     write_results,
 )
 from afdb_integration_kit.utils.file_guard import require_non_empty_file
+from concurrent.futures import ProcessPoolExecutor
+from typing import Tuple
+
+# --- Module-level worker functions for ProcessPoolExecutor (must be picklable) ---
+
+def _process_modelcif_single(args: Tuple[str, str, str, str, bool, bool, str, str]) -> Tuple[str, bool, Optional[str]]:
+    """
+    Process a single model for ModelCIF generation.
+    Module-level function required for ProcessPoolExecutor pickling.
+    """
+    json_file, input_dir, output_dir, model_version, skip_validation, skip_alignment, model_json_dir, cif_qa_metrics = args
+    json_path = Path(json_file)
+    input_path = Path(input_dir)
+    output_path = Path(output_dir)
+
+    model_id = json_path.stem
+    pdb_file = input_path / f"{model_id}-model_v1.pdb"
+
+    if not pdb_file.exists():
+        pdb_file = input_path / f"{model_id}-model_{model_version}.pdb"
+
+    if not pdb_file.exists():
+        return (model_id, False, "PDB file not found")
+
+    output_file = output_path / f"{model_id}-model_{model_version}.cif"
+
+    # Resolve model JSON path for QA metric enrichment
+    model_json_path = None
+    if model_json_dir:
+        candidate = Path(model_json_dir) / f"{model_id}.json"
+        if candidate.exists():
+            model_json_path = str(candidate)
+
+    try:
+        # Import here to ensure module is available in subprocess
+        from afdb_integration_kit.modelcif.generate import generate
+        generate(
+            str(pdb_file), str(json_file), str(output_file), None, False,
+            skip_validation, skip_alignment,
+            model_json_path, cif_qa_metrics or None,
+        )
+        return (model_id, True, None)
+    except Exception as e:
+        return (model_id, False, str(e))
+
+
+def _process_modelpdb_single(args: Tuple[str, str, str, str, str]) -> Tuple[str, bool, Optional[str]]:
+    """
+    Process a single model for ModelPDB generation.
+    Module-level function required for ProcessPoolExecutor pickling.
+    """
+    cif_file, pdb_dir, output_dir, provider_str, model_version = args
+    cif_path = Path(cif_file)
+    pdb_path = Path(pdb_dir)
+    output_path = Path(output_dir)
+
+    stem = cif_path.stem
+    model_id = stem.replace(f"-model_{model_version}", "")
+
+    pdb_file = pdb_path / f"{model_id}-model_v1.pdb"
+    if not pdb_file.exists():
+        pdb_file = pdb_path / f"{model_id}-model_{model_version}.pdb"
+
+    if not pdb_file.exists():
+        return (model_id, False, "PDB file not found")
+
+    output_file = output_path / f"{model_id}-model_{model_version}.pdb"
+
+    try:
+        # Import here to ensure module is available in subprocess
+        from afdb_integration_kit.modelpdb.generate import generate_pdb_headers
+        generate_pdb_headers(str(cif_path), str(pdb_file), str(output_file), provider_str)
+        return (model_id, True, None)
+    except Exception as e:
+        return (model_id, False, str(e))
+
 
 # Set up logger
 logger = logging.getLogger("afdb_integration_kit")
@@ -509,6 +590,107 @@ def run_modelcif_gen(
     # Call main logic (assuming main is imported or defined elsewhere)
     generate(str(pdb), str(metadata), str(output), validate_path, fetch_uniprot)
 
+
+@app.command()
+def run_batch_modelcif_gen(
+    input_dir: Path = typer.Option(
+        ...,
+        "--input-dir",
+        help="Directory containing PDB files.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        resolve_path=True,
+    ),
+    metadata_dir: Path = typer.Option(
+        ...,
+        "--metadata-dir",
+        help="Directory containing metadata JSON files.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        resolve_path=True,
+    ),
+    output_dir: Path = typer.Option(
+        ...,
+        "--output-dir",
+        help="Output directory for mmCIF files.",
+        file_okay=False,
+        dir_okay=True,
+        writable=True,
+        resolve_path=True,
+    ),
+    model_version: str = typer.Option(
+        "v1",
+        "--model-version",
+        help="Model version string for output filenames.",
+    ),
+    workers: int = typer.Option(
+        8,
+        "--workers",
+        help="Number of parallel workers.",
+    ),
+    skip_validation: bool = typer.Option(
+        False,
+        "--skip-validation",
+        help="Skip JSON schema validation (use when input is pre-validated).",
+    ),
+    skip_alignment: bool = typer.Option(
+        False,
+        "--skip-alignment",
+        help="Skip CIF column alignment for faster writes (intermediate files).",
+    ),
+    model_json_dir: Optional[Path] = typer.Option(
+        None,
+        "--model-json-dir",
+        help="Directory containing model metadata JSONs for CIF QA metric enrichment.",
+    ),
+    cif_qa_metrics: Optional[str] = typer.Option(
+        None,
+        "--cif-qa-metrics",
+        help="Comma-separated metric short names to add to CIF (e.g. 'ipsae_AB,iptm_af'). Use 'auto' for all.",
+    ),
+):
+    """
+    Batch process multiple PDB files to produce mmCIF files.
+    Expects PDB files named {model_id}-model_v1.pdb and JSON files named {model_id}.json.
+    Uses ProcessPoolExecutor for CPU-bound parallel execution (bypasses GIL).
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Find all JSON metadata files
+    json_files = list(metadata_dir.glob("*.json"))
+    if not json_files:
+        console.print("[red]No JSON files found in metadata directory[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[blue]Processing {len(json_files)} models with {workers} workers (ProcessPool)...[/blue]")
+
+    # Prepare work items as tuples for the module-level worker function
+    work_items = [
+        (str(jf), str(input_dir), str(output_dir), model_version, skip_validation, skip_alignment,
+         str(model_json_dir) if model_json_dir else "", cif_qa_metrics or "")
+        for jf in json_files
+    ]
+
+    success_count = 0
+    error_count = 0
+
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        results = executor.map(_process_modelcif_single, work_items)
+        for model_id, success, error in results:
+            if success:
+                success_count += 1
+            else:
+                error_count += 1
+                if error:
+                    console.print(f"[yellow]Error {model_id}: {error}[/yellow]")
+
+    console.print(f"[green]Batch complete: {success_count} success, {error_count} errors[/green]")
+
+
 @app.command()
 def run_modelpdb_gen(
     cif: Path = typer.Option(
@@ -568,6 +750,98 @@ def run_modelpdb_gen(
 
 
 @app.command()
+def run_batch_modelpdb_gen(
+    cif_dir: Path = typer.Option(
+        ...,
+        "--cif-dir",
+        help="Directory containing mmCIF files.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        resolve_path=True,
+    ),
+    pdb_dir: Path = typer.Option(
+        ...,
+        "--pdb-dir",
+        help="Directory containing original PDB files.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        resolve_path=True,
+    ),
+    provider: Path = typer.Option(
+        ...,
+        "-r",
+        "--provider",
+        help="Input provider JSON file path.",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+        resolve_path=True,
+    ),
+    output_dir: Path = typer.Option(
+        ...,
+        "--output-dir",
+        help="Output directory for enriched PDB files.",
+        file_okay=False,
+        dir_okay=True,
+        writable=True,
+        resolve_path=True,
+    ),
+    model_version: str = typer.Option(
+        "v1",
+        "--model-version",
+        help="Model version string for output filenames.",
+    ),
+    workers: int = typer.Option(
+        8,
+        "--workers",
+        help="Number of parallel workers.",
+    ),
+):
+    """
+    Batch enrich PDB files with header information from mmCIF files.
+    Expects CIF files named {model_id}-model_{version}.cif and PDB files named {model_id}-model_v1.pdb.
+    Uses ProcessPoolExecutor for CPU-bound parallel execution (bypasses GIL).
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Find all CIF files
+    cif_files = list(cif_dir.glob("*-model_*.cif"))
+    if not cif_files:
+        console.print("[red]No CIF files found in CIF directory[/red]")
+        raise typer.Exit(1)
+
+    console.print(f"[blue]Processing {len(cif_files)} models with {workers} workers (ProcessPool)...[/blue]")
+
+    provider_str = str(provider)
+
+    # Prepare work items as tuples for the module-level worker function
+    work_items = [
+        (str(cf), str(pdb_dir), str(output_dir), provider_str, model_version)
+        for cf in cif_files
+    ]
+
+    success_count = 0
+    error_count = 0
+
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        results = executor.map(_process_modelpdb_single, work_items)
+        for model_id, success, error in results:
+            if success:
+                success_count += 1
+            else:
+                error_count += 1
+                if error:
+                    console.print(f"[yellow]Error {model_id}: {error}[/yellow]")
+
+    console.print(f"[green]Batch complete: {success_count} success, {error_count} errors[/green]")
+
+
+@app.command()
 def run_dssp(
     input_file: Path = typer.Option(
         ...,
@@ -592,14 +866,116 @@ def run_dssp(
         readable=False,
         resolve_path=True,
     ),
+    algorithm: str = typer.Option(
+        DEFAULT_ALGORITHM,
+        "--algorithm",
+        "-a",
+        help=(
+            "Algorithm for secondary structure: 'mkdssp' (external DSSP), "
+            "'psea' (geometry), "
+            "'pydssp' (H-bond), or 'tmalign' (CA-CA distance)."
+        ),
+    ),
+    device: str = typer.Option(
+        "cpu",
+        "--device",
+        "-d",
+        help="Device for PyDSSP: 'cpu' or 'cuda'.",
+    ),
 ):
     """
     Run DSSP on a CIF file to generate secondary structure information.
     """
+    if algorithm not in ("mkdssp", "psea", "pydssp", "tmalign"):
+        console.print(
+            f"[red]Invalid algorithm '{algorithm}'. Use 'mkdssp', 'psea', "
+            "'pydssp', or 'tmalign'.[/red]"
+        )
+        raise typer.Exit(1)
+
     require_non_empty_file(input_file, description="DSSP input CIF file")
     logger.info(f"Converting {input_file} to {output_file}")
-    dssp_helper(input_file, output_file)
+    if not dssp_helper(input_file, output_file, algorithm=algorithm, device=device):
+        raise typer.Exit(1)
     logger.info("Conversion complete.")
+
+
+@app.command(name="batch-dssp")
+def batch_dssp(
+    input_dir: Path = typer.Option(
+        ...,
+        "--input-dir",
+        "-id",
+        help="Input directory containing CIF files.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        readable=True,
+        resolve_path=True,
+    ),
+    output_dir: Path = typer.Option(
+        ...,
+        "--output-dir",
+        "-od",
+        help="Output directory for DSSP-annotated CIF files.",
+        file_okay=False,
+        dir_okay=True,
+        writable=True,
+        resolve_path=True,
+    ),
+    workers: int = typer.Option(
+        8, "--workers", "-w", help="Number of parallel workers (default: 8)"
+    ),
+    algorithm: str = typer.Option(
+        DEFAULT_ALGORITHM,
+        "--algorithm",
+        "-a",
+        help=(
+            "Algorithm for secondary structure: 'mkdssp' (external DSSP), "
+            "'psea' (geometry), 'pydssp' (H-bond), or 'tmalign' "
+            "(CA-CA distance)"
+        )
+    ),
+    device: str = typer.Option(
+        "cpu",
+        "--device",
+        "-d",
+        help="Device for PyDSSP: 'cpu' or 'cuda'. GPU accelerates H-bond matrix computation."
+    ),
+):
+    """
+    Batch process all CIF files in a directory to add secondary structure.
+
+    Supports four algorithms:
+    - mkdssp: external DSSP binary (historical default)
+    - psea: Biotite's P-SEA algorithm (geometry-based, ~95% agreement with DSSP)
+    - pydssp: PyDSSP (simplified H-bond DSSP, ~97% agreement with DSSP)
+    - tmalign: TM-align make_sec algorithm (CA-CA distance patterns, very fast)
+
+    When --device cuda is used with pydssp, the H-bond and SSE computation
+    runs on GPU via PyTorch for faster processing.
+    """
+    if algorithm not in ("mkdssp", "psea", "pydssp", "tmalign"):
+        console.print(
+            f"[red]Invalid algorithm '{algorithm}'. Use 'mkdssp', 'psea', "
+            "'pydssp', or 'tmalign'.[/red]"
+        )
+        raise typer.Exit(1)
+
+    algo_names = {
+        "mkdssp": "mkdssp",
+        "psea": "P-SEA (Biotite)",
+        "pydssp": "PyDSSP",
+        "tmalign": "TM-align",
+    }
+    algo_name = algo_names[algorithm]
+    device_label = f"GPU ({device})" if device != "cpu" else "CPU"
+    logger.info(
+        f"Batch secondary structure processing from {input_dir} to {output_dir} "
+        f"using {workers} workers with {algo_name} on {device_label}"
+    )
+    success, errors = run_batch_dssp(input_dir, output_dir, workers=workers, algorithm=algorithm, device=device)
+    console.print(f"[green]Batch complete: {success} success, {errors} errors[/green]")
 
 
 @app.command()
@@ -627,13 +1003,31 @@ def run_cif2bcif(
         readable=False,
         resolve_path=True,
     ),
+    backend: str = typer.Option(
+        "molstar",
+        "-b",
+        "--backend",
+        help="Conversion backend: 'molstar' (default), 'biotite', or 'auto'.",
+    ),
 ):
     """
-    Convert CIF to BinaryCIF or BinaryCIF.GZ
+    Convert CIF to BinaryCIF or BinaryCIF.GZ.
+
+    The default backend preserves the original toolkit behavior by using the
+    external Mol* `cif2bcif` command. The optional Biotite backend remains
+    explicit, and `auto` uses Mol* first with Biotite fallback.
     """
+    if backend not in ("molstar", "biotite", "auto"):
+        console.print(
+            "[red]Invalid backend. Use 'molstar', 'biotite', or 'auto'.[/red]"
+        )
+        raise typer.Exit(1)
     require_non_empty_file(input_file, description="cif2bcif input CIF file")
-    logger.info(f"Converting {input_file} to {output_file}")
-    cif2bcif_helper(input_file, output_file)
+    logger.info(
+        f"Converting {input_file} to {output_file} using {backend} backend"
+    )
+    if not cif2bcif_helper(input_file, output_file, backend=backend):
+        raise typer.Exit(1)
     logger.info("Conversion complete.")
 
 
@@ -666,15 +1060,34 @@ def batch_cif2bcif(
     gzip: bool = typer.Option(
         False, "--gzip", "-gz", help="Output .bcif.gz files instead of .bcif"
     ),
+    backend: str = typer.Option(
+        "molstar",
+        "-b",
+        "--backend",
+        help="Conversion backend: 'molstar' (default), 'biotite', or 'auto'.",
+    ),
 ):
     """
     Batch process all CIF files in a directory to BCIF or BCIF.GZ.
     """
+    if backend not in ("molstar", "biotite", "auto"):
+        console.print(
+            "[red]Invalid backend. Use 'molstar', 'biotite', or 'auto'.[/red]"
+        )
+        raise typer.Exit(1)
     logger.info(
         f"Batch converting CIF files from {input_dir} to {output_dir} "
-        f"using {workers} workers. Gzip: {gzip}"
+        f"using {workers} workers. Gzip: {gzip}. Backend: {backend}"
     )
-    run_batch_cif2bcif(input_dir, output_dir, workers=workers, gzip=gzip)
+    success, errors = run_batch_cif2bcif(
+        input_dir,
+        output_dir,
+        workers=workers,
+        gzip=gzip,
+        backend=backend,
+    )
+    if errors:
+        raise typer.Exit(1)
     logger.info("Batch conversion complete.")
 
 

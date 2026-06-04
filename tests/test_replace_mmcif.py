@@ -33,7 +33,14 @@ def test_replace_success(mock_cif, tmp_path):
     mock_doc.write_file.assert_called_once()
 
 
-def test_invalid_json_structure(tmp_path):
+@patch("gemmi.cif")
+def test_invalid_json_structure(mock_cif, tmp_path):
+    # Mock mmCIF document and block so we get past file parsing
+    mock_doc = MagicMock()
+    mock_block = MagicMock()
+    mock_cif.read_file.return_value = mock_doc
+    mock_doc.sole_block.return_value = mock_block
+
     # JSON missing 'categories'
     json_data = {"invalid": {}}
     json_file = tmp_path / "input.json"

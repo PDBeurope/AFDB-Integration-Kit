@@ -42,6 +42,8 @@ npm-debug.log
 .nextflow.log*
 .nextflow/
 nf_workspace/
+work/
+nextflow
 
 # Input/Output directories
 input/
@@ -60,3 +62,8 @@ uniprot/outputs/parquet/
 # Generated ModelCIF metadata
 examples/complexes/modelcif_metadata/
 examples/multimer_examples/*.test.cif
+
+# ipSAE C++ build artifacts and fetched dependencies
+afdb_integration_kit/ipsae/ipsae_cpp
+afdb_integration_kit/ipsae/deps/eigen-*/
+afdb_integration_kit/ipsae/deps/*.tar.gz

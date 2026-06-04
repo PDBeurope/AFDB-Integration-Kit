@@ -8,8 +8,10 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
-import json
 import logging
+import os
+
+import orjson
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -165,8 +167,7 @@ def configure_logging(level: str) -> None:
 
 
 def load_config(path: Path) -> Dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
+    return orjson.loads(path.read_bytes())
 
 
 def normalise_versions(latest: Any, all_versions: Any) -> tuple[int, List[int]]:
@@ -187,8 +188,8 @@ def normalise_versions(latest: Any, all_versions: Any) -> tuple[int, List[int]]:
         versions = [parse_int(v, latest_version) for v in all_versions]
     elif isinstance(all_versions, str):
         try:
-            parsed = json.loads(all_versions)
-        except json.JSONDecodeError:
+            parsed = orjson.loads(all_versions)
+        except orjson.JSONDecodeError:
             parsed = [v.strip() for v in all_versions.strip("[]").split(",") if v.strip()]
         if isinstance(parsed, list):
             versions = [parse_int(v, latest_version) for v in parsed]
@@ -353,6 +354,9 @@ def derive_description(entry: Dict[str, Any]) -> Optional[str]:
     short_names = as_string_list(entry.get("protein_short_names"))
     if short_names:
         return short_names[0]
+    entry_name = entry.get("entry_name")
+    if isinstance(entry_name, str) and entry_name:
+        return entry_name
     return None
 
 
@@ -419,6 +423,15 @@ def derive_oligomeric_state(subunit_count: int) -> str:
     if subunit_count < 1:
         raise ValueError(f"Oligomeric state requires at least one subunit, received {subunit_count}.")
     return OLIGOMERIC_STATE_MAP.get(subunit_count, "oligomer")
+
+
+def derive_oligomeric_state_description(
+    assembly_type: Optional[str],
+    oligomeric_state: Optional[str],
+) -> Optional[str]:
+    if not assembly_type or not oligomeric_state:
+        return None
+    return f"{assembly_type}{oligomeric_state}"
 
 
 def aggregate_metric(rows: Sequence[ManifestRow], attr: str) -> Optional[float]:
@@ -505,11 +518,7 @@ def build_component_payload(
     isoform_override = resolve_consistent_value(rows, "is_isoform", "is_isoform", accession)
     is_isoform = bool(isoform_override) if isoform_override is not None else False
 
-    uniprot_id = entry.get("entry_name") or accession
-    uniprot_description = derive_description(entry)
-    if uniprot_description == uniprot_id:
-        # Guardrail: avoid ID-as-description duplication when descriptive DE names are absent.
-        uniprot_description = None
+    uniprot_description = derive_description(entry) or accession
     gene, gene_synonyms = derive_gene(entry)
 
     sequence_version_date = ensure_iso_date(entry.get("sequence_version_date"))
@@ -520,6 +529,7 @@ def build_component_payload(
         except (TypeError, ValueError):
             raise ValueError(f"Invalid taxId value {tax_id!r} for accession {accession}.") from None
 
+    uniprot_id = entry.get("entry_name") or accession
     organism_common_names = as_string_list(entry.get("organism_common_names"))
     organism_synonyms = as_string_list(entry.get("organism_synonyms"))
 
@@ -624,10 +634,15 @@ def build_record(
 
     assembly_type = None
     oligomeric_state = None
+    oligomeric_state_description = None
     if is_complex:
         unique_accessions = {row.uniprot_ac for row in manifest_rows if row.uniprot_ac}
         assembly_type = "Hetero" if len(unique_accessions) > 1 else "Homo"
         oligomeric_state = derive_oligomeric_state(len(manifest_rows))
+        oligomeric_state_description = derive_oligomeric_state_description(
+            assembly_type,
+            oligomeric_state,
+        )
 
     model_meta = model_metadata.get(model_entity_id)
     iptm_value = model_meta.iptm if (is_complex and model_meta) else None
@@ -698,6 +713,7 @@ def build_record(
             "organismSynonyms": payload.organism_synonyms,
             "assemblyType": assembly_type,
             "oligomericState": oligomeric_state,
+            "oligomericStateDescription": oligomeric_state_description,
             "sequence": payload.sequence,
             "sequenceChecksum": payload.checksum,
             "sequenceVersionDate": payload.sequence_version_date,
@@ -766,6 +782,8 @@ def main() -> int:
         return 1
 
     con = duckdb.connect(str(args.db), read_only=True)
+    duckdb_mem = os.environ.get("DUCKDB_MEMORY_LIMIT", "512MB")
+    con.execute(f"SET memory_limit = '{duckdb_mem}'")
     try:
         entry_map = fetch_entries(con, unique_accessions)
     finally:
@@ -783,9 +801,9 @@ def main() -> int:
         return 1
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    with args.out.open("w", encoding="utf-8") as handle:
-        json.dump(records, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
+    with args.out.open("wb") as handle:
+        handle.write(orjson.dumps(records, option=orjson.OPT_INDENT_2))
+        handle.write(b"\n")
     logging.info("Wrote metadata for model %s to %s", target_model_id, args.out)
     return 0
 

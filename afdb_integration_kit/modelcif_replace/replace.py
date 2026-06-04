@@ -1,9 +1,10 @@
 import argparse
-import json
 import logging
+from pathlib import Path
 from typing import Any, Dict
 
 import gemmi
+import orjson
 
 # Configure logger
 logging.basicConfig(level=logging.INFO)
@@ -30,8 +31,7 @@ def replace_mmcif_with_json(mmcif_file: str, json_file: str, output_file: str) -
     block = doc.sole_block()
 
     # Load the JSON file
-    with open(json_file, "r", encoding="utf-8") as f:
-        data: Dict[str, Any] = json.load(f)
+    data: Dict[str, Any] = orjson.loads(Path(json_file).read_bytes())
 
     if "categories" not in data:
         raise ValueError("Invalid JSON structure: 'categories' key is missing.")

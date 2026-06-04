@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import argparse
 import csv
-import json
 import logging
+import os
+
+import orjson
 from collections import OrderedDict, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -27,6 +29,8 @@ class ManifestEntry:
     entity_id: str
     chain_id: str
     uniprot_ac: str
+    sequence_start: int | None = None
+    sequence_end: int | None = None
 
 
 @dataclass
@@ -34,6 +38,8 @@ class EntityAssignment:
     entity_id: str
     uniprot_ac: str
     chain_ids: List[str]
+    sequence_start: int | None = None
+    sequence_end: int | None = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -105,6 +111,8 @@ def load_manifest(path: Path, model_id: str) -> List[ManifestEntry]:
                 entity_id=row["entity_id"].strip(),
                 chain_id=row["chain_id"].strip(),
                 uniprot_ac=(row.get("uniprot_ac") or "").strip(),
+                sequence_start=int(row["sequence_start"]) if (row.get("sequence_start") or "").strip() else None,
+                sequence_end=int(row["sequence_end"]) if (row.get("sequence_end") or "").strip() else None,
             )
             if not entry.entity_id or not entry.chain_id or not entry.uniprot_ac:
                 raise ValueError(f"Incomplete manifest row for model {model_id}: {row}")
@@ -124,6 +132,8 @@ def group_entities(entries: Sequence[ManifestEntry]) -> List[EntityAssignment]:
                 entity_id=entry.entity_id,
                 uniprot_ac=entry.uniprot_ac,
                 chain_ids=[entry.chain_id],
+                sequence_start=entry.sequence_start,
+                sequence_end=entry.sequence_end,
             )
         else:
             if entry.uniprot_ac != current.uniprot_ac:
@@ -134,6 +144,13 @@ def group_entities(entries: Sequence[ManifestEntry]) -> List[EntityAssignment]:
             if entry.chain_id in current.chain_ids:
                 raise ValueError(
                     f"Duplicate chain {entry.chain_id!r} listed for entity {entry.entity_id}."
+                )
+            if (
+                entry.sequence_start != current.sequence_start
+                or entry.sequence_end != current.sequence_end
+            ):
+                raise ValueError(
+                    f"Entity {entry.entity_id} has inconsistent fragment ranges across chains."
                 )
             current.chain_ids.append(entry.chain_id)
     return list(grouped.values())
@@ -223,6 +240,12 @@ def populate_categories(
         sequence: str = entry.get("sequence") or ""
         if not sequence:
             raise ValueError(f"No sequence stored for accession {assignment.uniprot_ac}.")
+        seq_start = assignment.sequence_start or 1
+        seq_end = assignment.sequence_end or len(sequence)
+        if seq_start < 1 or seq_end < seq_start or seq_end > len(sequence):
+            raise ValueError(
+                f"Invalid fragment range {seq_start}-{seq_end} for accession {assignment.uniprot_ac}."
+            )
         crc64 = crc64_ecma(sequence)
         ref_fields["target_entity_id"].append(assignment.entity_id)
         ref_fields["db_name"].append("UNP")
@@ -232,8 +255,8 @@ def populate_categories(
         taxid = entry.get("taxid")
         ref_fields["ncbi_taxonomy_id"].append(normalise_optional_text(taxid))
         ref_fields["organism_scientific"].append(normalise_optional_text(entry.get("organism")))
-        ref_fields["seq_db_align_begin"].append(1)
-        ref_fields["seq_db_align_end"].append(len(sequence))
+        ref_fields["seq_db_align_begin"].append(seq_start)
+        ref_fields["seq_db_align_end"].append(seq_end)
         ref_fields["seq_db_isoform"].append("?")
         ref_fields["seq_db_sequence_checksum"].append(crc64)
         ref_fields["seq_db_sequence_version_date"].append(
@@ -296,7 +319,13 @@ def populate_categories(
         sequence: str = entry.get("sequence") or ""
         if not sequence:
             raise ValueError(f"No sequence stored for accession {assignment.uniprot_ac}.")
-        sequences.append(sequence)
+        seq_start = assignment.sequence_start or 1
+        seq_end = assignment.sequence_end or len(sequence)
+        if seq_start < 1 or seq_end < seq_start or seq_end > len(sequence):
+            raise ValueError(
+                f"Invalid fragment range {seq_start}-{seq_end} for accession {assignment.uniprot_ac}."
+            )
+        sequences.append(sequence[seq_start - 1:seq_end])
         poly_types.append("polypeptide(L)")
     entity_poly["pdbx_seq_one_letter_code"] = sequences
     entity_poly["type"] = poly_types
@@ -337,16 +366,18 @@ def populate_categories(
         sequence: str = entry.get("sequence") or ""
         if not sequence:
             raise ValueError(f"No sequence stored for accession {assignment.uniprot_ac}.")
+        seq_start = assignment.sequence_start or 1
+        seq_end = assignment.sequence_end or len(sequence)
+        fragment_length = seq_end - seq_start + 1
         for chain_id in assignment.chain_ids:
             align_ids.append(align_counter)
             ref_ids.append(str(idx))
             pdb_codes.append(model_id)
             strand_ids.append(chain_id)
-            length = len(sequence)
             seq_align_begin.append(1)
-            seq_align_end.append(length)
-            db_align_begin.append(1)
-            db_align_end.append(length)
+            seq_align_end.append(fragment_length)
+            db_align_begin.append(seq_start)
+            db_align_end.append(seq_end)
             align_counter += 1
     struct_ref_seq["align_id"] = align_ids
     struct_ref_seq["ref_id"] = ref_ids
@@ -393,8 +424,7 @@ def generate_input(args: argparse.Namespace) -> None:
     template_path = args.template
     if not template_path.exists():
         raise FileNotFoundError(f"Template JSON {template_path} does not exist.")
-    with template_path.open("r", encoding="utf-8") as handle:
-        template = json.load(handle)
+    template = orjson.loads(template_path.read_bytes())
     if "metadata" not in template or "categories" not in template:
         raise ValueError("Template JSON must contain 'metadata' and 'categories' keys.")
 
@@ -403,6 +433,8 @@ def generate_input(args: argparse.Namespace) -> None:
 
     entries_by_entity: Dict[str, Dict[str, object]] = {}
     with duckdb.connect(str(args.db), read_only=True) as con:
+        duckdb_mem = os.environ.get("DUCKDB_MEMORY_LIMIT", "512MB")
+        con.execute(f"SET memory_limit = '{duckdb_mem}'")
         for assignment in entity_assignments:
             if assignment.entity_id in entries_by_entity:
                 continue
@@ -414,9 +446,9 @@ def generate_input(args: argparse.Namespace) -> None:
     template["chains"] = build_chains(manifest_entries)
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    with args.out.open("w", encoding="utf-8") as handle:
-        json.dump(template, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
+    with args.out.open("wb") as handle:
+        handle.write(orjson.dumps(template, option=orjson.OPT_INDENT_2))
+        handle.write(b"\n")
     LOG.info("Wrote ModelCIF metadata JSON for %s to %s", args.model_id, args.out)
 
 

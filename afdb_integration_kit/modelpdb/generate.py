@@ -1,10 +1,11 @@
-import json
 import logging
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict
 import datetime
+from typing import Any, Dict
+
+import orjson
 
 import gemmi
 from afdb_integration_kit.utils.pdbeditor import PDBFileEditor
@@ -16,6 +17,31 @@ CAT_ENTITY_POLY_SEQ_SCHEME = "_pdbx_poly_seq_scheme."
 CAT_STRUCT_ASYM = "_struct_asym."
 CAT_TARGET_REF_DB = "_ma_target_ref_db_details."
 ITEM_AUTH_ASYM_ID = "auth_asym_id"
+
+
+def _normalise_scalar(value: Any) -> str:
+    if value is None:
+        return "?"
+    if isinstance(value, str):
+        return value
+    return str(value)
+
+
+def _category_rows(category: Dict[str, list[Any]]) -> list[Dict[str, Any]]:
+    if not category:
+        return []
+    keys = list(category.keys())
+    if not keys:
+        return []
+    row_count = max(len(category.get(key, [])) for key in keys)
+    rows: list[Dict[str, Any]] = []
+    for idx in range(row_count):
+        row: Dict[str, Any] = {}
+        for key in keys:
+            values = category.get(key, [])
+            row[key] = values[idx] if idx < len(values) else None
+        rows.append(row)
+    return rows
 
 # Configure logger
 logger = logging.getLogger("afdb_integration_kit")
@@ -38,9 +64,8 @@ def load_json_file(path: str) -> Dict[str, Any]:
     """Loads and returns data from a JSON file."""
     logger.info(f"Loading JSON file: {path}")
     try:
-        with open(path, "r") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, FileNotFoundError) as e:
+        return orjson.loads(Path(path).read_bytes())
+    except (orjson.JSONDecodeError, FileNotFoundError) as e:
         logger.error(f"Error reading or parsing JSON file '{path}': {e}")
         sys.exit(1)
 
@@ -57,14 +82,21 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
     data = cif_data.get_data()
 
     # Get data from common categories
-    citation = data.get("_citation.", {})
     citation_author = data.get("_citation_author.", {})
     entity_poly = data.get("_entity_poly.", {})
     entity = data.get("_entity.", {})
     target_ref_db = data.get("_ma_target_ref_db_details.", {})
     data_usage = data.get("_pdbx_data_usage.", {})
-    seq_scheme = data.get("_pdbx_poly_seq_scheme.", {})
     db_status = data.get("_pdbx_database_status.", {})
+    struct_asym_rows = _category_rows(data.get(CAT_STRUCT_ASYM, {}))
+    entity_rows = _category_rows(entity)
+    target_ref_rows = _category_rows(target_ref_db)
+    chains_by_entity: Dict[str, list[str]] = defaultdict(list)
+    for row in struct_asym_rows:
+        entity_id = _normalise_scalar(row.get("entity_id"))
+        asym_id = _normalise_scalar(row.get("id"))
+        if entity_id != "?" and asym_id != "?":
+            chains_by_entity[entity_id].append(asym_id)
 
     # 1. HEADER and AUDIT
     # The date is the most recent revision date from recvd_initial_deposition_date
@@ -89,21 +121,29 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
 
     # 2. TITLE and COMPND
     # Use _entity.pdbx_description and _entity_poly.pdbx_seq_one_letter_code to build the title
-    if entity.get("pdbx_description",[False])[0]:
-        description = entity["pdbx_description"][0]
-        title_text = f"{description} ({target_ref_db.get('db_accession', ['?'])[0]})"
+    if entity_rows:
+        if len(entity_rows) == 1:
+            description = _normalise_scalar(entity_rows[0].get("pdbx_description"))
+            accession = _normalise_scalar(target_ref_rows[0].get("db_accession")) if target_ref_rows else "?"
+            title_text = f"{description} ({accession})"
+        else:
+            descriptions = [
+                _normalise_scalar(row.get("pdbx_description"))
+                for row in entity_rows
+                if _normalise_scalar(row.get("pdbx_description")) != "?"
+            ]
+            title_text = "Complex of " + "/".join(descriptions)
         pdb_editor.add_title(title_text.upper())
 
-        # COMPND information
-        # Get chain_id from _struct_ref_seq to handle multiple chains correctly
-        chains_present = set(cif_data.data.get(CAT_ATOM_SITE, {}).get(ITEM_AUTH_ASYM_ID, []))
-        for chain_id in sorted(chains_present):
-            entity_id = cif_data.data.get(CAT_STRUCT_ASYM, {}).get("entity_id", ["?"])[0] # Assuming one entity for simplicity based on prompt
-            pdb_editor.add_compnd(
-                molecule_id=entity_id,
-                molecule=description.upper(),
-                chain=chain_id
-            )
+        for entity_row in entity_rows:
+            entity_id = _normalise_scalar(entity_row.get("id"))
+            description = _normalise_scalar(entity_row.get("pdbx_description"))
+            for chain_id in chains_by_entity.get(entity_id, []):
+                pdb_editor.add_compnd(
+                    molecule_id=entity_id,
+                    molecule=description.upper(),
+                    chain=chain_id,
+                )
     else:
         logger.warning(
             "Missing _entity or _entity_poly data. Cannot generate TITLE and COMPND records."
@@ -111,14 +151,15 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
 
     # 3. SOURCE
     # Using the first entry from _ma_target_ref_db_details which contains UNIPROT info
-    if target_ref_db.get("organism_scientific", [False])[0] and target_ref_db.get("ncbi_taxonomy_id", [False])[0]:
-        scientific_name = target_ref_db["organism_scientific"][0]
-        taxonomy_id = target_ref_db["ncbi_taxonomy_id"][0]
-        pdb_editor.add_source(
-            molecule_id=target_ref_db.get("target_entity_id", ["?"])[0],
-            organism_scientific=scientific_name.upper(),
-            organism_taxid=int(taxonomy_id) if taxonomy_id != "?" else None
-        )
+    if target_ref_rows:
+        for row in target_ref_rows:
+            scientific_name = _normalise_scalar(row.get("organism_scientific"))
+            taxonomy_id = _normalise_scalar(row.get("ncbi_taxonomy_id"))
+            pdb_editor.add_source(
+                molecule_id=_normalise_scalar(row.get("target_entity_id")),
+                organism_scientific=scientific_name.upper(),
+                organism_taxid=int(taxonomy_id) if taxonomy_id != "?" else None,
+            )
     else:
         logger.warning(
             "Missing _ma_target_ref_db_details for SOURCE record. UniProt data might be missing."

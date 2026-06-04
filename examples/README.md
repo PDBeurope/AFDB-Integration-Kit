@@ -1,45 +1,53 @@
 # Examples Overview
 
-This directory collects a small, end-to-end ColabFold run that we use when
-manually exercising the metadata and conversion tooling. Three monomeric UniProt
-entries (Q9TVL3, O00400, and O64637) were picked at random from UniProt release
-2025_03 and predicted with the default ColabFold/AlphaFold2 monomer settings.
-After the run finished we renamed the top-ranked model for each target to an
-AlphaFold-style accession (`AF-000000000000000{1,2,3}`) so that the surrounding
-files resemble the public AlphaFold DB layout.
+This directory contains the committed end-to-end reference examples for raw
+ColabFold-like outputs -> AFDB integration artifacts.
 
-## Directory layout
+## Recommended References
 
-- **Root files** – treated as the canonical artifacts you might receive from a
-  collaborator: per‑target structure files, quality metrics, alignment archives,
-  and supporting provider metadata.
-- **`tmp/`** – working files captured straight from ColabFold while we were
-  iterating on the pipeline. They are useful for reproducing the workflow but
-  can be discarded once the ModelCIF conversion succeeds.
+The two committed runnable references are:
 
-## File guide
+- [`examples/colabfold_monomer_e2e/`](./colabfold_monomer_e2e/): three curated
+  monomer fixtures
+- [`examples/colabfold_complex_e2e/`](./colabfold_complex_e2e/): one homodimer
+  and one heterodimer fixture
 
-| Location / pattern | Description |
-| --- | --- |
-| `AF-000000000000000*-model_v1.cif` / `*.bcif` | Top-ranked models emitted by ColabFold, saved in text and binary mmCIF formats for the three UniProt accessions. |
-| `AF-000000000000000*-model_v1.pdb` | PDB files generated from those mmCIF models via our post-processing. |
-| `AF-000000000000000*-confidence_v1.json` | Per-residue pLDDT scores exported by ColabFold. |
-| `AF-000000000000000*-predicted_aligned_error_v1.json` | Predicted aligned error (PAE) matrices from the same run. |
-| `AF-000000000000000*-msa*.a3m` | The multiple-sequence alignments ColabFold constructed before prediction. |
-| `AF-metadata-1-of-1.json` | Aggregate metadata record covering all three models (used by higher-level ingestion tests). |
-| `DB1.json` | Example provider manifest referenced by the metadata JSON. |
-| `sequences.fasta` | The FASTA batch submitted to ColabFold. |
-| `tmp/AF-000000000000000*-metadata_for_model_gen.json` | Hand-written inputs that satisfy our ModelCIF schema and drive `run-modelcif-gen`. |
-| `tmp/AF-000000000000000*.json` | Raw ColabFold JSON output (per-residue pLDDT array, PAE matrix, global `ptm`, and `max_pae`). |
-| `tmp/AF-000000000000000*-model_v1.pdb` | The top-ranked PDB files straight from ColabFold, renamed to the AF accession. |
+Both references include:
 
-## Usage notes
+- normalized `*-meta_v1.json` + `*-model_v1.pdb` inputs
+- converted confidence and PAE JSONs
+- merged manifests
+- per-model and per-chain metadata JSONs plus batch files
+- ModelCIF input JSONs
+- generated ModelCIF files
+- DSSP-enriched mmCIF files
+- enriched PDB files
+- BCIF outputs with backend/fallback notes
+- exact regeneration commands in `config/commands.txt`
 
-1. To regenerate the dataset, run ColabFold on `sequences.fasta` with default
-   monomer settings, copy the top-ranked outputs, and rename them to the desired
-   AF accession numbers.
-2. Update or regenerate the `*_metadata_for_model_gen.json` files if your schema
-   changes. They were authored manually to exercise the validator.
-3. Once you produce new ModelCIF files with `run-modelcif-gen`, the artifacts at
-   the directory root should be all you need to share. The `tmp/` directory is
-   purely auxiliary.
+The committed DuckDB subset
+[`examples/uniprot_example_subset.duckdb`](./uniprot_example_subset.duckdb)
+contains only the six UniProt accessions needed by the monomer and complex
+references, so the examples no longer depend on a VM-local UniProt database.
+
+Regenerate the monomer reference from the repo root with:
+
+```bash
+.venv/bin/python scripts/generate_colabfold_e2e_example.py \
+  --duckdb examples/uniprot_example_subset.duckdb \
+  --output-dir examples/colabfold_monomer_e2e
+```
+
+Regenerate the complex reference with:
+
+```bash
+.venv/bin/python scripts/generate_colabfold_e2e_example.py \
+  --duckdb examples/uniprot_example_subset.duckdb \
+  --output-dir examples/colabfold_complex_e2e \
+  --example-id AF-0000000065760001 \
+  --example-id AF-0000000300000101
+```
+
+See [`examples/colabfold_monomer_e2e/README.md`](./colabfold_monomer_e2e/README.md)
+and [`examples/colabfold_complex_e2e/README.md`](./colabfold_complex_e2e/README.md)
+for the selected fixtures, caveats, and generated file layout.

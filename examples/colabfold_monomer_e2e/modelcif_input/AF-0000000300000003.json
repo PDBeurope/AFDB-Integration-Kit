@@ -1,0 +1,561 @@
+{
+  "metadata": {
+    "version": "3.2",
+    "model_type": "ColabFold method"
+  },
+  "categories": {
+    "_audit_conform": {
+      "dict_name": [
+        "mmcif_ma.dic"
+      ],
+      "dict_version": [
+        "1.4.8"
+      ],
+      "dict_location": [
+        "https://raw.githubusercontent.com/ihmwg/ModelCIF/master/dist/mmcif_ma.dic"
+      ]
+    },
+    "_pdbx_data_usage": {
+      "id": [
+        "1",
+        "2"
+      ],
+      "type": [
+        "license",
+        "disclaimer"
+      ],
+      "details": [
+        "Data in this file is available under a CC-BY-4.0 license.",
+        "EXAMPLE REPOSITORY DATA, COPYRIGHT (2026) EXAMPLE ORGANIZATION.\nTHE INFORMATION PROVIDED IS THEORETICAL MODELLING ONLY AND CAUTION SHOULD BE\nEXERCISED IN ITS USE. IT IS PROVIDED \"AS-IS\" WITHOUT ANY WARRANTY OF ANY KIND,\nWHETHER EXPRESSED OR IMPLIED. NO WARRANTY IS GIVEN THAT USE OF THE INFORMATION\nSHALL NOT INFRINGE THE RIGHTS OF ANY THIRD PARTY. DISCLAIMER: THE INFORMATION IS\nNOT INTENDED TO BE A SUBSTITUTE FOR PROFESSIONAL MEDICAL ADVICE, DIAGNOSIS, OR\nTREATMENT, AND DOES NOT CONSTITUTE MEDICAL OR OTHER PROFESSIONAL ADVICE. IT IS\nAVAILABLE FOR ACADEMIC AND COMMERCIAL PURPOSES, UNDER CC-BY 4.0 LICENCE."
+      ],
+      "url": [
+        "https://creativecommons.org/licenses/by/4.0/",
+        "?"
+      ],
+      "name": [
+        "CC-BY-4.0",
+        "?"
+      ]
+    },
+    "_citation": {
+      "id": [
+        "Primary",
+        1,
+        2
+      ],
+      "title": [
+        "Example repository reference artifact for ColabFold-derived ModelCIF output",
+        "Example methodological reference for structure prediction output",
+        "Example software reference for sequence search and post-processing"
+      ],
+      "journal_full": [
+        "To be published",
+        "Journal of Example Methods",
+        "Example Software Reports"
+      ],
+      "journal_volume": [
+        "?",
+        "1",
+        "1"
+      ],
+      "page_first": [
+        "?",
+        "1",
+        "10"
+      ],
+      "page_last": [
+        "?",
+        "9",
+        "18"
+      ],
+      "year": [
+        "2026",
+        "2026",
+        "2026"
+      ],
+      "journal_id_ASTM": [
+        "?",
+        "?",
+        "?"
+      ],
+      "country": [
+        "?",
+        "?",
+        "?"
+      ],
+      "journal_id_ISSN": [
+        "?",
+        "?",
+        "?"
+      ],
+      "journal_id_CSD": [
+        "?",
+        "?",
+        "?"
+      ],
+      "book_publisher": [
+        "?",
+        "?",
+        "?"
+      ],
+      "pdbx_database_id_PubMed": [
+        "?",
+        "?",
+        "?"
+      ],
+      "pdbx_database_id_DOI": [
+        "?",
+        "10.0000/example-method",
+        "10.0000/example-software"
+      ]
+    },
+    "_citation_author": {
+      "citation_id": [
+        "Primary",
+        "Primary",
+        "Primary",
+        1,
+        1,
+        1,
+        2,
+        2,
+        2
+      ],
+      "ordinal": [
+        1,
+        2,
+        3,
+        1,
+        2,
+        3,
+        1,
+        2,
+        3
+      ],
+      "name": [
+        "Example Author One",
+        "Example Author Two",
+        "Example Author Three",
+        "Method Author One",
+        "Method Author Two",
+        "Method Author Three",
+        "Software Author One",
+        "Software Author Two",
+        "Software Author Three"
+      ]
+    },
+    "_ma_data": {
+      "id": [
+        "1"
+      ],
+      "name": [
+        "Model"
+      ],
+      "content_type": [
+        "model coordinates"
+      ]
+    },
+    "_ma_model_list": {
+      "ordinal_id": [
+        "1"
+      ],
+      "model_name": [
+        "Predicted model"
+      ],
+      "data_id": [
+        "1"
+      ],
+      "model_type": [
+        "Ab initio model"
+      ]
+    },
+    "_software": {
+      "pdbx_ordinal": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "name": [
+        "ColabFold",
+        "MMseqs2-GPU",
+        "AlphaFold-Multimer",
+        "Interface QA",
+        "PyDSSP"
+      ],
+      "type": [
+        "package",
+        "package",
+        "package",
+        "package",
+        "library"
+      ],
+      "description": [
+        "Example ColabFold pipeline wrapper coordinating search and model inference",
+        "Example MSA and search backend used by the ColabFold workflow",
+        "Example multimer structure prediction model used by the ColabFold workflow",
+        "Example interface scoring and quality-assessment stage",
+        "Example secondary-structure assignment and annotation extraction stage"
+      ],
+      "classification": [
+        "model building",
+        "data collection",
+        "model building",
+        "data processing",
+        "data extraction"
+      ],
+      "version": [
+        "example-1.0",
+        "example-2.0",
+        "example-3.0",
+        "example-1.0",
+        "example-1.0"
+      ]
+    },
+    "_ma_software_group": {
+      "ordinal_id": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "group_id": [
+        "1",
+        "1",
+        "1",
+        "2",
+        "3"
+      ],
+      "software_id": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
+      ],
+      "parameter_group_id": [
+        "?",
+        "?",
+        "?",
+        "2",
+        "?"
+      ]
+    },
+    "_ma_software_parameter": {
+      "parameter_id": [
+        "1",
+        "2"
+      ],
+      "group_id": [
+        "2",
+        "2"
+      ],
+      "data_type": [
+        "float",
+        "float"
+      ],
+      "name": [
+        "pae_cutoff",
+        "dist_cutoff"
+      ],
+      "value": [
+        "10.0",
+        "15.0"
+      ],
+      "description": [
+        "PAE cutoff used by IPSAE",
+        "Distance cutoff used by IPSAE"
+      ]
+    },
+    "_ma_protocol_step": {
+      "ordinal_id": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "protocol_id": [
+        "1",
+        "1",
+        "2",
+        "2"
+      ],
+      "step_id": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "method_type": [
+        "coevolution MSA",
+        "modeling",
+        "other",
+        "other"
+      ],
+      "step_name": [
+        "paired MSA generation",
+        "complex or monomer model inference",
+        "interface or confidence scoring",
+        "secondary structure assignment"
+      ],
+      "details": [
+        "Example paired or unpaired MSA generation using the MMseqs2-GPU backend through a ColabFold-style workflow",
+        "Example AlphaFold-Multimer or ColabFold inference with repository-owned example parameters and no external project-specific wording",
+        "Example post-processing quality metrics computed from the predicted structure output",
+        "Example post-processing secondary-structure assignment using the configured DSSP backend"
+      ],
+      "software_group_id": [
+        "1",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    "_ma_qa_metric": {
+      "id": [
+        "1",
+        "2"
+      ],
+      "name": [
+        "pLDDT",
+        "pLDDT"
+      ],
+      "type": [
+        "pLDDT",
+        "pLDDT"
+      ],
+      "mode": [
+        "global",
+        "local"
+      ],
+      "software_group_id": [
+        "1",
+        "1"
+      ]
+    },
+    "_ma_qa_metric_global": {
+      "ordinal_id": [
+        "1"
+      ],
+      "model_id": [
+        "1"
+      ],
+      "metric_id": [
+        "1"
+      ]
+    },
+    "_entry": {
+      "id": [
+        "AF-0000000300000003"
+      ]
+    },
+    "_database_2": {
+      "database_id": [
+        "AlphaFoldDB"
+      ],
+      "database_code": [
+        "AF-0000000300000003"
+      ]
+    },
+    "_pdbx_database_status": {
+      "status_code": [
+        "REL"
+      ],
+      "entry_id": [
+        "AF-0000000300000003"
+      ],
+      "recvd_initial_deposition_date": [
+        "2026-02-21"
+      ]
+    },
+    "_pdbx_audit_revision_history": {
+      "ordinal": [
+        1
+      ],
+      "data_content_type": [
+        "Structure model"
+      ],
+      "major_revision": [
+        1
+      ],
+      "minor_revision": [
+        0
+      ],
+      "revision_date": [
+        "2025-11-17"
+      ]
+    },
+    "_pdbx_audit_revision_details": {
+      "ordinal": [
+        1
+      ],
+      "revision_ordinal": [
+        1
+      ],
+      "data_content_type": [
+        "Structure model"
+      ],
+      "provider": [
+        "repository"
+      ],
+      "type": [
+        "Initial release"
+      ]
+    },
+    "_audit_author": {
+      "pdbx_ordinal": [
+        1,
+        2,
+        3
+      ],
+      "name": [
+        "Example Curator One",
+        "Example Curator Two",
+        "Example Curator Three"
+      ]
+    },
+    "_ma_target_ref_db_details": {
+      "target_entity_id": [
+        "1"
+      ],
+      "db_name": [
+        "UNP"
+      ],
+      "db_accession": [
+        "Q9TVL3"
+      ],
+      "db_code": [
+        "CDK9_CAEEL"
+      ],
+      "gene_name": [
+        "cdk-9"
+      ],
+      "ncbi_taxonomy_id": [
+        "6239"
+      ],
+      "organism_scientific": [
+        "Caenorhabditis elegans"
+      ],
+      "seq_db_align_begin": [
+        1
+      ],
+      "seq_db_align_end": [
+        478
+      ],
+      "seq_db_isoform": [
+        "?"
+      ],
+      "seq_db_sequence_checksum": [
+        "D3B0D8E17912AB55"
+      ],
+      "seq_db_sequence_version_date": [
+        "2005-03-01"
+      ]
+    },
+    "_ma_target_entity": {
+      "data_id": [
+        "1"
+      ],
+      "entity_id": [
+        "1"
+      ],
+      "origin": [
+        "reference database"
+      ]
+    },
+    "_ma_target_entity_instance": {
+      "asym_id": [
+        "A"
+      ],
+      "details": [
+        "Chain A from UniProt Q9TVL3"
+      ],
+      "entity_id": [
+        "1"
+      ]
+    },
+    "_entity": {
+      "id": [
+        "1"
+      ],
+      "type": [
+        "polymer"
+      ],
+      "src_method": [
+        "man"
+      ],
+      "pdbx_description": [
+        "Probable cyclin-dependent kinase 9"
+      ]
+    },
+    "_entity_poly": {
+      "entity_id": [
+        "1"
+      ],
+      "nstd_linkage": [
+        "no"
+      ],
+      "nstd_monomer": [
+        "no"
+      ],
+      "pdbx_seq_one_letter_code": [
+        "MSAQNYHAGLHQSSTQRPPKRPNTEHAQEPPKRALIGGQTTPSSSGGGQTPNGTNYELEVKQQLSNYQKLFDQATYPFIRDVSTYEKLNKIGQGTFGEVFKARCKNTGRMVALKKILMENEKEGFPITALREVKMLEQLKHPNITDLIEVCSAKSTGTTGSKDRATFYLVMALCAHDLAGLLSNPKIRMSLVHIKTMMKHLMSGLNKLHRSKILHRDMKAANVLISKDGILKLADFGLARPFVQRENGAGPRPLYTNRVVTLWYRPPELLLGDRQYGTKIDVWGAGCIMAEMWTRQPIMQGDTEQKQLQLISGLCGSINKDVWPNCVNMPLWSAMSSEPNSALPQGKYRILPNKMKNLMKFDAPDSKTDPFGKNVKQHDSATDDDALHLLEILLAIDPDKRPTSDEAEDDIWFFKDPVPMANVQDLMDTIPNSQFEYTVGKGAHANRGRHQNAQQRPNQQQARPSNAIPAGQYRDTIF"
+      ],
+      "type": [
+        "polypeptide(L)"
+      ]
+    },
+    "_struct_ref": {
+      "id": [
+        1
+      ],
+      "db_code": [
+        "CDK9_CAEEL"
+      ],
+      "db_name": [
+        "UNP"
+      ],
+      "entity_id": [
+        "1"
+      ],
+      "pdbx_db_accession": [
+        "Q9TVL3"
+      ]
+    },
+    "_struct_ref_seq": {
+      "align_id": [
+        1
+      ],
+      "ref_id": [
+        "1"
+      ],
+      "pdbx_PDB_id_code": [
+        "AF-0000000300000003"
+      ],
+      "pdbx_strand_id": [
+        "A"
+      ],
+      "seq_align_beg": [
+        1
+      ],
+      "seq_align_end": [
+        478
+      ],
+      "db_align_beg": [
+        1
+      ],
+      "db_align_end": [
+        478
+      ]
+    }
+  },
+  "chains": [
+    {
+      "chain_id": "A",
+      "entity_id": "1",
+      "uniprot_accession": "Q9TVL3"
+    }
+  ]
+}

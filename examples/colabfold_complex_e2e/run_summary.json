@@ -1,0 +1,31 @@
+{
+  "example_ids": [
+    "AF-0000000065760001",
+    "AF-0000000300000101"
+  ],
+  "duckdb": "/home/mitsenkov/AFDB-Integration-Kit/examples/uniprot_example_subset.duckdb",
+  "dssp_algorithm": "mkdssp",
+  "bcif_backend": "biotite",
+  "bcif_results": {
+    "AF-0000000065760001": {
+      "status": "generated",
+      "source_cif": "dssp/AF-0000000065760001-model_v1.cif",
+      "output_bcif": "bcif/AF-0000000065760001-model_v1.bcif"
+    },
+    "AF-0000000300000101": {
+      "status": "generated",
+      "source_cif": "dssp/AF-0000000300000101-model_v1.cif",
+      "output_bcif": "bcif/AF-0000000300000101-model_v1.bcif"
+    }
+  },
+  "tool_status": {
+    "mkdssp_on_path": true,
+    "cif2bcif_on_path": false,
+    "pydssp_installed": false,
+    "biotite_installed": true
+  },
+  "notes": {
+    "dssp": "This example uses mkdssp.",
+    "bcif": "This example uses an explicit BCIF backend instead of relying on Mol* auto-detection."
+  }
+}

@@ -11,11 +11,13 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
   - [Installation](#installation)
     - [1. Clone the Repository](#1-clone-the-repository)
     - [2. Install UV (Python Package Manager)](#2-install-uv-python-package-manager)
-    - [3. Install Mol\* CLI](#3-install-mol-cli)
-    - [4. Install DSSP](#4-install-dssp)
-    - [5. Download mmCIF Dictionary (Required for ModelCIF Generator)](#5-download-mmcif-dictionary-required-for-modelcif-generator)
-    - [6. Install Nextflow (Optional)](#6-install-nextflow-optional)
-    - [7. Install Docker (Optional)](#7-install-docker-optional)
+    - [3. Install Core Python Dependencies](#3-install-core-python-dependencies)
+    - [4. Install Mol\* CLI](#4-install-mol-cli)
+    - [5. Install DSSP](#5-install-dssp)
+    - [6. Download mmCIF Dictionary (Optional)](#6-download-mmcif-dictionary-optional)
+    - [7. Install Production Pipeline Dependencies (Optional)](#7-install-production-pipeline-dependencies-optional)
+    - [8. Install Nextflow (Optional)](#8-install-nextflow-optional)
+    - [9. Install Docker (Optional)](#9-install-docker-optional)
   - [Quick Start](#quick-start)
     - [Verify Installation](#verify-installation)
     - [Basic Usage Example](#basic-usage-example)
@@ -24,10 +26,11 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
     - [CIF to BCIF Converter](#cif-to-bcif-converter)
     - [DSSP Secondary Structure Assignment](#dssp-secondary-structure-assignment)
     - [Metadata Schema Validation](#metadata-schema-validation)
+    - [Production Pipeline](#production-pipeline)
+    - [Prepare Inputs (Standalone)](#prepare-inputs-standalone)
   - [Docker Usage](#docker-usage)
     - [Use Prebuilt Docker Image (Recommended)](#use-prebuilt-docker-image-recommended)
     - [Build Docker Image (Optional)](#build-docker-image-optional)
-    - [Build Docker Image](#build-docker-image)
     - [Run Tools in Docker](#run-tools-in-docker)
   - [Nextflow Workflow](#nextflow-workflow)
     - [End-to-End Processing](#end-to-end-processing)
@@ -54,6 +57,7 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
 - **Metadata Schema Validation**: Validate model and provider metadata JSONs against AFDB-defined schemas
 - **UniProt Metadata Tooling**: Streamline UniProt subset extraction and AF metadata generation (see [uniprot/README.md](uniprot/README.md))
 - **Automated Workflows**: Nextflow-based end-to-end processing pipelines
+- **Production Pipeline**: Standalone Python pipeline with logging, caching, resume capability, structure analysis (clash detection, interface residues), iPSAE quality scoring, and mmCIF QA metric embedding
 - **Docker Support**: Containerized execution for reproducible results
 - **Validation Tools**: Built-in testing and validation utilities
 
@@ -97,7 +101,28 @@ pip install uv
 conda install -c conda-forge uv
 ```
 
-### 3. Install Mol* CLI
+### 3. Install Core Python Dependencies
+
+Install the default dependency set from the locked project environment:
+
+```bash
+uv sync --locked --no-dev
+```
+
+The core install is intended for normal CLI usage, help output, metadata and
+schema validation, UniProt metadata tooling, ColabFold conversion, ModelCIF/PDB
+generation, CIF to BCIF conversion through the Mol* CLI fallback, and
+non-production helper scripts. It intentionally does not install the heavier
+production structure-analysis packages.
+
+Contributors who need development tools and tests can install the full locked
+environment instead:
+
+```bash
+uv sync --locked
+```
+
+### 4. Install Mol* CLI
 
 If you use nvm (Node Version Manager):
 ```bash
@@ -110,7 +135,15 @@ Without nvm:
 npm install -g molstar
 ```
 
-### 4. Install DSSP
+### 5. Install DSSP
+
+The default `run-dssp` and `batch-dssp` commands use the external `mkdssp`
+binary, so install DSSP when using the default secondary-structure path. DSSP is
+also needed for Nextflow workflows.
+
+The standalone production pipeline defaults to the built-in `pydssp` algorithm
+and does **not** require an external DSSP binary unless you select
+`--dssp-algorithm mkdssp`.
 
 We use the modern DSSP implementation by the PDB-REDO team:
 
@@ -127,7 +160,7 @@ sudo make install
 
 For detailed installation instructions, visit: https://github.com/PDB-REDO/dssp
 
-### 5. Download mmCIF Dictionary (Optional)
+### 6. Download mmCIF Dictionary (Optional)
 
 The ModelCIF tool has an additional option to validate the mmCIF files against the updated model cif dictionary. 
 This is an optional parameter, but it is recommended to validate the output files when first setting up the tool.
@@ -141,7 +174,47 @@ curl -o mmcif_ma.dic https://raw.githubusercontent.com/ihmwg/ModelCIF/refs/heads
 
 **Note:** This step is automatically handled in the Docker environment, but is required for local installations.
 
-### 6. Install Nextflow (Optional)
+### 7. Install Production Pipeline Dependencies (Optional)
+
+The production pipeline (`scripts/production_pipeline.py`) requires additional dependencies for structure analysis, DSSP algorithms, clash detection, and interface residues.
+
+Install the project production extra into the uv environment:
+
+```bash
+uv pip install '.[production]'
+```
+
+This installs the production Python packages declared by the project, including
+`biotite`, `pydssp`, `torch`, and `fastpdb`.
+
+Install `torch_cluster` separately after PyTorch is installed. Its wheel must
+match the installed PyTorch version and CUDA runtime. Pick the `CUDA` suffix
+from the PyTorch Geometric wheel index for your environment (`cpu`, `cu118`,
+`cu121`, `cu124`, `cu126`, `cu128`, etc.):
+
+```bash
+# Check the installed PyTorch build first
+python -c "import torch; print(torch.__version__, torch.version.cuda)"
+
+# Example: CPU wheel for PyTorch 2.8.0
+uv pip install torch_cluster -f https://data.pyg.org/whl/torch-2.8.0+cpu.html
+
+# Example: CUDA 12.8 wheel for PyTorch 2.8.0
+uv pip install torch_cluster -f https://data.pyg.org/whl/torch-2.8.0+cu128.html
+```
+
+If `uv pip install '.[production]'` resolves a different PyTorch version, change
+the `torch-<version>+<cuda>` part of the `torch_cluster` URL to match that
+installed build. For available `torch_cluster` wheels, see
+https://data.pyg.org/whl/.
+
+**Verify installation:**
+
+```bash
+python -c "import torch; from torch_cluster import radius_graph; print('torch_cluster OK')"
+```
+
+### 8. Install Nextflow (Optional)
 
 For workflow automation:
 
@@ -154,7 +227,7 @@ chmod +x nextflow
 sudo mv nextflow /usr/local/bin/
 ```
 
-### 7. Install Docker (Optional)
+### 9. Install Docker (Optional)
 
 For containerized execution:
 - **macOS/Windows**: Download Docker Desktop from https://www.docker.com/products/docker-desktop
@@ -164,13 +237,22 @@ For containerized execution:
 
 ### Verify Installation
 
-Test that all dependencies are correctly installed:
+Verify the core Python install:
+
+```bash
+uv run main.py --help
+uv run main.py list-validations
+```
+
+To check the optional external toolchain as well, install Mol*, DSSP, and any
+other workflow tools you need, then run:
 
 ```bash
 uv run main.py test
 ```
 
-This command will validate your environment and report any missing dependencies.
+This command reports missing external executables such as `cif2bcif` or
+`mkdssp`.
 
 ### Basic Usage Example
 
@@ -198,59 +280,27 @@ uv run main.py run-dssp \
 
 Convert ColabFold score JSON + PDB to AFDB ingest JSONs (pLDDT/PAE) and optional UniProt-style manifests.
 
-#### Included example data
+Requirements: `orjson`, `duckdb`, a chain manifest (`model_entity_id,entity_id,chain_id,uniprot_ac` at minimum), and a DuckDB built from the UniProt subset.
 
-Sample ColabFold outputs are bundled under `examples/colabfold-output/` as zipped result folders:
-
-- `ACATN_HUMAN_19de7.result.zip`
-- `C76C2_ARATH_6db51.result.zip`
-- `CDK9_CAEEL_5ca86.result.zip`
-
-Each archive contains the files produced by ColabFold (scores JSON, PAE JSON, per-model unrelaxed PDBs, `config.json`, run markers, etc.). Unpack one to inspect or test the converter:
-
-```bash
-unzip examples/colabfold-output/ACATN_HUMAN_19de7.result.zip -d /tmp/colabfold
-ls /tmp/colabfold/ACATN_HUMAN_19de7
-```
-
-#### Walkthrough using the bundled data
-
-Prerequisites for `afdb-colabfold-convert`:
-
-- Python deps: `orjson`, `duckdb` (install via `uv pip install -r requirements.txt` if you haven't already)
-- (Optional) AFDB chain manifest CSV with columns `model_entity_id,entity_id,chain_id,uniprot_ac` (see merge instructions below)
-- (Optional) DuckDB generated from UniProt flat files (built once per UniProt release with `afdb-uniprot-extract`/`afdb-uniprot-build-db`)
-
-The converter can emit pLDDT/PAE JSONs using just the ColabFold score JSON + PDB. Provide the manifest + DuckDB when you also need UniProt-aware chain metadata or want to write chain/model manifest CSVs.
-
-Run the converter on a sample ColabFold model by pointing to the unpacked score JSON and a PDB of your choice:
+Example (per model, safer for many parallel jobs):
 
 ```
 afdb-colabfold-convert \
-  /tmp/colabfold/ACATN_HUMAN_19de7/ACATN_HUMAN_19de7_scores_rank_001_alphafold2_ptm_model_1_seed_000.json \
-  /tmp/colabfold/ACATN_HUMAN_19de7/ACATN_HUMAN_19de7_unrelaxed_rank_001_alphafold2_ptm_model_1_seed_000.pdb \
+  /path/to/<AC>_scores_rank_001_alphafold2_multimer_v3_model_1_seed_000.json \
+  /path/to/<AC>_unrelaxed_rank_001_alphafold2_multimer_v3_model_1_seed_000.pdb \
   --manifest /mnt/disks/data/sample/config/uniprot_afid_mapping.csv \
   --duckdb /mnt/disks/data/sample/db/uniprot_2025_04.duckdb \
   --model-entity-id AF-0000000000001201 \
-  --outdir /mnt/disks/data/sample/colabfold_output/ACATN_HUMAN_19de7-model_v4 \
+  --outdir /mnt/disks/data/sample/colabfold_output/<AC>-model_v4 \
   --chain-manifest-dir /mnt/disks/data/sample/per_accession/manifests/chains \
   --model-manifest-dir /mnt/disks/data/sample/per_accession/manifests/models
 ```
 
-Drop the `--manifest`, `--duckdb`, `--chain-manifest-dir`, and `--model-manifest-dir` flags if you only need the AFDB JSON outputs; they are optional extras for UniProt-aware metadata.
-
-**What the manifest directories do:**
-
-- `--chain-manifest-dir`: writes `<model_entity_id>_afid_mapping.csv` per run containing chain-level averages/fractions (pLDDT bins, residue ranges) sourced from the manifest/DuckDB. These files mirror the schema expected by `uniprot_afid_mapping.csv` and live in a staging area until you merge them.
-- `--model-manifest-dir`: writes `<model_entity_id>_model_metadata.csv` per run with model-level averages (pLDDT only). These append into the global `uniprot_model_metadata.csv` referenced by other tooling.
-
-Use these directories when you want each ColabFold conversion to emit the per-model snippets that eventually roll up into the UniProt manifests; merge them later using the commands below once you finish processing a batch.
-
-Outputs from the walkthrough:
-
-- AFDB JSONs in `--outdir`: `<model_entity_id>-confidence_v1.json` (pLDDT) and `<model_entity_id>-predicted_aligned_error_v1.json` (PAE)
-- Per-model manifest CSVs (created inside the respective `--chain-manifest-dir` / `--model-manifest-dir` paths) for aggregating pLDDT summaries
-- Optional UniProt-style manifests can be merged across models as described next
+Outputs:
+- AFDB JSONs: `<model_entity_id>-confidence_v1.json` and `<model_entity_id>-predicted_aligned_error_v1.json` in `--outdir`.
+- Per-model manifests:
+  - Chains: `<model_entity_id>_afid_mapping.csv` with pLDDT averages/fractions and local 1..N residue ranges.
+  - Models: `<model_entity_id>_model_metadata.csv` with average pLDDT and ipTM (if present in scores JSON).
 
 Merge per-model manifests when needed (keep the header, append rows):
 
@@ -328,6 +378,9 @@ uv run main.py run-modelpdb-gen \
 ### CIF to BCIF Converter
 
 Converts mmCIF files to Binary CIF format for efficient storage and transmission.
+The default backend preserves the original toolkit behavior by using the
+external Mol* `cif2bcif` command. Biotite remains optional and can be selected
+explicitly or used as an `auto` fallback.
 
 **Command:**
 ```bash
@@ -337,10 +390,18 @@ uv run main.py run-cif2bcif -i <input_cif> -o <output_bcif>
 **Parameters:**
 - `-i, --input`: Input mmCIF file path
 - `-o, --output`: Output BCIF file path
+- `-b, --backend`: `molstar` (default), `biotite`, or `auto`
 
 ### DSSP Secondary Structure Assignment
 
-Assigns secondary structure annotations based on atomic coordinates.
+Assigns secondary structure annotations based on atomic coordinates. The default
+uses the external DSSP binary, preserving the historical CLI behavior. Python
+algorithms are available as opt-in 3-state alternatives:
+
+- **mkdssp** (default) — external DSSP binary
+- **pydssp** — hydrogen-bond based assignment
+- **psea** — geometry-based assignment using CA coordinates
+- **tmalign** — CA-CA distance-based assignment
 
 **Command:**
 ```bash
@@ -350,6 +411,8 @@ uv run main.py run-dssp -i <input_cif> -o <output_cif>
 **Parameters:**
 - `-i, --input`: Input mmCIF file path
 - `-o, --output`: Output annotated mmCIF file path
+- `-a, --algorithm`: `mkdssp` (default), `pydssp`, `psea`, or `tmalign`
+- `-d, --device`: `cpu` (default) or `cuda` for PyDSSP
 
 ### Validation Toolkit
 
@@ -437,7 +500,128 @@ uv run main.py validate-sequences-file --file path/to/sequences.fasta
 
 Each command exits with code `1` if it encounters validation errors, making them easy to embed in automated pipelines.
 
+### Production Pipeline
+
+The production pipeline (`scripts/production_pipeline.py`) provides a standalone alternative to the Nextflow workflow with comprehensive logging, caching, and resume capability. It processes models through 16 stages (executed in this order):
+
+1. **Prepare assets** – symlink PDB + meta JSON to staging
+2. **Validate assets** – check PDB/JSON consistency
+3. **Convert ColabFold** – produce AFDB-format confidence & PAE JSONs
+4. **Merge manifests** – merge per-model chain/model manifests
+5. **Calculate ipSAE scores** – interface quality metrics (ipSAE, pDockQ, LIS)
+6. **Analyze clashes/interfaces** – VDW clashes, interface residues
+7. **Export model metadata** – generate per-model metadata JSONs (enriched with iPSAE/clash metrics)
+8. **Export chain metadata** – generate per-chain metadata JSONs (enriched with iPSAE metrics)
+9. **Combine model metadata** – batch into chunked JSONs
+10. **Combine chain metadata** – batch into chunked JSONs
+11. **Export ModelCIF input** – prepare ModelCIF metadata from template
+12. **Generate ModelCIF** – PDB → mmCIF with full metadata and optional QA metrics
+13. **DSSP** – secondary structure annotation (3-state: helix/strand/coil)
+14. **Enrich PDB** – add AFDB headers to PDB files
+15. **CIF → BCIF** – BinaryCIF conversion
+16. **Cleanup** – optional intermediate file cleanup (skipped by default)
+
+> **Note:** ipSAE and clash analysis (stages 5-6) run *before* metadata export (stages 7-8) so that quality metrics are available for JSON enrichment and CIF embedding.
+
+**Prerequisites:** Install production dependencies first (see [Installation section 7](#7-install-production-pipeline-dependencies-optional)). For clash/interface analysis, also install a `torch_cluster` wheel that matches your PyTorch and CUDA build.
+
+```bash
+uv pip install '.[production]'
+uv pip install torch_cluster -f https://data.pyg.org/whl/torch-<torch-version>+<cuda>.html
+```
+
+#### Homodimer mode (default)
+
+All config files are provided up front — no API calls, no manifest resolution:
+
+```bash
+python scripts/production_pipeline.py \
+    --output-dir /path/to/output \
+    --input-dir /path/to/input \
+    --mapping-file /path/to/mapping.tsv \
+    --chain-mapping /path/to/manifest.csv \
+    --dataset-config /path/to/config.json \
+    --provider-json /path/to/provider.json \
+    --uniprot-db /path/to/uniprot.duckdb \
+    --workers 30 \
+    --cif-qa-metrics auto
+```
+
+#### Heterodimer mode
+
+Enable with `--heterodimers`. Requires `--chain-mapping` and `--uniprot-db`. Config files (mapping TSV, dataset config, provider JSON) are auto-generated if not provided. Model IDs are derived from the chain mapping CSV.
+
+```bash
+python scripts/production_pipeline.py \
+    --output-dir /path/to/output \
+    --input-dir /path/to/raw_colabfold \
+    --heterodimers \
+    --chain-mapping /path/to/manifest.csv \
+    --uniprot-db /path/to/uniprot.duckdb \
+    --workers 4 \
+    --cif-qa-metrics auto
+```
+
+The `--input-dir` may contain raw ColabFold outputs (long suffixes like `_unrelaxed_rank_001_alphafold2_multimer_v3_model_1_seed_000.pdb` are detected automatically).
+
+#### Key options
+
+| Flag | Description |
+|------|-------------|
+| `--resume` | Resume from previous run (skip completed stages) |
+| `--skip-stages stage_12,stage_13` | Skip specific stages (comma-separated) |
+| `--dry-run` | Show what would be executed without running |
+| `--dssp-algorithm` | Production pipeline secondary structure algorithm: `mkdssp`, `psea`, `pydssp` (production default), or `tmalign` |
+| `--workers N` | Parallel workers (default: all CPUs) |
+| `--pae-cutoff` / `--dist-cutoff` | ipSAE thresholds (default: 10.0 / 15.0) |
+| `--clash-cutoff` / `--interface-cutoff` | Clash/interface thresholds (default: 0.4 / 8.0 Å) |
+| `--analysis-batch-size N` | Batch size for clash/interface GPU analysis (default: 4) |
+| `--cif-qa-metrics` | QA metrics to embed in mmCIF: `auto` (default, all metrics) or comma-separated list (e.g. `ipsae_AB,iptm_af,N_clash_backbone`) |
+| `--enrichment-metrics` | iPSAE/clash metric names to include in model/chain metadata JSONs (default: all known metrics) |
+| `--interface-clash-analysis` | Which analyses to run: `interface`, `backbone_clashes`, `heavy_atom_clashes` (default: all three) |
+| `--modelcif-template` | Path to ModelCIF metadata template JSON (default: `uniprot/templates/colabfold_example_modelcif_metadata.json`) |
+
+**Output:** Results are written to the output directory with logs in `logs/`, cache in `.pipeline_cache.json`, and a results summary in `pipeline_results.json`.
+
+Run `python scripts/production_pipeline.py --help` for full documentation.
+
+### Prepare Inputs (Standalone)
+
+`scripts/prepare_inputs.py` can also be used independently (outside the production pipeline) to prepare ColabFold outputs into the canonical layout the pipeline expects. It scans for matched PDB + scores-JSON pairs, builds config files, and symlinks inputs.
+
+**Production mode** (pre-built assets, no network):
+
+```bash
+python scripts/prepare_inputs.py \
+    --input-dir /data/colabfold/gpu0 \
+    --output-dir /data/workdir \
+    --chain-mapping /data/prebuilt_manifest.csv \
+    --uniprot-db /data/uniprot.duckdb \
+    --provider-id afcdb-heterodimers \
+    --provider-name "AFCDB Heterodimers"
+```
+
+**Dev mode** (resolves AF-IDs from the AFCDB manifest + fetches from UniProt API):
+
+```bash
+python scripts/prepare_inputs.py \
+    --input-dir ./gpu0 \
+    --output-dir ./workdir \
+    --build-from-api /data/afdb_toolkit_manifest_file.csv \
+    --provider-id afcdb-heterodimers \
+    --provider-name "AFCDB Heterodimers"
+```
+
+By default, scores files are **symlinked** as meta JSONs (zero I/O). Pass `--extract-meta` to parse and re-write leaner JSONs, or `--copy` to copy instead of symlink.
+
 ## Docker Usage
+
+The Dockerfile installs the core Python dependency set from `requirements.txt`,
+plus Mol*, DSSP, Nextflow, and the ModelCIF dictionary. It is intended for the
+core CLI, validation, ModelCIF/PDB, CIF/BCIF, and Nextflow workflows. It does
+not install the `production` extra or `torch_cluster`; build a derived image
+with a PyTorch/CUDA-compatible `torch_cluster` wheel if you need the standalone
+production pipeline inside Docker.
 
 ### Use Prebuilt Docker Image (Recommended)
 
@@ -464,13 +648,6 @@ docker run \
 ### Build Docker Image (Optional)
 
 If you prefer to build the image yourself:
-
-```bash
-docker build -t afdb-toolkit .
-```
-
-
-### Build Docker Image
 
 ```bash
 docker build -t afdb-toolkit .
@@ -618,8 +795,6 @@ AF-0001234567890124
 AF-0001234567890125
 AF-0001234567890126
 ```
-
-The ModelPDB step also requires provider metadata. By default the workflow reads this from `input/provider.json`; override it with `--provider_json <path>` if your provider file is elsewhere.
 
 **Example input.txt:**
 ```bash
