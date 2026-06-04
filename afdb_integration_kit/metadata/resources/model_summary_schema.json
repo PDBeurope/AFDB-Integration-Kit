@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Model Summary Metadata Schema",
+  "type": "object",
+  "required": [
+    "modelEntityId",
+    "latestVersion",
+    "providerId",
+    "isComplex",
+    "uniprotAccession",
+    "uniprotDescription",
+    "isUniProtReferenceProteome",
+    "isUniProtReviewed",
+    "isIsoform",
+    "organismScientificName",
+    "gene",
+    "taxId",
+    "globalMetricValue",
+    "isAMdata"
+  ],
+  "properties": {
+    "modelEntityId": {
+      "type": "string",
+      "pattern": "^AF-[0-9]{16}$"
+    },
+    "latestVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "providerId": {
+      "type": "string"
+    },
+    "isComplex": {
+      "type": "boolean"
+    },
+    "complexName": {
+      "type": ["string", "null"]
+    },
+    "assemblyType": {
+      "type": ["string", "null"],
+      "enum": ["Homo", "Hetero", null]
+    },
+    "oligomericState": {
+      "type": ["string", "null"]
+    },
+    "oligomericStateDescription": {
+      "type": ["string", "null"]
+    },
+    "complexComposition": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9-]+_[1-9][0-9]*$"
+      },
+      "minItems": 1
+    },
+    "uniprotAccession": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "uniprotAccession_display": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "uniprotDescription": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "uniprotDescription_display": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "isUniProtReferenceProteome": {
+      "type": "boolean"
+    },
+    "isUniProtReviewed": {
+      "type": "boolean"
+    },
+    "isIsoform": {
+      "type": "boolean"
+    },
+    "organismScientificName": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "organismScientificName_display": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "gene": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "gene_display": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "taxId": {
+      "type": "array",
+      "items": { "type": "integer" },
+      "minItems": 1
+    },
+    "taxId_display": {
+      "type": "array",
+      "items": { "type": "integer" },
+      "minItems": 1
+    },
+    "sequenceStart": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "sequenceEnd": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "globalMetricValue": {
+      "type": "number"
+    },
+    "isAMdata": {
+      "type": "boolean"
+    },
+    "_version_": {
+      "type": "integer"
+    }
+  },
+  "patternProperties": {
+    "^complexPredictionAccuracy_[A-Za-z0-9_]+$": {
+      "type": ["number", "null"]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "isComplex": { "const": true } },
+        "required": ["isComplex"]
+      },
+      "then": {
+        "required": [
+          "complexName",
+          "assemblyType",
+          "oligomericState",
+          "oligomericStateDescription"
+        ]
+      }
+    }
+  ],
+  "additionalProperties": false
+}

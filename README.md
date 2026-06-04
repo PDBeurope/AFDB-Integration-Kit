@@ -21,6 +21,7 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
   - [Quick Start](#quick-start)
     - [Verify Installation](#verify-installation)
     - [Basic Usage Example](#basic-usage-example)
+    - [Validate Example Outputs](#validate-example-outputs)
   - [Usage](#usage)
     - [ModelCIF Generator](#modelcif-generator)
     - [CIF to BCIF Converter](#cif-to-bcif-converter)
@@ -274,6 +275,44 @@ uv run main.py run-dssp \
     -o output/AF-0000000000000001-model-v1.cif
 ```
 
+### Validate Example Outputs
+
+The committed end-to-end examples under [`examples/`](examples/README.md)
+can be validated directly from the repo root. Use `model-summary` for committed
+e2e `model_jsons/*.json`; the canonical `model` schema remains reserved for
+full model metadata entries and `AF-metadata-*-of-*.json` batches.
+
+```bash
+# Summary and provider metadata JSONs
+.venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_monomer_e2e/model_jsons/AF-0000000300000001.json \
+  -t model-summary
+.venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_monomer_e2e/config/provider.json \
+  -t provider
+
+# Score JSONs and confidence/PAE relationship
+.venv/bin/python main.py validate-plddt-file \
+  --file examples/colabfold_monomer_e2e/scores/AF-0000000300000001-confidence_v1.json
+.venv/bin/python main.py validate-pae-file \
+  --file examples/colabfold_monomer_e2e/scores/AF-0000000300000001-predicted_aligned_error_v1.json
+.venv/bin/python main.py validate-relationships-pair \
+  --plddt-file examples/colabfold_monomer_e2e/scores/AF-0000000300000001-confidence_v1.json \
+  --pae-file examples/colabfold_monomer_e2e/scores/AF-0000000300000001-predicted_aligned_error_v1.json
+
+# ModelCIF dictionary validation
+gemmi validate -p -d mmcif_ma.dic \
+  examples/colabfold_monomer_e2e/modelcif/AF-0000000300000001-model_v1.cif
+```
+
+For manual coordinate-file sanity checks, open representative PDB, ModelCIF,
+and BCIF files in the Mol* web viewer at https://molstar.org/viewer/. Drag and
+drop the files into the browser window, or use **Open Files** in the left
+panel. The structure should open correctly, no error messages should be shown
+in the viewer, and the structure should look structurally correct by eye. The
+same representative files can also be opened in ChimeraX or PyMOL; expect a
+clean import with no parser errors.
+
 ## Usage
 
 ### ColabFold conversion
@@ -420,11 +459,13 @@ Use these commands to sanity-check individual artifacts or entire datasets befor
 
 #### Schema Validation
 
-Validate metadata JSON files (`model` or `provider`) against the required JSON schemas to ensure data consistency and compliance.
+Validate metadata JSON files against the required JSON schemas to ensure data consistency and compliance.
 
 **Schemas:**
 
-* Model: `afdb_integration_kit/metadata/resources/model_schema.json`
+* Model: `afdb_integration_kit/metadata/resources/model_schema.json` for full model metadata entries and batches
+* Model summary: `afdb_integration_kit/metadata/resources/model_summary_schema.json` for e2e `model_jsons/*.json` and search summary documents
+* Collection doc: `afdb_integration_kit/metadata/resources/collection_doc_schema.json` for e2e `chain_jsons/*.json` and collection documents
 * Provider: `afdb_integration_kit/metadata/resources/provider_schema.json`
 
 **Command:**
@@ -436,12 +477,14 @@ uv run main.py run-schema-validation -i <metadata_json_file> -t <type>
 **Parameters:**
 
 * `-i, --input`: Path to the metadata JSON file to validate
-* `-t, --type`: Type of metadata to validate (`model` or `provider`)
+* `-t, --type`: Type of metadata to validate (`model`, `model-summary`, `collection-doc`, or `provider`)
 
 **Examples:**
 
 ```bash
 uv run main.py run-schema-validation -i model.json -t model
+uv run main.py run-schema-validation -i model_summary.json -t model-summary
+uv run main.py run-schema-validation -i collection_doc.json -t collection-doc
 uv run main.py run-schema-validation -i provider.json -t provider
 ```
 

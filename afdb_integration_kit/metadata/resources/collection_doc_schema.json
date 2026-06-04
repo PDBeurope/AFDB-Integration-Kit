@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Collection Document Metadata Schema",
+  "type": "object",
+  "required": [
+    "uniqueId",
+    "toolUsed",
+    "modelCreatedDate",
+    "modelEntityId",
+    "isComplex",
+    "complexName",
+    "uniprotAccession",
+    "uniprotId",
+    "uniprotDescription",
+    "gene",
+    "taxId",
+    "organismScientificName",
+    "assemblyType",
+    "oligomericState",
+    "sequence",
+    "sequenceChecksum",
+    "sequenceVersionDate",
+    "sequenceStart",
+    "sequenceEnd",
+    "isIsoform",
+    "isFragment",
+    "isUniProt",
+    "isUniProtReferenceProteome",
+    "isUniProtReviewed",
+    "globalMetricValue",
+    "fractionPlddtVeryLow",
+    "fractionPlddtLow",
+    "fractionPlddtConfident",
+    "fractionPlddtVeryHigh",
+    "latestVersion",
+    "allVersions",
+    "providerId",
+    "entityType",
+    "isAMdata"
+  ],
+  "properties": {
+    "uniqueId": {
+      "type": "string",
+      "pattern": "^AF-[0-9]{16}_v[0-9]+_[A-Za-z0-9]+$"
+    },
+    "toolUsed": {
+      "type": "string"
+    },
+    "modelCreatedDate": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "modelEntityId": {
+      "type": "string",
+      "pattern": "^AF-[0-9]{16}$"
+    },
+    "isComplex": {
+      "type": "boolean"
+    },
+    "complexName": {
+      "type": ["string", "null"]
+    },
+    "uniprotAccession": {
+      "type": ["string", "null"]
+    },
+    "uniprotId": {
+      "type": ["string", "null"]
+    },
+    "uniprotDescription": {
+      "type": ["string", "null"]
+    },
+    "gene": {
+      "type": ["string", "null"]
+    },
+    "geneSynonyms": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "taxId": {
+      "type": ["integer", "null"]
+    },
+    "organismScientificName": {
+      "type": ["string", "null"]
+    },
+    "organismScientificNameT": {
+      "type": ["string", "null"]
+    },
+    "organismCommonNames": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "organismSynonyms": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "assemblyType": {
+      "type": ["string", "null"],
+      "enum": ["Homo", "Hetero", null]
+    },
+    "oligomericState": {
+      "type": ["string", "null"]
+    },
+    "oligomericStateDescription": {
+      "type": ["string", "null"]
+    },
+    "sequence": {
+      "type": "string"
+    },
+    "sequenceChecksum": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{32}$"
+    },
+    "sequenceVersionDate": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "sequenceStart": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "sequenceEnd": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "isIsoform": {
+      "type": "boolean"
+    },
+    "isFragment": {
+      "type": "boolean"
+    },
+    "isUniProt": {
+      "type": "boolean"
+    },
+    "isUniProtReferenceProteome": {
+      "type": "boolean"
+    },
+    "isUniProtReviewed": {
+      "type": "boolean"
+    },
+    "globalMetricValue": {
+      "type": "number"
+    },
+    "fractionPlddtVeryLow": {
+      "type": "number"
+    },
+    "fractionPlddtLow": {
+      "type": "number"
+    },
+    "fractionPlddtConfident": {
+      "type": "number"
+    },
+    "fractionPlddtVeryHigh": {
+      "type": "number"
+    },
+    "latestVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "allVersions": {
+      "type": "array",
+      "items": { "type": "integer" },
+      "minItems": 1
+    },
+    "providerId": {
+      "type": "string"
+    },
+    "entityType": {
+      "type": "string"
+    },
+    "isAMdata": {
+      "type": "boolean"
+    },
+    "complexComposition": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Za-z0-9-]+_[1-9][0-9]*(,[A-Za-z0-9-]+_[1-9][0-9]*)*$"
+    },
+    "_version_": {
+      "type": "integer"
+    }
+  },
+  "patternProperties": {
+    "^complexPredictionAccuracy_[A-Za-z0-9_]+$": {
+      "type": ["number", "null"]
+    }
+  },
+  "additionalProperties": false
+}
