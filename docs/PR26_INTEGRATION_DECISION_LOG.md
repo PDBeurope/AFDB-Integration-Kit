@@ -35,7 +35,7 @@ with the detailed task checklist in
 
 The current verified parent branch remains `integration-pr-26-gpu`, now with
 Step 9 merged and verified. The merged Step 9 work is a small runnable
-ColabFold-like end-to-end reference under `examples/colabfold_e2e/`.
+ColabFold-like end-to-end reference under `examples/colabfold_monomer_e2e/`.
 
 The active follow-up direction has shifted away from the remaining broad PR
 review steps. The priority is now examples-driven validation: keep the monomer
@@ -578,7 +578,7 @@ Scope completed on the branch:
   reference.
 - Added `scripts/generate_colabfold_e2e_example.py` to stage a few curated
   fixtures and run the existing toolkit commands in the same overall order.
-- Populated `examples/colabfold_e2e/` with normalized inputs, converted AFDB
+- Populated `examples/colabfold_monomer_e2e/` with normalized inputs, converted AFDB
   JSONs, merged manifests, model/chain metadata JSONs and batches, ModelCIF
   input JSONs, ModelCIF files, DSSP-enriched mmCIF files, enriched PDB files,
   BCIF files, and recorded commands/status files.
@@ -609,7 +609,7 @@ Step 9 decisions:
   - Caveat: Biotite fails on the DSSP-enriched mmCIF outputs in this
     environment, so the committed `.bcif` files were generated from the
     pre-DSSP ModelCIF files instead. That fallback is recorded in
-    `examples/colabfold_e2e/run_summary.json`.
+    `examples/colabfold_monomer_e2e/run_summary.json`.
 
 Step 9 verification on the branch:
 
@@ -623,7 +623,7 @@ Step 9 verification on the branch:
 - `.venv/bin/python uniprot/scripts/combine_metadata.py --help`: passed.
 - `.venv/bin/python scripts/generate_colabfold_e2e_example.py --duckdb
   /mnt/disks/toolkit-data/uniprot_extract_2025_04_merged_5way/db/uniprot_2025_04_merged_5way.duckdb
-  --output-dir examples/colabfold_e2e`: passed.
+  --output-dir examples/colabfold_monomer_e2e`: passed.
 
 Parent-branch verification after the merge:
 
@@ -659,7 +659,7 @@ Start an examples-focused follow-up branch from `integration-pr-26-gpu`.
 Do not continue the broad Step 10 review by default. The next practical task is
 to verify and extend the runnable example path:
 
-- Re-run or inspect `examples/colabfold_e2e/` to confirm the committed monomer
+- Re-run or inspect `examples/colabfold_monomer_e2e/` to confirm the committed monomer
   reference is still coherent and reproducible.
 - Add equivalent small complex references for curated homodimer and
   heterodimer fixtures where the existing tools can support them.

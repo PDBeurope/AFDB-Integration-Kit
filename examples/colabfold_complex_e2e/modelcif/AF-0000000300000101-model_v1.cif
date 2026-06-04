@@ -730,7 +730,7 @@ _pdbx_data_usage.url
 _pdbx_data_usage.name
 1 license    'Data in this file is available under a CC-BY-4.0 license.' https://creativecommons.org/licenses/by/4.0/ CC-BY-4.0
 2 disclaimer
-;RESOURCE DATA, COPYRIGHT (2025) COMPANY LIMITED.
+;EXAMPLE REPOSITORY DATA, COPYRIGHT (2026) EXAMPLE ORGANIZATION.
 THE INFORMATION PROVIDED IS THEORETICAL MODELLING ONLY AND CAUTION SHOULD BE
 EXERCISED IN ITS USE. IT IS PROVIDED "AS-IS" WITHOUT ANY WARRANTY OF ANY KIND,
 WHETHER EXPRESSED OR IMPLIED. NO WARRANTY IS GIVEN THAT USE OF THE INFORMATION
@@ -756,124 +756,23 @@ _citation.journal_id_CSD
 _citation.book_publisher
 _citation.pdbx_database_id_PubMed
 _citation.pdbx_database_id_DOI
-Primary 'AlphaFold Database expands to proteome-scale quaternary structures' 'To be published' ?   ?    ?    ?    ?      ? ?         ?    ? ?        ?
-1       'Highly accurate protein structure prediction with AlphaFold' Nature            596 583  589  2021 NATUAS ? 0028-0836 0006 ? 34265844 https://www.nature.com/articles/s41586-021-03819-2
-2       'Protein complex prediction with AlphaFold-Multimer' bioRxiv           ?   ?    ?    2021 ?      ? 2692-8205 ?    ? 39052676 https://doi.org/10.1101/2021.10.04.463034
-3       'GPU-accelerated homology search with MMseqs2'     'Nature Methods'  22  2024 2027 2025 NMAEA3 ? 1548-7091 2148 ? 40968302 https://www.nature.com/articles/s41592-025-02819-8
-4       'ColabFold: making protein folding accessible to all' 'Nature Methods'  19  679  682  2022 NMAEA3 ? 1548-7091 2148 ? 35637307 https://www.nature.com/articles/s41592-022-01488-1
+Primary 'Example repository reference artifact for ColabFold-derived ModelCIF output' 'To be published'            ? ?  ?  2026 ? ? ? ? ? ? ?
+1       'Example methodological reference for structure prediction output' 'Journal of Example Methods' 1 1  9  2026 ? ? ? ? ? ? 10.0000/example-method
+2       'Example software reference for sequence search and post-processing' 'Example Software Reports'   1 10 18 2026 ? ? ? ? ? ? 10.0000/example-software
 
 loop_
 _citation_author.citation_id
 _citation_author.ordinal
 _citation_author.name
-Primary 1  'Han, Yewon'
-Primary 2  'Tsenkov, Maxim I.'
-Primary 3  'Venanzi, Niccolo A. E.'
-Primary 4  'Austin, Jeannie'
-Primary 5  'Bertoni, Damian'
-Primary 6  'Cha, Sooyoung'
-Primary 7  'Chacon, Alejandro'
-Primary 8  'Didi, Kieran'
-Primary 9  'Dietrich, Nick'
-Primary 10 'Ellaway, Joseph I. J.'
-Primary 11 'Fomitchev, Boris'
-Primary 12 'Goldtzvik, Yonathan'
-Primary 13 'Hsu, Darren'
-Primary 14 'Kovalevskiy, Oleg'
-Primary 15 'Lasecki, Dariusz'
-Primary 16 'Laydon, Agata'
-Primary 17 'Livne, Micha'
-Primary 18 'Magana, Paulyna'
-Primary 19 'Majewski, Maciej'
-Primary 20 'Nair, Sreenath'
-Primary 21 'Paramval, Urmila'
-Primary 22 'Patel, Nilkanth'
-Primary 23 'Patel, Risha'
-Primary 24 'Pidruchna, Ivanna'
-Primary 25 'Lopez Santini, Brianda'
-Primary 26 'Sohani, Prashant'
-Primary 27 'Tanweer, Ahsan'
-Primary 28 'Tran, Duc'
-Primary 29 'Tretina, Kyle'
-Primary 30 'Vu, Quan'
-Primary 31 'Zidek, Augustin'
-Primary 32 'Velankar, Sameer'
-Primary 33 'Steinegger, Martin'
-Primary 34 'Fleming, Jennifer'
-Primary 35 'Mirdita, Milot'
-Primary 36 'Dallago, Christian'
-1       1  'Evans, Richard'
-1       2  "O'Neill, Michael"
-1       3  'Pritzel, Alexander'
-1       4  'Antropova, Natasha'
-1       5  'Senior, Andrew'
-1       6  'Green, Tim'
-1       7  'Zidek, Augustin'
-1       8  'Bates, Russ'
-1       9  'Blackwell, Sam'
-1       10 'Yim, Jason'
-1       11 'Ronneberger, Olaf'
-1       12 'Bodenstein, Sebastian'
-1       13 'Zielinski, Michal'
-1       14 'Bridgland, Alex'
-1       15 'Potapenko, Anna'
-1       16 'Cowie, Andrew'
-1       17 'Tunyasuvunakool, Kathryn'
-1       18 'Jain, Rishub'
-1       19 'Clancy, Ellen'
-1       20 'Kohli, Pushmeet'
-1       21 'Jumper, John'
-1       22 'Hassabis, Demis'
-2       1  'Jumper, John'
-2       2  'Evans, Richard'
-2       3  'Pritzel, Alexander'
-2       4  'Green, Tim'
-2       5  'Figurnov, Michael'
-2       6  'Ronneberger, Olaf'
-2       7  'Tunyasuvunakool, Kathryn'
-2       8  'Bates, Russ'
-2       9  'Zidek, Augustin'
-2       10 'Potapenko, Anna'
-2       11 'Bridgland, Alex'
-2       12 'Meyer, Clemens'
-2       13 'Kohl, Simon A. A.'
-2       14 'Ballard, Andrew J.'
-2       15 'Cowie, Andrew'
-2       16 'Romera-Paredes, Bernardino'
-2       17 'Nikolov, Stanislav'
-2       18 'Jain, Rishub'
-2       19 'Adler, Jonas'
-2       20 'Back, Trevor'
-2       21 'Petersen, Stig'
-2       22 'Reiman, David'
-2       23 'Clancy, Ellen'
-2       24 'Zielinski, Michal'
-2       25 'Steinegger, Martin'
-2       26 'Pacholska, Michalina'
-2       27 'Berghammer, Tamas'
-2       28 'Bodenstein, Sebastian'
-2       29 'Silver, David'
-2       30 'Vinyals, Oriol'
-2       31 'Senior, Andrew W.'
-2       32 'Kavukcuoglu, Koray'
-2       33 'Kohli, Pushmeet'
-2       34 'Hassabis, Demis'
-3       1  'Kallenborn, Fabian'
-3       2  'Chacon, Alejandro'
-3       3  'Hundt, Christian'
-3       4  'Sirelkhatim, Hassan'
-3       5  'Didi, Khaled'
-3       6  'Cha, Seongwon'
-3       7  'Dallago, Christian'
-3       8  'Mirdita, Milot'
-3       9  'Schmidt, Bertil'
-3       10 'Steinegger, Martin'
-4       1  'Mirdita, Milot'
-4       2  'Schutze, Kristian'
-4       3  'Moriwaki, Yuki'
-4       4  'Heo, Lim'
-4       5  'Ovchinnikov, Sergei'
-4       6  'Steinegger, Martin'
+Primary 1 'Example Author One'
+Primary 2 'Example Author Two'
+Primary 3 'Example Author Three'
+1       1 'Method Author One'
+1       2 'Method Author Two'
+1       3 'Method Author Three'
+2       1 'Software Author One'
+2       2 'Software Author Two'
+2       3 'Software Author Three'
 
 _ma_data.id                                        1
 _ma_data.name                                      Model
@@ -891,11 +790,11 @@ _software.type
 _software.description
 _software.classification
 _software.version
-1 ColabFold          package 'Pipeline wrapper coordinating MSA search and AlphaFold-Multimer inference' 'model building'  1.6.0
-2 MMseqs2-GPU        package 'MSA/search backend used by ColabFold (release 18)' 'data collection' 18
-3 AlphaFold-Multimer package 'Complex structure prediction model used by ColabFold' 'model building'  ?
-4 ipSAE              package 'Interface scoring / QA metrics (ipSAE, pDockQ, pDockQ2, LIS)' 'data processing' ?
-5 PyDSSP             library 'Secondary-structure assignment and annotation extraction from predicted coordinates' 'data extraction' 0.9.1
+1 ColabFold          package 'Example ColabFold pipeline wrapper coordinating search and model inference' 'model building'  example-1.0
+2 MMseqs2-GPU        package 'Example MSA and search backend used by the ColabFold workflow' 'data collection' example-2.0
+3 AlphaFold-Multimer package 'Example multimer structure prediction model used by the ColabFold workflow' 'model building'  example-3.0
+4 'Interface QA'     package 'Example interface scoring and quality-assessment stage' 'data processing' example-1.0
+5 PyDSSP             library 'Example secondary-structure assignment and annotation extraction stage' 'data extraction' example-1.0
 
 loop_
 _ma_software_group.ordinal_id
@@ -915,8 +814,8 @@ _ma_software_parameter.data_type
 _ma_software_parameter.name
 _ma_software_parameter.value
 _ma_software_parameter.description
-1 2 float 'pae_cutoff'  10.0 'PAE cutoff used by IPSAE'
-2 2 float 'dist_cutoff' 15.0 'Distance cutoff used by IPSAE'
+1 2 float pae_cutoff  10.0 'PAE cutoff used by IPSAE'
+2 2 float dist_cutoff 15.0 'Distance cutoff used by IPSAE'
 
 loop_
 _ma_protocol_step.ordinal_id
@@ -926,10 +825,10 @@ _ma_protocol_step.method_type
 _ma_protocol_step.step_name
 _ma_protocol_step.details
 _ma_protocol_step.software_group_id
-1 1 1 'coevolution MSA' 'paired MSA generation'          'Filtered paired MSA generation using MMseqs2-GPU via ColabFold' 1
-2 1 2 modeling          'complex model inference'        'AlphaFold-Multimer inference via ColabFold with no templates, 1 model, max 4 recycles, ipTM early stopping threshold 0.1' 1
-3 2 3 other             'interface scoring'              'Post-processing interface QA metrics computed with ipSAE' 2
-4 2 4 other             'secondary structure assignment' 'Post-processing secondary-structure assignment with PyDSSP' 3
+1 1 1 'coevolution MSA' 'paired MSA generation'              'Example paired or unpaired MSA generation using the MMseqs2-GPU backend through a ColabFold-style workflow' 1
+2 1 2 modeling          'complex or monomer model inference' 'Example AlphaFold-Multimer or ColabFold inference with repository-owned example parameters and no external project-specific wording' 1
+3 2 3 other             'interface or confidence scoring'    'Example post-processing quality metrics computed from the predicted structure output' 2
+4 2 4 other             'secondary structure assignment'     'Example post-processing secondary-structure assignment using the configured DSSP backend' 3
 
 loop_
 _ma_qa_metric.id
@@ -967,42 +866,9 @@ _pdbx_audit_revision_details.type                  'Initial release'
 loop_
 _audit_author.pdbx_ordinal
 _audit_author.name
-1  'Han, Yewon'
-2  'Tsenkov, Maxim I.'
-3  'Venanzi, Niccolo A. E.'
-4  'Austin, Jeannie'
-5  'Bertoni, Damian'
-6  'Cha, Sooyoung'
-7  'Chacon, Alejandro'
-8  'Didi, Kieran'
-9  'Dietrich, Nick'
-10 'Ellaway, Joseph I. J.'
-11 'Fomitchev, Boris'
-12 'Goldtzvik, Yonathan'
-13 'Hsu, Darren'
-14 'Kovalevskiy, Oleg'
-15 'Lasecki, Dariusz'
-16 'Laydon, Agata'
-17 'Livne, Micha'
-18 'Magana, Paulyna'
-19 'Majewski, Maciej'
-20 'Nair, Sreenath'
-21 'Paramval, Urmila'
-22 'Patel, Nilkanth'
-23 'Patel, Risha'
-24 'Pidruchna, Ivanna'
-25 'Lopez Santini, Brianda'
-26 'Sohani, Prashant'
-27 'Tanweer, Ahsan'
-28 'Tran, Duc'
-29 'Tretina, Kyle'
-30 'Vu, Quan'
-31 'Zidek, Augustin'
-32 'Velankar, Sameer'
-33 'Steinegger, Martin'
-34 'Fleming, Jennifer'
-35 'Mirdita, Milot'
-36 'Dallago, Christian'
+1 'Example Curator One'
+2 'Example Curator Two'
+3 'Example Curator Three'
 
 loop_
 _ma_target_ref_db_details.target_entity_id
@@ -1017,8 +883,8 @@ _ma_target_ref_db_details.seq_db_align_end
 _ma_target_ref_db_details.seq_db_isoform
 _ma_target_ref_db_details.seq_db_sequence_checksum
 _ma_target_ref_db_details.seq_db_sequence_version_date
-1 UNP A0ABS2QMZ4 'A0ABS2QMZ4_9BACI' 'JOC77_003991' 673318 'Peribacillus deserti' 1 30 ? F517D560CC54D2CD 2025-10-08
-2 UNP A0ABS2QMF5 'A0ABS2QMF5_9BACI' 'JOC77_003818' 673318 'Peribacillus deserti' 1 33 ? A3C21287E416CF8F 2025-10-08
+1 UNP A0ABS2QMZ4 A0ABS2QMZ4_9BACI JOC77_003991 673318 'Peribacillus deserti' 1 30 ? F517D560CC54D2CD 2025-10-08
+2 UNP A0ABS2QMF5 A0ABS2QMF5_9BACI JOC77_003818 673318 'Peribacillus deserti' 1 33 ? A3C21287E416CF8F 2025-10-08
 
 loop_
 _ma_target_entity.data_id

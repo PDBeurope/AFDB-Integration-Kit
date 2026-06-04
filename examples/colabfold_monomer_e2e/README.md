@@ -1,13 +1,17 @@
-# ColabFold Complex End-to-End Reference
+# ColabFold Monomer End-to-End Reference
 
 This directory is a small runnable reference that starts from curated
-ColabFold-like complex fixture outputs and produces the AFDB integration
-artifacts the toolkit is expected to emit.
+ColabFold-like fixture outputs and produces the AFDB integration artifacts the
+toolkit is expected to emit.
+
+For curated complex references, see
+[`examples/colabfold_complex_e2e/`](../colabfold_complex_e2e/README.md).
 
 Selected fixtures:
 
-- Homodimer: `AF-0000000065760001` -> `Q6GZX4` / `Q6GZX4`
-- Heterodimer: `AF-0000000300000101` -> `A0ABS2QMZ4` / `A0ABS2QMF5`
+- `AF-0000000300000001` -> `O00400`
+- `AF-0000000300000002` -> `O64637`
+- `AF-0000000300000003` -> `Q9TVL3`
 
 Input source:
 
@@ -17,9 +21,6 @@ Input source:
   [`input/`](./input/) using normalized AFDB-style names:
   `*-model_v1.pdb` and `*-meta_v1.json`.
 
-For the monomer reference example, see
-[`examples/colabfold_monomer_e2e/`](../colabfold_monomer_e2e/README.md).
-
 ## Regenerate
 
 Run the repo-owned helper from the repository root:
@@ -27,9 +28,7 @@ Run the repo-owned helper from the repository root:
 ```bash
 .venv/bin/python scripts/generate_colabfold_e2e_example.py \
   --duckdb examples/uniprot_example_subset.duckdb \
-  --output-dir examples/colabfold_complex_e2e \
-  --example-id AF-0000000065760001 \
-  --example-id AF-0000000300000101
+  --output-dir examples/colabfold_monomer_e2e
 ```
 
 That helper executes the same script sequence used to populate this directory
@@ -66,17 +65,6 @@ The generated files follow the old Nextflow end-to-end order:
   DSSP-enriched CIF files in [`dssp/`](./dssp/). The per-model status is
   recorded in [`run_summary.json`](./run_summary.json).
 - `pydssp` is not installed in this environment, so it was not used.
-- The heterodimer fixture metadata is exported as fragment chains using local
-  chain ranges from the curated fixture set. This example does not reconstruct
-  authoritative UniProt residue offsets beyond what is committed in the
-  fixture corpus.
-- Those local fragment ranges are preserved through the generated ModelCIF
-  entity/reference alignment metadata and the heterodimer complex now gets an
-  AFDB-style fallback complex name (`Complex of .../...`) in the JSON and PDB
-  outputs.
-- Legacy PDB `DBREF` records remain a format caveat for long UniProt
-  accessions. The mmCIF/ModelCIF and JSON artifacts are the authoritative
-  metadata outputs for the heterodimer example.
 - iPSAE, clash, and interface analysis are intentionally not part of this
-  example because the target here is the raw ColabFold -> final AFDB artifact
-  path.
+  Step 9 reference because the pivot target is the raw ColabFold -> final
+  AFDB artifact path.

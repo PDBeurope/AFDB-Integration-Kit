@@ -83,7 +83,7 @@ FINAL_PDB_OUTDIR       = paramOrDefault('pdb_outdir', batchSubdirPath(datasetDir
 PROVIDER_JSON          = paramOrDefault('provider_json', datasetDir.resolve('config/provider.json').toString()).toString()
 
 // projectDir points to the workflow/ dir; templates live in repo root by default.
-MODELCIF_TEMPLATE   = paramOrDefault('modelcif_template', "${repoDir}/uniprot/templates/modelcif_metadata.json").toString()
+MODELCIF_TEMPLATE   = paramOrDefault('modelcif_template', "${repoDir}/uniprot/templates/colabfold_example_modelcif_metadata.json").toString()
 TOOLKIT_CMD         = paramOrDefault('toolkit_cmd', "${PYTHON_CMD} ${repoDir}/main.py").toString()
 
 /*

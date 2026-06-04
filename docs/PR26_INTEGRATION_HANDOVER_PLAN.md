@@ -228,7 +228,7 @@ commit `f2e5bb0`. Parent-branch verification after the merge:
 
 - [x] Create branch `integration-pr-26-gpu-examples-complex-e2e` from
   `integration-pr-26-gpu`.
-- [x] Keep the monomer reference under `examples/colabfold_e2e/` unchanged in
+- [x] Keep the monomer reference under `examples/colabfold_monomer_e2e/` unchanged in
   scope and add a sibling complex reference under
   `examples/colabfold_complex_e2e/`.
 - [x] Select one curated homodimer and one curated heterodimer fixture that
@@ -585,11 +585,11 @@ Parent-branch verification after the merge:
   - Fixed `uniprot/scripts/export_modelcif_input.py` by restoring the missing
     `import os`.
   - Preserved Step 1-8 behavior; no broad UniProt/API rewrite was started.
-- [x] (Model: GPT-5.4) Populate `examples/colabfold_e2e/` with generated
+- [x] (Model: GPT-5.4) Populate `examples/colabfold_monomer_e2e/` with generated
   reference outputs and exact commands.
-  - Added `examples/colabfold_e2e/README.md`.
-  - Added `examples/colabfold_e2e/config/commands.txt` and
-    `examples/colabfold_e2e/run_summary.json`.
+  - Added `examples/colabfold_monomer_e2e/README.md`.
+  - Added `examples/colabfold_monomer_e2e/config/commands.txt` and
+    `examples/colabfold_monomer_e2e/run_summary.json`.
   - Added normalized staged inputs, converted AFDB JSONs, merged manifests,
     model/chain metadata JSONs and batch files, ModelCIF input JSONs, mmCIFs,
     DSSP outputs, enriched PDBs, and BCIF outputs.
@@ -617,7 +617,7 @@ Parent-branch verification after the merge:
   - `.venv/bin/python uniprot/scripts/combine_metadata.py --help`: passed.
   - `.venv/bin/python scripts/generate_colabfold_e2e_example.py --duckdb
     /mnt/disks/toolkit-data/uniprot_extract_2025_04_merged_5way/db/uniprot_2025_04_merged_5way.duckdb
-    --output-dir examples/colabfold_e2e`: passed.
+    --output-dir examples/colabfold_monomer_e2e`: passed.
   - Merge commit on the parent branch: `ff96f0a` (`merge
     integration-pr-26-gpu-step-9-production-pipeline`).
 
@@ -627,14 +627,14 @@ The broad PR #26 step checklist below is deferred for now. The current priority
 is to use this repository as a toolkit and script collection, not to support
 every possible orchestration style or fully certify the old Nextflow pipeline.
 
-Step 9 established a small monomer reference at `examples/colabfold_e2e/`.
+Step 9 established a small monomer reference at `examples/colabfold_monomer_e2e/`.
 Future work should keep that reference reproducible and then add comparable
 runnable references for curated ColabFold-style complexes.
 
 - [ ] (Model: GPT-5.4) Create branch
   `integration-pr-26-gpu-examples-complex-e2e` from `integration-pr-26-gpu`.
 - [ ] (Model: GPT-5.4) Re-run or inspect the committed monomer reference under
-  `examples/colabfold_e2e/` and confirm the README, commands, run summary, and
+  `examples/colabfold_monomer_e2e/` and confirm the README, commands, run summary, and
   generated artifacts are coherent.
 - [ ] (Model: GPT-5.4) Use the old Nextflow workflow only as the required
   sequence/output reference.

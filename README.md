@@ -579,7 +579,7 @@ The `--input-dir` may contain raw ColabFold outputs (long suffixes like `_unrela
 | `--cif-qa-metrics` | QA metrics to embed in mmCIF: `auto` (default, all metrics) or comma-separated list (e.g. `ipsae_AB,iptm_af,N_clash_backbone`) |
 | `--enrichment-metrics` | iPSAE/clash metric names to include in model/chain metadata JSONs (default: all known metrics) |
 | `--interface-clash-analysis` | Which analyses to run: `interface`, `backbone_clashes`, `heavy_atom_clashes` (default: all three) |
-| `--modelcif-template` | Path to ModelCIF metadata template JSON (default: `uniprot/templates/modelcif_metadata.json`) |
+| `--modelcif-template` | Path to ModelCIF metadata template JSON (default: `uniprot/templates/colabfold_example_modelcif_metadata.json`) |
 
 **Output:** Results are written to the output directory with logs in `logs/`, cache in `.pipeline_cache.json`, and a results summary in `pipeline_results.json`.
 

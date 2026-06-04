@@ -19,7 +19,7 @@ uniprot/
     parquet/                  # Parquet subset extracted from UniProt
     db/                       # DuckDB cache built from the parquet subset
   templates/
-    modelcif_metadata.json    # Starter template for ModelCIF metadata exports
+    colabfold_example_modelcif_metadata.json    # Starter template for ModelCIF metadata exports
   scripts/
     shard_uniprot.py          # Split UniProt releases into shards for parallel runs
     extract_subset.py         # Stream UniProt releases into entry.parquet
@@ -160,7 +160,7 @@ per release.
      --model-id AF-0000000000000004 \
      --manifest examples/config/subset_uniprot_afid_mapping.csv \
    --db uniprot/outputs/db/uniprot_2025_04.duckdb \
-     --template uniprot/templates/modelcif_metadata.json \
+     --template uniprot/templates/colabfold_example_modelcif_metadata.json \
      --out examples/AF-0000000000000004_model_gen.json
    ```
 
@@ -177,7 +177,7 @@ per release.
    The exporter deduplicates `_ma_target_ref_db_details` per entity while still
    emitting a `_ma_target_entity_instance` row for every chain.
 
-   Copy `uniprot/templates/modelcif_metadata.json` to your workspace if you need
+   Copy `uniprot/templates/colabfold_example_modelcif_metadata.json` to your workspace if you need
    to customise provider details, data-usage statements, or software fields
    before running large batches.
 
@@ -207,7 +207,7 @@ per release.
   nextflow run workflow/modelcif_metadata.nf \
     --db uniprot/outputs/db/uniprot_2025_04.duckdb \
      --manifest examples/config/subset_uniprot_afid_mapping.csv \
-     --template uniprot/templates/modelcif_metadata.json \
+     --template uniprot/templates/colabfold_example_modelcif_metadata.json \
      --output_dir examples/modelcif_metadata \
      -w "$PWD/work/modelcif"
    ```

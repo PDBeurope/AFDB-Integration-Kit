@@ -19,8 +19,8 @@ from typing import Any, Iterable
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FIXTURE_MANIFEST = REPO_ROOT / "tests/fixtures/colabfold_real_examples/manifest.json"
 DEFAULT_FIXTURES_ROOT = REPO_ROOT / "tests/fixtures/colabfold_real_examples"
-DEFAULT_OUTPUT_DIR = REPO_ROOT / "examples/colabfold_e2e"
-DEFAULT_TEMPLATE = REPO_ROOT / "uniprot/templates/colabfold_modelcif_metadata.json"
+DEFAULT_OUTPUT_DIR = REPO_ROOT / "examples/colabfold_monomer_e2e"
+DEFAULT_TEMPLATE = REPO_ROOT / "uniprot/templates/colabfold_example_modelcif_metadata.json"
 DEFAULT_EXAMPLE_IDS = [
     "AF-0000000300000001",
     "AF-0000000300000002",

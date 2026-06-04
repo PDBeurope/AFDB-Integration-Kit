@@ -2,7 +2,7 @@ nextflow.enable.dsl=2
 
 params.db             = params.containsKey('db')             ? params.db             : 'uniprot/outputs/db/uniprot_2025_03.duckdb'
 params.manifest       = params.containsKey('manifest')       ? params.manifest       : 'examples/complexes/config/uniprot_afid_mapping.csv'
-params.template       = params.containsKey('template')       ? params.template       : 'uniprot/templates/modelcif_metadata.json'
+params.template       = params.containsKey('template')       ? params.template       : 'uniprot/templates/colabfold_example_modelcif_metadata.json'
 params.output_dir     = params.containsKey('output_dir')     ? params.output_dir     : 'examples/complexes/modelcif_metadata'
 params.python_cmd     = params.containsKey('python_cmd')     ? params.python_cmd     : 'python3'
 

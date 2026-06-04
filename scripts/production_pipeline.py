@@ -456,13 +456,9 @@ class Config:
         if self.python_cmd is None:
             self.python_cmd = ["python"]
 
-        # Select modelcif template based on tool_used if not explicitly provided
+        # Use the repo-neutral example-safe ModelCIF template by default.
         if self.modelcif_template is None:
-            is_colabfold = (self.tool_used or "").lower().startswith("colabfold")
-            if is_colabfold:
-                template_name = "colabfold_modelcif_metadata.json"
-            else:
-                template_name = "openfold_modelcif_metadata.json"
+            template_name = "colabfold_example_modelcif_metadata.json"
             self.modelcif_template = self.repo_dir / "uniprot/templates" / template_name
 
     def get_hash(self) -> str:

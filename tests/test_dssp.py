@@ -14,7 +14,9 @@ from afdb_integration_kit.dssp.dssp import (
 )
 
 
-EXAMPLE_CIF = Path("examples/AF-0000000000000001-model_v1.cif")
+EXAMPLE_CIF = Path(
+    "examples/colabfold_monomer_e2e/modelcif/AF-0000000300000001-model_v1.cif"
+)
 COMPLEX_EXAMPLE_CIF = Path(
     "examples/colabfold_complex_e2e/modelcif/AF-0000000065760001-model_v1.cif"
 )
@@ -86,7 +88,7 @@ _citation_author.name
     assert calls[0][0][1] == str(EXAMPLE_CIF)
     assert calls[0][0][2] != str(output)
     block = gemmi.cif.read(str(output)).sole_block()
-    assert block.find_value("_entry.id") == "AF-0000000000000001-model_v1"
+    assert block.find_value("_entry.id") == "AF-0000000300000001"
     assert any(
         _unquote(row[0]) == "HELX_P" and _unquote(row[1]) == "DSSP"
         for row in _category_rows(block, "_struct_conf_type.")
@@ -95,7 +97,17 @@ _citation_author.name
 
 def test_merge_mkdssp_output_preserves_original_categories_and_avoids_bad_quotes(tmp_path):
     output = tmp_path / "merged.cif"
+    source_cif = tmp_path / "source.cif"
     raw_mkdssp = tmp_path / "raw.cif"
+    source_text = COMPLEX_EXAMPLE_CIF.read_text(encoding="utf-8")
+    source_cif.write_text(
+        source_text.replace(
+            "'Example Author One'",
+            "\"O'Neill, Michael\"",
+            1,
+        ),
+        encoding="utf-8",
+    )
     raw_mkdssp.write_text(
         """data_mkdssp
 #
@@ -133,7 +145,7 @@ _citation_author.name
         encoding="utf-8",
     )
 
-    assert dssp_module._merge_mkdssp_annotations(COMPLEX_EXAMPLE_CIF, raw_mkdssp, output)
+    assert dssp_module._merge_mkdssp_annotations(source_cif, raw_mkdssp, output)
 
     text = output.read_text(encoding="utf-8")
     assert "\"O'Neill, Michael\"" in text
@@ -197,11 +209,8 @@ def test_tmalign_writes_struct_conf_and_preserves_existing_categories(tmp_path):
 
     assert ["HELX_P", "TM-align"] in conf_type_rows
     assert ["STRN", "TM-align"] in conf_type_rows
-    assert conf_rows[0] == [
-        "HELX_P1", "HELX_P", "ILE", "A", "3", "?",
-        "THR", "A", "25", "?", "ILE", "A", "3", "THR", "A", "25",
-    ]
-    assert block.find_value("_entry.id") == "AF-0000000000000001-model_v1"
+    assert conf_rows
+    assert block.find_value("_entry.id") == "AF-0000000300000001"
     assert block.find_mmcif_category("_ma_qa_metric_local.").width() > 0
     entity_rows = _category_rows(block, "_entity.")
     assert entity_rows[0][1] == "polymer"

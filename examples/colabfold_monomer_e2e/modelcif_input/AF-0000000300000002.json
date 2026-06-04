@@ -348,7 +348,7 @@
     },
     "_entry": {
       "id": [
-        "AF-0000000300000101"
+        "AF-0000000300000002"
       ]
     },
     "_database_2": {
@@ -356,7 +356,7 @@
         "AlphaFoldDB"
       ],
       "database_code": [
-        "AF-0000000300000101"
+        "AF-0000000300000002"
       ]
     },
     "_pdbx_database_status": {
@@ -364,7 +364,7 @@
         "REL"
       ],
       "entry_id": [
-        "AF-0000000300000101"
+        "AF-0000000300000002"
       ],
       "recvd_initial_deposition_date": [
         "2026-02-21"
@@ -418,176 +418,136 @@
     },
     "_ma_target_ref_db_details": {
       "target_entity_id": [
-        "1",
-        "2"
+        "1"
       ],
       "db_name": [
-        "UNP",
         "UNP"
       ],
       "db_accession": [
-        "A0ABS2QMZ4",
-        "A0ABS2QMF5"
+        "O64637"
       ],
       "db_code": [
-        "A0ABS2QMZ4_9BACI",
-        "A0ABS2QMF5_9BACI"
+        "C76C2_ARATH"
       ],
       "gene_name": [
-        "JOC77_003991",
-        "JOC77_003818"
+        "CYP76C2"
       ],
       "ncbi_taxonomy_id": [
-        "673318",
-        "673318"
+        "3702"
       ],
       "organism_scientific": [
-        "Peribacillus deserti",
-        "Peribacillus deserti"
+        "Arabidopsis thaliana (Mouse-ear cress)"
       ],
       "seq_db_align_begin": [
-        1,
         1
       ],
       "seq_db_align_end": [
-        30,
-        33
+        512
       ],
       "seq_db_isoform": [
-        "?",
         "?"
       ],
       "seq_db_sequence_checksum": [
-        "F517D560CC54D2CD",
-        "A3C21287E416CF8F"
+        "16B1AC233E9EF40B"
       ],
       "seq_db_sequence_version_date": [
-        "2025-10-08",
-        "2025-10-08"
+        "1998-08-01"
       ]
     },
     "_ma_target_entity": {
       "data_id": [
-        "1",
         "1"
       ],
       "entity_id": [
-        "1",
-        "2"
+        "1"
       ],
       "origin": [
-        "reference database",
         "reference database"
       ]
     },
     "_ma_target_entity_instance": {
       "asym_id": [
-        "A",
-        "B"
+        "A"
       ],
       "details": [
-        "Chain A from UniProt A0ABS2QMZ4",
-        "Chain B from UniProt A0ABS2QMF5"
+        "Chain A from UniProt O64637"
       ],
       "entity_id": [
-        "1",
-        "2"
+        "1"
       ]
     },
     "_entity": {
       "id": [
-        "1",
-        "2"
+        "1"
       ],
       "type": [
-        "polymer",
         "polymer"
       ],
       "src_method": [
-        "man",
         "man"
       ],
       "pdbx_description": [
-        "Cytochrome P450",
-        "Large subunit ribosomal protein L3"
+        "Cytochrome P450 76C2"
       ]
     },
     "_entity_poly": {
       "entity_id": [
-        "1",
-        "2"
+        "1"
       ],
       "nstd_linkage": [
-        "no",
         "no"
       ],
       "nstd_monomer": [
-        "no",
         "no"
       ],
       "pdbx_seq_one_letter_code": [
-        "MFVQEVRRFYPFGPFLGARVRTDFTWNNCR",
-        "MTKGILGRKIGMTQVFAENGELIPVTVVEAAPN"
+        "MDIIFEQALFPLFCFVLSFFIIFFTTTRPRSSRKVVPSPPGPPRLPIIGNIHLVGRNPHHSFADLSKTYGPIMSLKFGSLNTVVVTSPEAAREVLRTYDQILSSRTPTNSIRSINHDKVSVVWLPPSSSRWRLLRKLSATQLFSPQRIEATKTLRENKVKELVSFMSESSEREEAVDISRATFITALNIISNILFSVDLGNYDSNKSGVFQDTVIGVMEAVGNPDAANFFPFLGFLDLQGNRKTLKACSERLFKVFRGFIDAKLAEKSLRDTNSKDVRERDFVDVLLDLTEGDEAELNTNDIVHLLLDLFGAGTDTNSSTVEWAMAELLRNPETMVKAQAEIDCVIGQKGVVEESDISALPYLQAVVKETFRLHPAAPLLVPRKAESDVEVLGFMVPKDTQVFVNVWAIGRDPNVWENSSRFKPERFLGKDIDLRGRDYELTPFGAGRRICPGLPLAVKTVPLMLASLLYSFDWKLPNGVGSEDLDMDETFGLTLHKTNPLHAVPVKKRGRN"
       ],
       "type": [
-        "polypeptide(L)",
         "polypeptide(L)"
       ]
     },
     "_struct_ref": {
       "id": [
-        1,
-        2
+        1
       ],
       "db_code": [
-        "A0ABS2QMZ4_9BACI",
-        "A0ABS2QMF5_9BACI"
+        "C76C2_ARATH"
       ],
       "db_name": [
-        "UNP",
         "UNP"
       ],
       "entity_id": [
-        "1",
-        "2"
+        "1"
       ],
       "pdbx_db_accession": [
-        "A0ABS2QMZ4",
-        "A0ABS2QMF5"
+        "O64637"
       ]
     },
     "_struct_ref_seq": {
       "align_id": [
-        1,
-        2
+        1
       ],
       "ref_id": [
-        "1",
-        "2"
+        "1"
       ],
       "pdbx_PDB_id_code": [
-        "AF-0000000300000101",
-        "AF-0000000300000101"
+        "AF-0000000300000002"
       ],
       "pdbx_strand_id": [
-        "A",
-        "B"
+        "A"
       ],
       "seq_align_beg": [
-        1,
         1
       ],
       "seq_align_end": [
-        30,
-        33
+        512
       ],
       "db_align_beg": [
-        1,
         1
       ],
       "db_align_end": [
-        30,
-        33
+        512
       ]
     }
   },
@@ -595,12 +555,7 @@
     {
       "chain_id": "A",
       "entity_id": "1",
-      "uniprot_accession": "A0ABS2QMZ4"
-    },
-    {
-      "chain_id": "B",
-      "entity_id": "2",
-      "uniprot_accession": "A0ABS2QMF5"
+      "uniprot_accession": "O64637"
     }
   ]
 }
