@@ -1,274 +1,174 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Model Entity Schema",
+  "title": "Model Metadata Summary Schema",
   "type": "object",
   "required": [
-    "uniqueId",
-    "toolUsed",
-    "modelCreatedDate",
     "modelEntityId",
-    "stoichiometry",
-    "providerId",
-    "entityType",
-    "sequence",
-    "sequenceChecksum",
-    "sequenceStart",
-    "sequenceEnd",
-    "isUniProt",
-    "globalMetricValue",
-    "fractionPlddtVeryLow",
-    "fractionPlddtLow",
-    "fractionPlddtConfident",
-    "fractionPlddtVeryHigh",
     "latestVersion",
-    "allVersions"
+    "providerId",
+    "isComplex",
+    "uniprotAccession",
+    "uniprotDescription",
+    "isUniProtReferenceProteome",
+    "isUniProtReviewed",
+    "isIsoform",
+    "organismScientificName",
+    "gene",
+    "taxId",
+    "globalMetricValue",
+    "isAMdata"
   ],
   "properties": {
-    "uniqueId": {
-      "type": "string",
-      "description": "Unique ID for the entity, must be modelEntityId + '_' + ordinal number",
-      "examples": ["AF-1000000000000001-v1_1"]
-    },
-    "toolUsed": {
-      "type": "string",
-      "description": "Tool used for prediction",
-      "examples": ["AlphaFold Monomer v2.0 pipeline"]
-    },
-    "modelCreatedDate": {
-      "type": "string",
-      "format": "date-time",
-      "description": "Date the model was created in YYYY-MM-DDT00:00:00Z format (ISO 8601)",
-      "examples": ["2023-05-01T00:00:00Z"]
-    },
     "modelEntityId": {
       "type": "string",
-      "description": "Unique model entity identifier as per the defined convention",
-      "examples": ["AF-1000000000000001-v1"]
+      "description": "Unique model entity identifier.",
+      "pattern": "^AF-[0-9]{16}$",
+      "examples": ["AF-1000000000000001"]
     },
-    "complexName": {
-      "type": ["string", "null"],
-      "description": "Name of the complex",
-      "examples": ["Hemoglobin Tetramer"]
-    },
-    "complexComposition": {
-      "type": ["string", "null"],
-      "description": "Comma-separated list of components in the format <sequenceChecksum>_<stoichiometry>",
-      "examples": ["408C22731C6EDFBE_2,A8B880A25617EC96_1"]
-    },
-    "uniprotAccession": {
-      "type": ["string", "null"],
-      "description": "UniProt accession",
-      "examples": ["P12345"]
-    },
-    "uniprotId": {
-      "type": ["string", "null"],
-      "description": "UniProt identifier",
-      "examples": ["HBA_HUMAN"]
-    },
-    "uniprotDescription": {
-      "type": ["string", "null"],
-      "description": "Description of the protein in UniProt",
-      "examples": ["Hemoglobin subunit alpha"]
-    },
-    "geneSynonyms": {
-      "type": ["array", "null"],
-      "description": "List of gene synonyms (strings)",
-      "items": { "type": "string" },
-      "examples": [["HBA1", "HB1", "Alpha-globin"]]
-    },
-    "gene": {
-      "type": ["string", "null"],
-      "description": "Gene name (string)",
-      "examples": ["HBA"]
-    },
-    "isUniProtReferenceProteome": {
-      "type": ["boolean", "null"],
-      "description": "Boolean flag for UniProt reference proteome",
-      "examples": [true]
-    },
-    "isUniProtReviewed": {
-      "type": ["boolean", "null"],
-      "description": "Boolean flag for UniProt curation status",
-      "examples": [true]
-    },
-    "taxId": {
-      "type": ["integer", "null"],
-      "description": "NCBI Taxonomy ID",
-      "examples": [9606]
-    },
-    "organismScientificName": {
-      "type": ["string", "null"],
-      "description": "Scientific name of the organism",
-      "examples": ["Homo sapiens"]
-    },
-    "otherTaxIds": {
-      "type": ["array", "null"],
-      "description": "List of NCBI Taxonomy IDs representing additional taxa associated with the sequence",
-      "items": { "type": "integer" },
-      "examples": [[9606, 9615]]
-    },
-    "otherOrganismScientificNames": {
-      "type": ["array", "null"],
-      "description": "List of scientific names corresponding to the otherTaxIds (must match order)",
-      "items": { "type": "string" },
-      "examples": [["Homo sapiens", "Canis lupus familiaris"]]
-    },
-    "stoichiometry": {
+    "latestVersion": {
       "type": "integer",
-      "description": "Number of entity copies (integer)",
-      "examples": [2]
-    },
-    "oligomericStateDescription": {
-      "type": ["string", "null"],
-      "description": "Combined assembly type and oligomeric state for a complex",
-      "examples": ["Heterodimer"]
-    },
-    "ipTM": {
-      "type": ["number", "null"],
-      "description": "Quality metric (float)",
-      "examples": [0.85]
-    },
-    "ipSAE": {
-      "type": ["number", "null"],
-      "description": "Quality metric (float)",
-      "examples": [0.12]
+      "minimum": 1,
+      "description": "Current version number.",
+      "examples": [1]
     },
     "providerId": {
       "type": "string",
-      "description": "Provider ID assigned by EBI",
+      "description": "Provider ID assigned by EBI.",
       "examples": ["AF-EBI-001"]
     },
-    "entityType": {
-      "type": "string",
-      "description": "Type of entity (e.g., protein, ligand)",
-      "examples": ["protein"]
+    "isComplex": {
+      "type": "boolean",
+      "description": "Whether the model represents a complex."
     },
-    "sequence": {
-      "type": "string",
-      "description": "Protein sequence",
-      "examples": ["MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHF"]
-    },
-    "sequenceChecksum": {
-      "type": "string",
-      "description": "MD5 checksum of the sequence. Required if sourced from UniProt or reference DB",
-      "examples": ["408C22731C6EDFBE"]
-    },
-    "sequenceVersionDate": {
+    "complexName": {
       "type": ["string", "null"],
-      "format": "date-time",
-      "description": "Sequence version date in YYYY-MM-DDT00:00:00Z format (ISO 8601)",
-      "examples": ["2022-01-10T00:00:00Z"]
+      "description": "Name of the complex.",
+      "examples": ["Complex of Cytochrome P450/Large subunit ribosomal protein L3"]
+    },
+    "assemblyType": {
+      "type": ["string", "null"],
+      "enum": ["Homo", "Hetero", null],
+      "description": "Assembly type for complex models."
+    },
+    "oligomericState": {
+      "type": ["string", "null"],
+      "description": "Oligomeric state for complex models.",
+      "examples": ["dimer"]
+    },
+    "complexComposition": {
+      "type": ["array", "null"],
+      "description": "Complex components in '<accession>_<stoichiometry>' form.",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9-]+_[1-9][0-9]*$"
+      },
+      "minItems": 1,
+      "examples": [["A0ABS2QMZ4_1", "A0ABS2QMF5_1"]]
+    },
+    "oligomericStateDescription": {
+      "type": ["string", "null"],
+      "description": "Human-readable oligomeric state description.",
+      "examples": ["Heterodimer"]
+    },
+    "uniprotAccession": {
+      "type": "array",
+      "description": "UniProt accessions represented by the model.",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "examples": [["O00400"]]
+    },
+    "uniprotDescription": {
+      "type": "array",
+      "description": "UniProt descriptions represented by the model.",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "examples": [["Acetyl-coenzyme A transporter 1"]]
+    },
+    "isUniProtReferenceProteome": {
+      "type": "boolean",
+      "description": "Whether the represented UniProt entries are from a reference proteome."
+    },
+    "isUniProtReviewed": {
+      "type": "boolean",
+      "description": "Whether the represented UniProt entries are reviewed."
+    },
+    "isIsoform": {
+      "type": "boolean",
+      "description": "Whether the represented entries are isoforms."
+    },
+    "organismScientificName": {
+      "type": "array",
+      "description": "Scientific organism names represented by the model.",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "examples": [["Homo sapiens (Human)"]]
+    },
+    "gene": {
+      "type": "array",
+      "description": "Gene names represented by the model.",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "examples": [["SLC33A1"]]
+    },
+    "taxId": {
+      "type": "array",
+      "description": "NCBI taxonomy IDs represented by the model.",
+      "items": { "type": "integer" },
+      "minItems": 1,
+      "examples": [[9606]]
     },
     "sequenceStart": {
       "type": "integer",
-      "description": "Starting residue index (integer)",
+      "minimum": 1,
+      "description": "Starting residue index for single-sequence summaries.",
       "examples": [1]
     },
     "sequenceEnd": {
       "type": "integer",
-      "description": "Ending residue index (integer)",
-      "examples": [142]
-    },
-    "isFragment": {
-      "type": ["boolean", "null"],
-      "description": "Boolean indicating whether the sequence is a fragment",
-      "examples": [false]
-    },
-    "isUniProt": {
-      "type": "boolean",
-      "description": "Boolean indicating if the sequence is from UniProt",
-      "examples": [true]
+      "minimum": 1,
+      "description": "Ending residue index for single-sequence summaries.",
+      "examples": [549]
     },
     "globalMetricValue": {
       "type": "number",
-      "description": "Average pLDDT (float)",
-      "examples": [92.5]
+      "description": "Average pLDDT or equivalent global confidence metric.",
+      "examples": [81.38]
     },
-    "fractionPlddtVeryLow": {
-      "type": "number",
-      "description": "Fraction of residues with very low confidence",
-      "examples": [0.01]
+    "complexPredictionAccuracy_ipTM": {
+      "type": ["number", "null"],
+      "description": "ipTM value for complex predictions.",
+      "examples": [0.16]
     },
-    "fractionPlddtLow": {
-      "type": "number",
-      "description": "Fraction of residues with low confidence",
-      "examples": [0.05]
-    },
-    "fractionPlddtConfident": {
-      "type": "number",
-      "description": "Fraction of residues with confident prediction",
-      "examples": [0.6]
-    },
-    "fractionPlddtVeryHigh": {
-      "type": "number",
-      "description": "Fraction of residues with very high confidence",
-      "examples": [0.34]
-    },
-    "organismCommonNames": {
-      "type": ["array", "null"],
-      "description": "List of common names of the organism, including those for otherOrganismScientificNames",
-      "items": { "type": "string" },
-      "examples": [["human", "dog"]]
-    },
-    "organismSynonyms": {
-      "type": ["array", "null"],
-      "description": "List of synonyms of the organism, including those for otherOrganismScientificNames",
-      "items": { "type": "string" },
-      "examples": [["H. sapiens", "C. lupus familiaris"]]
-    },
-    "proteinFullNames": {
-      "type": ["array", "null"],
-      "description": "Full names of the protein",
-      "items": { "type": "string" },
-      "examples": [["Hemoglobin subunit alpha"]]
-    },
-    "proteinShortNames": {
-      "type": ["array", "null"],
-      "description": "Short names of the protein",
-      "items": { "type": "string" },
-      "examples": [["HbA"]]
-    },
-    "keywords": {
-      "type": ["array", "null"],
-      "description": "List of descriptive keywords (from UniProt XML)",
-      "items": { "type": "string" },
-      "examples": [["oxygen transport", "heme-binding"]]
-    },
-    "taxonomyLineage": {
-      "type": ["array", "null"],
-      "description": "List of taxonomy lineage terms (from UniProt XML)",
-      "items": { "type": "string" },
-      "examples": [["Eukaryota", "Metazoa", "Chordata", "Mammalia"]]
-    },
-    "functions": {
-      "type": ["array", "null"],
-      "description": "List of functions (from UniProt XML)",
-      "items": { "type": "string" },
-      "examples": [["Oxygen transport from the lungs to body tissues"]]
-    },
-    "alternativeNames": {
-      "type": ["array", "null"],
-      "description": "List of alternative protein names (from UniProt XML)",
-      "items": { "type": "string" },
-      "examples": [["Alpha-globin"]]
-    },
-    "catalyticActivities": {
-      "type": ["array", "null"],
-      "description": "List of catalytic activities (from UniProt XML)",
-      "items": { "type": "string" },
-      "examples": [["EC 1.1.1.1 - alcohol dehydrogenase activity"]]
-    },
-    "latestVersion": {
-      "type": "integer",
-      "description": "Current version number (integer)",
-      "examples": [3]
-    },
-    "allVersions": {
-      "type": "array",
-      "description": "List of all version numbers (integers)",
-      "items": { "type": "integer" },
-      "examples": [[1, 2, 3]]
+    "isAMdata": {
+      "type": "boolean",
+      "description": "Whether this is AlphaMissense data."
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "isComplex": { "const": true } },
+        "required": ["isComplex"]
+      },
+      "then": {
+        "required": [
+          "complexName",
+          "assemblyType",
+          "oligomericState",
+          "complexComposition",
+          "oligomericStateDescription"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": { "isComplex": { "const": false } },
+        "required": ["isComplex"]
+      },
+      "then": {
+        "required": ["sequenceStart", "sequenceEnd"]
+      }
+    }
+  ],
   "additionalProperties": false
 }

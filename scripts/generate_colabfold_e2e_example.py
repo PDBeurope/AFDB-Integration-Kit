@@ -237,6 +237,7 @@ def provider_payload(args: argparse.Namespace) -> dict[str, Any]:
         "providerId": args.provider_id,
         "providerName": args.provider_name,
         "providerUrl": "https://github.com/PDBeurope/AFDB-Integration-Kit",
+        "license": "CC-BY-4.0",
         "copyrights": [
             "Example fixture data for local AFDB toolkit verification only.",
         ],

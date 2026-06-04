@@ -51,3 +51,95 @@ Regenerate the complex reference with:
 See [`examples/colabfold_monomer_e2e/README.md`](./colabfold_monomer_e2e/README.md)
 and [`examples/colabfold_complex_e2e/README.md`](./colabfold_complex_e2e/README.md)
 for the selected fixtures, caveats, and generated file layout.
+
+## Validate Committed E2E Outputs
+
+Run these checks from the repo root after installing the project environment.
+They validate one representative monomer and one representative complex from
+the committed reference trees.
+
+### Metadata JSONs
+
+Use `run-schema-validation` for committed `model_jsons/*.json` and
+`config/provider.json` files:
+
+```bash
+.venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_monomer_e2e/model_jsons/AF-0000000300000001.json \
+  -t model
+.venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_monomer_e2e/config/provider.json \
+  -t provider
+
+.venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_complex_e2e/model_jsons/AF-0000000300000101.json \
+  -t model
+.venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_complex_e2e/config/provider.json \
+  -t provider
+```
+
+`validate-metadata-file` is useful for workflow-style metadata batch files, but
+`run-schema-validation` is the direct schema check for these committed example
+model and provider JSON files.
+
+### Score JSONs
+
+Validate the confidence JSON, the PAE JSON, and the confidence/PAE length
+relationship:
+
+```bash
+.venv/bin/python main.py validate-plddt-file \
+  --file examples/colabfold_monomer_e2e/scores/AF-0000000300000001-confidence_v1.json
+.venv/bin/python main.py validate-pae-file \
+  --file examples/colabfold_monomer_e2e/scores/AF-0000000300000001-predicted_aligned_error_v1.json
+.venv/bin/python main.py validate-relationships-pair \
+  --plddt-file examples/colabfold_monomer_e2e/scores/AF-0000000300000001-confidence_v1.json \
+  --pae-file examples/colabfold_monomer_e2e/scores/AF-0000000300000001-predicted_aligned_error_v1.json
+
+.venv/bin/python main.py validate-plddt-file \
+  --file examples/colabfold_complex_e2e/scores/AF-0000000300000101-confidence_v1.json
+.venv/bin/python main.py validate-pae-file \
+  --file examples/colabfold_complex_e2e/scores/AF-0000000300000101-predicted_aligned_error_v1.json
+.venv/bin/python main.py validate-relationships-pair \
+  --plddt-file examples/colabfold_complex_e2e/scores/AF-0000000300000101-confidence_v1.json \
+  --pae-file examples/colabfold_complex_e2e/scores/AF-0000000300000101-predicted_aligned_error_v1.json
+```
+
+### ModelCIF Dictionary Validation
+
+Validate representative ModelCIF files with `gemmi` and the ModelCIF
+dictionary:
+
+```bash
+gemmi validate -p -d mmcif_ma.dic \
+  examples/colabfold_monomer_e2e/modelcif/AF-0000000300000001-model_v1.cif
+gemmi validate -p -d mmcif_ma.dic \
+  examples/colabfold_complex_e2e/modelcif/AF-0000000300000101-model_v1.cif
+```
+
+### Manual Coordinate-File Viewer Checks
+
+Open representative PDB, ModelCIF, and BCIF files in the Mol* web viewer:
+
+1. Go to https://molstar.org/viewer/.
+2. Drag and drop the file into the browser window, or use **Open Files** in
+   the left panel.
+3. Confirm the structure opens correctly, no error messages are shown in the
+   viewer, and the structure looks structurally correct by eye.
+
+Representative files:
+
+```text
+examples/colabfold_monomer_e2e/modelpdb/AF-0000000300000001-model_v1.pdb
+examples/colabfold_monomer_e2e/modelcif/AF-0000000300000001-model_v1.cif
+examples/colabfold_monomer_e2e/bcif/AF-0000000300000001-model_v1.bcif
+
+examples/colabfold_complex_e2e/modelpdb/AF-0000000300000101-model_v1.pdb
+examples/colabfold_complex_e2e/modelcif/AF-0000000300000101-model_v1.cif
+examples/colabfold_complex_e2e/bcif/AF-0000000300000101-model_v1.bcif
+```
+
+Optionally open the same files in ChimeraX or another preferred structure
+viewer such as PyMOL. The expected result is a clean import with no
+parser/import errors and a structure that looks correct by eye.
