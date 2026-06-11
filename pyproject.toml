@@ -9,7 +9,7 @@ dependencies = [
     "gemmi-program>=0.7.3",
     "jsonschema>=4.24.0",
     "numpy>=2.3.1",
-    "pyarrow>=17.0.0",
+    "pyarrow>=23.0.1",
     "duckdb>=1.1.3",
     "tqdm>=4.66.5",
     "requests>=2.33.0",
@@ -23,7 +23,7 @@ dependencies = [
 production = [
     "biotite>=1.0.0",
     "pydssp>=0.9.0",
-    "torch>=2.0.0",
+    "torch>=2.12.0",
     "fastpdb>=1.2",
 ]
 

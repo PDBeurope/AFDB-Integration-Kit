@@ -34,7 +34,7 @@ numpy==2.3.1
     # via afdb-toolkit
 orjson==3.11.6
     # via afdb-toolkit
-pyarrow==22.0.0
+pyarrow==23.0.1
     # via afdb-toolkit
 pygments==2.19.1
     # via rich
