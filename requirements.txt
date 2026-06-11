@@ -20,7 +20,7 @@ gemmi==0.7.3
     # via afdb-toolkit
 gemmi-program==0.7.3
     # via afdb-toolkit
-idna==3.10
+idna==3.15
     # via requests
 jsonschema==4.24.0
     # via afdb-toolkit
@@ -32,7 +32,7 @@ mdurl==0.1.2
     # via markdown-it-py
 numpy==2.3.1
     # via afdb-toolkit
-orjson==3.11.4
+orjson==3.11.6
     # via afdb-toolkit
 pyarrow==22.0.0
     # via afdb-toolkit
@@ -42,7 +42,7 @@ referencing==0.36.2
     # via
     #   jsonschema
     #   jsonschema-specifications
-requests==2.32.4
+requests==2.33.0
     # via afdb-toolkit
 rich==14.0.0
     # via typer
@@ -60,5 +60,5 @@ typing-extensions==4.14.0
     # via
     #   referencing
     #   typer
-urllib3==2.5.0
+urllib3==2.7.0
     # via requests
