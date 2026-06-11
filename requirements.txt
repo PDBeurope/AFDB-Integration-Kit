@@ -36,7 +36,7 @@ orjson==3.11.6
     # via afdb-toolkit
 pyarrow==23.0.1
     # via afdb-toolkit
-pygments==2.19.1
+pygments==2.20.0
     # via rich
 referencing==0.36.2
     # via

@@ -29,7 +29,7 @@ pycodestyle==2.14.0
     # via flake8
 pyflakes==3.4.0
     # via flake8
-pygments==2.19.1
+pygments==2.20.0
     # via pytest
 pytest==9.0.3
 pyyaml==6.0.2
