@@ -2,7 +2,7 @@
 """
 Batch ipSAE calculator - computes interface quality metrics for protein complexes.
 
-Uses the optimized C++ ipsae_optimized binary for high-performance calculations
+Uses the optimized C++ ipsae_cpp binary for high-performance calculations
 of pDockQ, pDockQ2, LIS, and ipSAE metrics.
 """
 import argparse
@@ -10,8 +10,6 @@ import logging
 import os
 import subprocess
 import sys
-import tempfile
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Optional
 
@@ -19,8 +17,8 @@ logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 # Binary path relative to this script
-IPSAE_CPP_DIR = Path(__file__).parent.parent.parent / "afdb_integration_kit" / "ipsae_cpp"
-IPSAE_BINARY = IPSAE_CPP_DIR / "ipsae_optimized"
+IPSAE_CPP_DIR = Path(__file__).parent.parent.parent / "afdb_integration_kit" / "ipsae"
+IPSAE_BINARY = IPSAE_CPP_DIR / "ipsae_cpp"
 
 
 def ensure_ipsae_binary() -> bool:
@@ -102,17 +100,14 @@ def get_model_ids_from_pdb_dir(pdb_dir: Path) -> list[str]:
 
 
 def run_ipsae_batch(
-    input_list_file: Path,
-    output_dir: Path,
+    input_dir: Path,
+    summary_csv: Path,
     pae_cutoff: float = 10.0,
     dist_cutoff: float = 10.0,
     num_threads: int = 1
-) -> tuple[int, int, int]:
+) -> subprocess.CompletedProcess[str]:
     """
-    Run the C++ ipsae_optimized binary in batch mode.
-
-    Returns:
-        Tuple of (processed, skipped, errors)
+    Run the C++ ipsae_cpp binary in batch mode.
     """
     if not ensure_ipsae_binary():
         raise FileNotFoundError(
@@ -128,39 +123,24 @@ def run_ipsae_batch(
     cmd = [
         str(IPSAE_BINARY),
         "--batch",
-        str(input_list_file),
-        str(output_dir),
-        "--pae-cutoff", str(pae_cutoff),
-        "--dist-cutoff", str(dist_cutoff)
+        str(input_dir),
+        str(pae_cutoff),
+        str(dist_cutoff),
+        "--summary",
+        str(summary_csv),
+        "--workers",
+        str(num_threads),
+        "--quiet",
     ]
 
     logger.info(f"Running: {' '.join(cmd)}")
 
-    result = subprocess.run(
+    return subprocess.run(
         cmd,
         capture_output=True,
         text=True,
         env=env
     )
-
-    if result.returncode != 0:
-        logger.error(f"ipSAE binary failed: {result.stderr}")
-        return (0, 0, -1)
-
-    # Parse output for statistics
-    processed = 0
-    skipped = 0
-    errors = 0
-
-    for line in result.stdout.split('\n'):
-        if "Processed:" in line:
-            processed = int(line.split(':')[1].strip())
-        elif "Skipped" in line:
-            skipped = int(line.split(':')[1].strip())
-        elif "Errors:" in line:
-            errors = int(line.split(':')[1].strip())
-
-    return (processed, skipped, errors)
 
 
 def main():
@@ -234,8 +214,9 @@ def main():
         logger.warning("No models found to process")
         sys.exit(0)
 
-    # Build input list file for batch mode
-    # Format: model_id\tpae_file\tpdb_file
+    batch_input_dir = args.output_dir / "input"
+    batch_input_dir.mkdir(exist_ok=True, parents=True)
+
     entries = []
     missing_pae = []
     missing_pdb = []
@@ -251,7 +232,17 @@ def main():
             missing_pdb.append(model_id)
             continue
 
-        entries.append(f"{model_id}\t{pae_file}\t{pdb_file}")
+        staged_pae = batch_input_dir / f"{model_id}-meta_v1.json"
+        staged_pdb = batch_input_dir / f"{model_id}-model_v1.pdb"
+
+        if staged_pae.exists() or staged_pae.is_symlink():
+            staged_pae.unlink()
+        if staged_pdb.exists() or staged_pdb.is_symlink():
+            staged_pdb.unlink()
+
+        staged_pae.symlink_to(pae_file.resolve())
+        staged_pdb.symlink_to(pdb_file.resolve())
+        entries.append(model_id)
 
     if missing_pae:
         logger.warning(f"Missing PAE files for {len(missing_pae)} models")
@@ -263,37 +254,31 @@ def main():
         sys.exit(1)
 
     logger.info(f"Processing {len(entries)} models with {args.workers} threads")
+    summary_csv = args.output_dir / "ipsae_summary.csv"
+    result = run_ipsae_batch(
+        batch_input_dir,
+        summary_csv,
+        args.pae_cutoff,
+        args.dist_cutoff,
+        args.workers
+    )
 
-    # Write batch input file
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.tsv', delete=False) as f:
-        f.write('\n'.join(entries))
-        input_list_file = Path(f.name)
+    if result.returncode != 0:
+        logger.error(f"ipSAE binary failed: {result.stderr.strip() or result.stdout.strip()}")
+        sys.exit(result.returncode)
 
-    try:
-        processed, skipped, errors = run_ipsae_batch(
-            input_list_file,
-            args.output_dir,
-            args.pae_cutoff,
-            args.dist_cutoff,
-            args.workers
-        )
+    row_count = 0
+    if summary_csv.exists():
+        with summary_csv.open(encoding="utf-8") as handle:
+            row_count = max(0, sum(1 for _ in handle) - 1)
 
-        logger.info("")
-        logger.info("=" * 40)
-        logger.info("BATCH ipSAE COMPLETE")
-        logger.info("=" * 40)
-        logger.info(f"  Total models: {len(entries)}")
-        logger.info(f"  Processed (multimer): {processed}")
-        logger.info(f"  Skipped (monomer): {skipped}")
-        logger.info(f"  Errors: {errors}")
-        logger.info(f"  Output: {args.output_dir}")
-
-        if errors > 0:
-            sys.exit(1)
-
-    finally:
-        # Cleanup temp file
-        input_list_file.unlink(missing_ok=True)
+    logger.info("")
+    logger.info("=" * 40)
+    logger.info("BATCH ipSAE COMPLETE")
+    logger.info("=" * 40)
+    logger.info(f"  Requested models: {len(entries)}")
+    logger.info(f"  Summary rows: {row_count}")
+    logger.info(f"  Output: {summary_csv}")
 
 
 if __name__ == "__main__":
