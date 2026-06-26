@@ -18,7 +18,6 @@ from afdb_integration_kit.utils.uniprot import UniprotAPIClient
 from afdb_integration_kit.utils.constant import (
     CAT_ATOM_SITE,
     CAT_CHEM_COMP,
-    CAT_SOFTWARE,
     CAT_MODEL_LIST,
     CAT_TARGET_REF_DB,
     CAT_QA_METRIC,
@@ -703,23 +702,9 @@ def generate(
     add_standard_chem_comp_data(cif_data)
 
     # 3. Add metadata from JSON file
-    model_meta = input_metadata.get("metadata", {})
     for category, items in input_metadata.get("categories", {}).items():
         if items:
             cif_data.set_items(category, items)
-    # check if _software is alphafold. If yes get version from model_meta. If softwares are multiple log that versions should be correctly provided
-    software_category = input_metadata.get("categories", {}).get(CAT_SOFTWARE, {})
-    versions = []
-    if software_category.get("version", None) is None:
-        software_names = software_category.get("name", None)
-        for software_name in software_names:
-            if software_name == "AlphaFold":
-                versions.append(f"v{model_meta.get('version', '3.1')}")
-            else:
-                versions.append(None)
-                logger.warning("Different softwares found in JSON file. Consider adding versions for all softwares you have mentioned.")
-        cif_data.set_item(CAT_SOFTWARE, "version", versions)
-
 
     # 4. Fetch and process external data (UniProt)
     if fetch_uniprot:
