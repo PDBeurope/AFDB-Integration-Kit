@@ -348,7 +348,7 @@
     },
     "_entry": {
       "id": [
-        "AF-0000000065760001"
+        "AF-0000000066074510"
       ]
     },
     "_database_2": {
@@ -356,7 +356,7 @@
         "AlphaFoldDB"
       ],
       "database_code": [
-        "AF-0000000065760001"
+        "AF-0000000066074510"
       ]
     },
     "_pdbx_database_status": {
@@ -364,7 +364,7 @@
         "REL"
       ],
       "entry_id": [
-        "AF-0000000065760001"
+        "AF-0000000066074510"
       ],
       "recvd_initial_deposition_date": [
         "2026-02-21"
@@ -424,34 +424,34 @@
         "UNP"
       ],
       "db_accession": [
-        "Q6GZX4"
+        "Q46806"
       ],
       "db_code": [
-        "001R_FRG3G"
+        "PHYDA_ECOLI"
       ],
       "gene_name": [
-        "FV3-001R"
+        "hyuA"
       ],
       "ncbi_taxonomy_id": [
-        "654924"
+        "83333"
       ],
       "organism_scientific": [
-        "Frog virus 3 (isolate Goorha) (FV-3)"
+        "Escherichia coli"
       ],
       "seq_db_align_begin": [
         1
       ],
       "seq_db_align_end": [
-        256
+        461
       ],
       "seq_db_isoform": [
         "?"
       ],
       "seq_db_sequence_checksum": [
-        "B3C1C23E34258613"
+        "1A4B00208F4F4D7D"
       ],
       "seq_db_sequence_version_date": [
-        "2004-07-19"
+        "2001-11-16"
       ]
     },
     "_ma_target_entity": {
@@ -471,8 +471,8 @@
         "B"
       ],
       "details": [
-        "Chain A from UniProt Q6GZX4",
-        "Chain B from UniProt Q6GZX4"
+        "Chain A from UniProt Q46806",
+        "Chain B from UniProt Q46806"
       ],
       "entity_id": [
         "1",
@@ -490,7 +490,7 @@
         "man"
       ],
       "pdbx_description": [
-        "Putative transcription factor 001R"
+        "D-phenylhydantoinase"
       ]
     },
     "_entity_poly": {
@@ -504,7 +504,7 @@
         "no"
       ],
       "pdbx_seq_one_letter_code": [
-        "MAFSAEDVLKEYDRRRRMEALLLSLYYPNDRKLLDYKEWSPPRVQVECPKAPVEWNNPPSEKGLIVGHFSGIKYKGEKAQASEVDVNKMCCWVSKFKDAMRRYQGIQTCKIPGKVLSDLDAKIKAYNLTVEGVEGFVRYSRVTKQHVAAFLKELRHSKQYENVNLIHYILTDKRVDIQHLEKDLVKDFKALVESAHRMRQGHMINVKYILYQLLKKHGHGPDGPDILTVKTGSKGVLYDDSFRKIYTDLGWKFTPL"
+        "MRVLIKNGTVVNADGQAKQDLLIESGIVRQLGNNISPQLPYEEIDATGCYVFPGGVDVHTHFNIDVGIARSCDDFFTGTRAAACGGTTTIIDHMGFGPNGCRLRHQLEVYRGYAAHKAVIDYSFHGVIQHINHAILDEIPMIVEEGLSSFKLYLTYQYKLNDDEVLQALRRLHESGALTTVHPENDAAIASKRAEFIAAGLTAPRYHALSRPLECEAEAIARMINLAQIAGNAPLYIVHLSNGLGLDYLRLARANHQPVWVETCPQYLLLDERSYDTEDGMKFILSPPLRNVREQDKLWCGISDGAIDVVATDHCTFSMAQRLQISKGDFSRCPNGLPGVENRMQLLFSSGVMTGRITPERFVELTSAMPARLFGLWPQKGLLAPGSDGDVVIIDPRQSQQIQHRHLHDNADYSPWEGFTCQGAIVRTLSRGETIFCDGTFTGKAGRGRFLRRKPFVPPVL"
       ],
       "type": [
         "polypeptide(L)"
@@ -515,7 +515,7 @@
         1
       ],
       "db_code": [
-        "001R_FRG3G"
+        "PHYDA_ECOLI"
       ],
       "db_name": [
         "UNP"
@@ -524,7 +524,7 @@
         "1"
       ],
       "pdbx_db_accession": [
-        "Q6GZX4"
+        "Q46806"
       ]
     },
     "_struct_ref_seq": {
@@ -537,8 +537,8 @@
         "1"
       ],
       "pdbx_PDB_id_code": [
-        "AF-0000000065760001",
-        "AF-0000000065760001"
+        "AF-0000000066074510",
+        "AF-0000000066074510"
       ],
       "pdbx_strand_id": [
         "A",
@@ -549,16 +549,16 @@
         1
       ],
       "seq_align_end": [
-        256,
-        256
+        461,
+        461
       ],
       "db_align_beg": [
         1,
         1
       ],
       "db_align_end": [
-        256,
-        256
+        461,
+        461
       ]
     }
   },
@@ -566,12 +566,12 @@
     {
       "chain_id": "A",
       "entity_id": "1",
-      "uniprot_accession": "Q6GZX4"
+      "uniprot_accession": "Q46806"
     },
     {
       "chain_id": "B",
       "entity_id": "1",
-      "uniprot_accession": "Q6GZX4"
+      "uniprot_accession": "Q46806"
     }
   ]
 }

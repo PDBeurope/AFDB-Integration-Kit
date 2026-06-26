@@ -1,0 +1,67 @@
+{
+  "modelEntityId": "AF-0000000066074510",
+  "latestVersion": 1,
+  "providerId": "EXAMPLE",
+  "isComplex": true,
+  "complexName": "Homodimer of D-phenylhydantoinase",
+  "assemblyType": "Homo",
+  "oligomericState": "dimer",
+  "complexComposition": [
+    "Q46806_2"
+  ],
+  "oligomericStateDescription": "Homodimer",
+  "uniprotAccession": [
+    "Q46806"
+  ],
+  "uniprotDescription": [
+    "D-phenylhydantoinase"
+  ],
+  "isUniProtReferenceProteome": true,
+  "isUniProtReviewed": true,
+  "isIsoform": false,
+  "organismScientificName": [
+    "Escherichia coli"
+  ],
+  "gene": [
+    "hyuA"
+  ],
+  "taxId": [
+    83333
+  ],
+  "sequenceStart": 1,
+  "sequenceEnd": 461,
+  "globalMetricValue": 97.44,
+  "complexPredictionAccuracy_ipTM": 0.95,
+  "isAMdata": false,
+  "complexPredictionAccuracy_ipsae_pae_cutoff": 10.0,
+  "complexPredictionAccuracy_ipsae_dist_cutoff": 15.0,
+  "complexPredictionAccuracy_iptm_af": 0.95,
+  "complexPredictionAccuracy_ipsae_AB": 0.921113,
+  "complexPredictionAccuracy_ipsae_BA": 0.921295,
+  "complexPredictionAccuracy_ipsae_d0chn_AB": 0.953379,
+  "complexPredictionAccuracy_ipsae_d0chn_BA": 0.953493,
+  "complexPredictionAccuracy_ipsae_d0dom_AB": 10.1721,
+  "complexPredictionAccuracy_ipsae_d0dom_BA": 10.1721,
+  "complexPredictionAccuracy_ipsae_iptm_d0chn_AB": 0.953379,
+  "complexPredictionAccuracy_ipsae_iptm_d0chn_BA": 0.953493,
+  "complexPredictionAccuracy_pDockQ2_AB": 0.93963,
+  "complexPredictionAccuracy_pDockQ2_BA": 0.939647,
+  "complexPredictionAccuracy_LIS_AB": 0.574725,
+  "complexPredictionAccuracy_LIS_BA": 0.574491,
+  "complexPredictionAccuracy_ipsae_n0res_AB": 461.0,
+  "complexPredictionAccuracy_ipsae_n0res_BA": 461.0,
+  "complexPredictionAccuracy_ipsae_n0dom_AB": 915.0,
+  "complexPredictionAccuracy_ipsae_n0dom_BA": 915.0,
+  "complexPredictionAccuracy_ipsae_d0res_AB": 7.674,
+  "complexPredictionAccuracy_ipsae_d0res_BA": 7.674,
+  "complexPredictionAccuracy_ipsae_nres1_AB": 454.0,
+  "complexPredictionAccuracy_ipsae_nres1_BA": 454.0,
+  "complexPredictionAccuracy_ipsae_nres2_AB": 461.0,
+  "complexPredictionAccuracy_ipsae_nres2_BA": 461.0,
+  "complexPredictionAccuracy_ipsae_dist_nres1_AB": 91.0,
+  "complexPredictionAccuracy_ipsae_dist_nres1_BA": 91.0,
+  "complexPredictionAccuracy_ipsae_dist_nres2_AB": 91.0,
+  "complexPredictionAccuracy_ipsae_dist_nres2_BA": 91.0,
+  "complexPredictionAccuracy_pDockQ": 0.622151,
+  "complexPredictionAccuracy_ipsae_n0chn": 922.0
+}

@@ -18,7 +18,7 @@ EXAMPLE_CIF = Path(
     "examples/colabfold_monomer_e2e/modelcif/AF-0000000300000001-model_v1.cif"
 )
 COMPLEX_EXAMPLE_CIF = Path(
-    "examples/colabfold_complex_e2e/modelcif/AF-0000000065760001-model_v1.cif"
+    "examples/colabfold_complex_e2e/modelcif/AF-0000000066074510-model_v1.cif"
 )
 
 
@@ -152,7 +152,7 @@ _citation_author.name
     assert "'O'Neill, Michael'" not in text
 
     block = gemmi.cif.read(str(output)).sole_block()
-    assert block.find_value("_entry.id") == "AF-0000000065760001"
+    assert block.find_value("_entry.id") == "AF-0000000066074510"
     assert block.find_mmcif_category("_ma_qa_metric_local.").width() > 0
     assert any(
         _unquote(row[0]) == "HELX_RH_AL_P" and _unquote(row[1]) == "DSSP"

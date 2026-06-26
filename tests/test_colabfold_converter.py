@@ -286,6 +286,17 @@ def _fixture_path(example: dict, suffix: str) -> Path:
     return category_dir / matches[0]
 
 
+def _score_fixture_path(example: dict) -> Path:
+    category_dir = REAL_EXAMPLES_DIR / f"{example['category']}s" / example["example_id"]
+    matches = [
+        f["name"]
+        for f in example["files"]
+        if f["name"].endswith("-scores_v1.json") or f["name"].endswith("-meta_v1.json")
+    ]
+    assert len(matches) == 1
+    return category_dir / matches[0]
+
+
 def test_real_colabfold_fixture_names_are_single_af_ids() -> None:
     for example in _load_real_examples():
         example_id = example["example_id"]
@@ -301,7 +312,7 @@ def test_convert_file_handles_curated_real_colabfold_examples(
     tmp_path: Path,
     example: dict,
 ) -> None:
-    scores_json = _fixture_path(example, "-scores_v1.json")
+    scores_json = _score_fixture_path(example)
     pdb_file = _fixture_path(example, "-model_v1.pdb")
 
     output_paths = convert_file(

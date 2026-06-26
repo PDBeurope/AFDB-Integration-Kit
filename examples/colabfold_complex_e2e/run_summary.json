@@ -1,16 +1,16 @@
 {
   "example_ids": [
-    "AF-0000000065760001",
+    "AF-0000000066074510",
     "AF-0000000300000101"
   ],
   "duckdb": "/home/mitsenkov/AFDB-Integration-Kit/examples/uniprot_example_subset.duckdb",
   "dssp_algorithm": "mkdssp",
   "bcif_backend": "biotite",
   "bcif_results": {
-    "AF-0000000065760001": {
+    "AF-0000000066074510": {
       "status": "generated",
-      "source_cif": "dssp/AF-0000000065760001-model_v1.cif",
-      "output_bcif": "bcif/AF-0000000065760001-model_v1.bcif"
+      "source_cif": "dssp/AF-0000000066074510-model_v1.cif",
+      "output_bcif": "bcif/AF-0000000066074510-model_v1.bcif"
     },
     "AF-0000000300000101": {
       "status": "generated",

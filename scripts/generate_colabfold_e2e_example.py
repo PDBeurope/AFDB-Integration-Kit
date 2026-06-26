@@ -245,6 +245,8 @@ def stage_inputs(models: list[ExampleModel], input_dir: Path) -> None:
     for model in models:
         pdb_src = model.directory / f"{model.example_id}-model_v1.pdb"
         scores_src = model.directory / f"{model.example_id}-scores_v1.json"
+        if not scores_src.exists():
+            scores_src = model.directory / f"{model.example_id}-meta_v1.json"
         if not pdb_src.exists() or not scores_src.exists():
             raise FileNotFoundError(f"Missing fixture files for {model.example_id} in {model.directory}")
         shutil.copy2(pdb_src, input_dir / pdb_src.name)

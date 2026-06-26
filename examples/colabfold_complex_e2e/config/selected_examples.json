@@ -1,14 +1,14 @@
 {
   "example_ids": [
-    "AF-0000000065760001",
+    "AF-0000000066074510",
     "AF-0000000300000101"
   ],
   "categories": {
-    "AF-0000000065760001": "homodimer",
+    "AF-0000000066074510": "homodimer",
     "AF-0000000300000101": "heterodimer"
   },
   "source_directories": {
-    "AF-0000000065760001": "/home/mitsenkov/AFDB-Integration-Kit/tests/fixtures/colabfold_real_examples/homodimers/AF-0000000065760001",
+    "AF-0000000066074510": "/home/mitsenkov/AFDB-Integration-Kit/tests/fixtures/colabfold_real_examples/homodimers/AF-0000000066074510",
     "AF-0000000300000101": "/home/mitsenkov/AFDB-Integration-Kit/tests/fixtures/colabfold_real_examples/heterodimers/AF-0000000300000101"
   }
 }

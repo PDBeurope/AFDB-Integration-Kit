@@ -36,6 +36,7 @@ Fixture index:
 | `AF-0000000300000002` | Monomer | `C76C2_ARATH_6db51` | A: `O64637` | Single-chain conversion with a different AlphaFold2 model rank/source. |
 | `AF-0000000300000003` | Monomer | `CDK9_CAEEL_5ca86` | A: `Q9TVL3` | Single-chain conversion and monomer input CSV provenance. |
 | `AF-0000000065760001` | Homodimer | `AF-0000000065760001` | A/B: `Q6GZX4` | Two-chain homomer spans with raw `meta_v1` confidence JSON. |
+| `AF-0000000066074510` | Homodimer | `AF-0000000066074510` | A/B: `Q46806` | Higher-quality two-chain homomer fixture with raw `meta_v1` confidence JSON. |
 | `AF-0000000065760002` | Homodimer | `AF-0000000065760002` | A/B: `Q6GZX3` | Larger homomer confidence and chain-span coverage. |
 | `AF-0000000065760003` | Homodimer | `AF-0000000065760003` | A/B: `Q197F8` | Largest curated homomer fixture in this set. |
 | `AF-0000000300000101` | Heterodimer | `AF_0000000066426974_AF_0000000066426875` | A: `A0ABS2QMZ4`; B: `A0ABS2QMF5` | Real heteromer with normalized single fixture ID and preserved component IDs. |

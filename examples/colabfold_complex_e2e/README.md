@@ -6,7 +6,7 @@ artifacts the toolkit is expected to emit.
 
 Selected fixtures:
 
-- Homodimer: `AF-0000000065760001` -> `Q6GZX4` / `Q6GZX4`
+- Homodimer: `AF-0000000066074510` -> `Q46806` / `Q46806`
 - Heterodimer: `AF-0000000300000101` -> `A0ABS2QMZ4` / `A0ABS2QMF5`
 
 Input source:
@@ -28,8 +28,11 @@ Run the repo-owned helper from the repository root:
 .venv/bin/python scripts/generate_colabfold_e2e_example.py \
   --duckdb examples/uniprot_example_subset.duckdb \
   --output-dir examples/colabfold_complex_e2e \
-  --example-id AF-0000000065760001 \
-  --example-id AF-0000000300000101
+  --example-id AF-0000000066074510 \
+  --example-id AF-0000000300000101 \
+  --python-bin .venv/bin/python \
+  --dssp-algorithm mkdssp \
+  --bcif-backend biotite
 ```
 
 That helper executes the same script sequence used to populate this directory

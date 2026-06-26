@@ -129,6 +129,40 @@
     },
     {
       "category": "homodimer",
+      "example_id": "AF-0000000066074510",
+      "source_example_id": "AF-0000000066074510",
+      "source": "tests/fixtures/colabfold_real_examples/homodimers/AF-0000000066074510/AF-0000000066074510-meta_v1.json",
+      "files": [
+        {
+          "name": "AF-0000000066074510-model_v1.pdb",
+          "size_bytes": 581823
+        },
+        {
+          "name": "AF-0000000066074510-meta_v1.json",
+          "size_bytes": 4203959
+        }
+      ],
+      "plddt_length": 922,
+      "pae_dimension": 922,
+      "chain_spans": [
+        {
+          "chain_id": "A",
+          "sequence_start": 1,
+          "sequence_end": 461,
+          "residue_count": 461,
+          "uniprot_ac": "Q46806"
+        },
+        {
+          "chain_id": "B",
+          "sequence_start": 462,
+          "sequence_end": 922,
+          "residue_count": 461,
+          "uniprot_ac": "Q46806"
+        }
+      ]
+    },
+    {
+      "category": "homodimer",
       "example_id": "AF-0000000065760002",
       "source_example_id": "AF-0000000065760002",
       "source": "/home/mitsenkov/homodimer_examples/AF-0000000065760002-meta_v1.json",
@@ -322,5 +356,5 @@
       ]
     }
   ],
-  "total_size_bytes": 16314123
+  "total_size_bytes": 21099905
 }

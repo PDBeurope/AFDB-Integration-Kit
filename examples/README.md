@@ -52,7 +52,7 @@ Regenerate the complex reference with:
 .venv/bin/python scripts/generate_colabfold_e2e_example.py \
   --duckdb examples/uniprot_example_subset.duckdb \
   --output-dir examples/colabfold_complex_e2e \
-  --example-id AF-0000000065760001 \
+  --example-id AF-0000000066074510 \
   --example-id AF-0000000300000101
 ```
 

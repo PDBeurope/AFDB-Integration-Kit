@@ -23,22 +23,22 @@ def test_chain_manifest_rows_use_local_chain_ranges() -> None:
     models = [
         module.ExampleModel(
             category="homodimer",
-            example_id="AF-0000000065760001",
+            example_id="AF-0000000066074510",
             directory=Path("/tmp/homodimer"),
             chain_spans=[
                 {
                     "chain_id": "A",
                     "sequence_start": 1,
-                    "sequence_end": 256,
-                    "residue_count": 256,
-                    "uniprot_ac": "Q6GZX4",
+                    "sequence_end": 461,
+                    "residue_count": 461,
+                    "uniprot_ac": "Q46806",
                 },
                 {
                     "chain_id": "B",
-                    "sequence_start": 257,
-                    "sequence_end": 512,
-                    "residue_count": 256,
-                    "uniprot_ac": "Q6GZX4",
+                    "sequence_start": 462,
+                    "sequence_end": 922,
+                    "residue_count": 461,
+                    "uniprot_ac": "Q46806",
                 },
             ],
         ),
@@ -67,20 +67,20 @@ def test_chain_manifest_rows_use_local_chain_ranges() -> None:
 
     assert module.chain_manifest_rows(models) == [
         {
-            "model_entity_id": "AF-0000000065760001",
+            "model_entity_id": "AF-0000000066074510",
             "entity_id": "1",
             "chain_id": "A",
-            "uniprot_ac": "Q6GZX4",
+            "uniprot_ac": "Q46806",
             "sequence_start": 1,
-            "sequence_end": 256,
+            "sequence_end": 461,
         },
         {
-            "model_entity_id": "AF-0000000065760001",
+            "model_entity_id": "AF-0000000066074510",
             "entity_id": "1",
             "chain_id": "B",
-            "uniprot_ac": "Q6GZX4",
+            "uniprot_ac": "Q46806",
             "sequence_start": 1,
-            "sequence_end": 256,
+            "sequence_end": 461,
         },
         {
             "model_entity_id": "AF-0000000300000101",
