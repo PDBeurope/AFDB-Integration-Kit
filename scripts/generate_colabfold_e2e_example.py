@@ -15,6 +15,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
+from afdb_integration_kit.complex_metrics import (
+    DEFAULT_COMPLEX_ENRICHMENT_METRICS,
+    build_chain_enrichment,
+    build_model_enrichment,
+    parse_ipsae_csv,
+)
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FIXTURE_MANIFEST = REPO_ROOT / "tests/fixtures/colabfold_real_examples/manifest.json"
@@ -125,6 +132,18 @@ def parse_args() -> argparse.Namespace:
         "--model-created-date",
         default="2026-05-22T00:00:00Z",
         help="modelCreatedDate value recorded in dataset_config.json.",
+    )
+    parser.add_argument(
+        "--pae-cutoff",
+        type=float,
+        default=10.0,
+        help="PAE cutoff passed to iPSAE for complex examples (default: 10.0).",
+    )
+    parser.add_argument(
+        "--dist-cutoff",
+        type=float,
+        default=15.0,
+        help="Distance cutoff passed to iPSAE for complex examples (default: 15.0).",
     )
     return parser.parse_args()
 
@@ -257,6 +276,60 @@ def dataset_config_payload(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def has_complex_models(models: Iterable[ExampleModel]) -> bool:
+    return any(len(model.chain_spans) > 1 for model in models)
+
+
+def enrich_model_jsons(model_json_dir: Path, ipsae_csv: Path) -> int:
+    ipsae_data = parse_ipsae_csv(ipsae_csv)
+    enriched = 0
+
+    for json_file in sorted(model_json_dir.glob("*.json")):
+        enrichment = build_model_enrichment(
+            ipsae_data.get(json_file.stem, {}),
+            {},
+            DEFAULT_COMPLEX_ENRICHMENT_METRICS,
+        )
+        if not enrichment:
+            continue
+
+        data = json.loads(json_file.read_text(encoding="utf-8"))
+        data.update(enrichment)
+        json_dump(json_file, data)
+        enriched += 1
+
+    return enriched
+
+
+def enrich_chain_jsons(chain_json_dir: Path, ipsae_csv: Path) -> int:
+    ipsae_data = parse_ipsae_csv(ipsae_csv)
+    enriched = 0
+
+    for json_file in sorted(chain_json_dir.glob("*.json")):
+        ipsae_row = ipsae_data.get(json_file.stem, {})
+        if not ipsae_row:
+            continue
+
+        records = json.loads(json_file.read_text(encoding="utf-8"))
+        modified = False
+        for record in records:
+            chain_id = record.get("uniqueId", "").rsplit("_", 1)[-1]
+            enrichment = build_chain_enrichment(
+                ipsae_row,
+                chain_id,
+                DEFAULT_COMPLEX_ENRICHMENT_METRICS,
+            )
+            if enrichment:
+                record.update(enrichment)
+                modified = True
+
+        if modified:
+            json_dump(json_file, records)
+            enriched += 1
+
+    return enriched
+
+
 def run_command(
     command: list[str],
     cwd: Path,
@@ -317,6 +390,7 @@ def main() -> int:
     chain_json_dir = output_dir / "chain_jsons"
     model_batch_dir = output_dir / "model_batches"
     chain_batch_dir = output_dir / "chain_batches"
+    ipsae_dir = output_dir / "ipsae"
     modelcif_input_dir = output_dir / "modelcif_input"
     modelcif_dir = output_dir / "modelcif"
     dssp_dir = output_dir / "dssp"
@@ -334,6 +408,7 @@ def main() -> int:
         chain_json_dir,
         model_batch_dir,
         chain_batch_dir,
+        ipsae_dir,
         modelcif_input_dir,
         modelcif_dir,
         dssp_dir,
@@ -398,6 +473,32 @@ def main() -> int:
         commands_log,
     )
 
+    complex_metrics_enabled = has_complex_models(models)
+    if complex_metrics_enabled:
+        run_command(
+            [
+                args.python_bin,
+                str(REPO_ROOT / "uniprot/scripts/batch_ipsae.py"),
+                "--pae-dir",
+                str(input_dir),
+                "--pdb-dir",
+                str(input_dir),
+                "--output-dir",
+                str(ipsae_dir),
+                "--model-ids",
+                str(ids_file),
+                "--pae-cutoff",
+                str(args.pae_cutoff),
+                "--dist-cutoff",
+                str(args.dist_cutoff),
+                "--workers",
+                "1",
+            ],
+            REPO_ROOT,
+            commands_log,
+        )
+        shutil.rmtree(ipsae_dir / "input", ignore_errors=True)
+
     merge_csv_files(
         list(chain_manifest_dir.glob("*_afid_mapping.csv")),
         merged_manifest_dir / "uniprot_afid_mapping.csv",
@@ -431,6 +532,9 @@ def main() -> int:
         REPO_ROOT,
         commands_log,
     )
+    if complex_metrics_enabled:
+        enrich_model_jsons(model_json_dir, ipsae_dir / "ipsae_summary.csv")
+
     run_command(
         [
             args.python_bin,
@@ -455,6 +559,9 @@ def main() -> int:
         REPO_ROOT,
         commands_log,
     )
+    if complex_metrics_enabled:
+        enrich_chain_jsons(chain_json_dir, ipsae_dir / "ipsae_summary.csv")
+
     run_command(
         [
             args.python_bin,
@@ -508,22 +615,35 @@ def main() -> int:
         commands_log,
     )
 
-    for model_id in model_ids:
-        run_command(
+    batch_modelcif_cmd = [
+        args.python_bin,
+        str(args.main_script.resolve()),
+        "run-batch-modelcif-gen",
+        "--input-dir",
+        str(input_dir),
+        "--metadata-dir",
+        str(modelcif_input_dir),
+        "--output-dir",
+        str(modelcif_dir),
+        "--model-version",
+        "v1",
+        "--skip-validation",
+        "--skip-alignment",
+        "--workers",
+        "1",
+    ]
+    if complex_metrics_enabled:
+        batch_modelcif_cmd.extend(
             [
-                args.python_bin,
-                str(args.main_script.resolve()),
-                "run-modelcif-gen",
-                "-p",
-                str(input_dir / f"{model_id}-model_v1.pdb"),
-                "-m",
-                str(modelcif_input_dir / f"{model_id}.json"),
-                "-o",
-                str(modelcif_dir / f"{model_id}-model_v1.cif"),
-            ],
-            REPO_ROOT,
-            commands_log,
+                "--model-json-dir",
+                str(model_json_dir),
+                "--cif-qa-metrics",
+                "auto",
+            ]
         )
+    run_command(batch_modelcif_cmd, REPO_ROOT, commands_log)
+
+    for model_id in model_ids:
         run_command(
             [
                 args.python_bin,

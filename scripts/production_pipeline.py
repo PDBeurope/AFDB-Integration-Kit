@@ -20,7 +20,6 @@ import hashlib
 import json
 import logging
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -40,6 +39,13 @@ _SCRIPT_DIR = Path(__file__).resolve().parent
 _REPO_DIR = _SCRIPT_DIR.parent
 if str(_REPO_DIR) not in sys.path:
     sys.path.insert(0, str(_REPO_DIR))
+
+from afdb_integration_kit.complex_metrics import (  # noqa: E402
+    DEFAULT_COMPLEX_ENRICHMENT_METRICS,
+    build_chain_enrichment as _build_chain_enrichment,
+    build_model_enrichment as _build_model_enrichment,
+    parse_ipsae_csv as _parse_ipsae_csv,
+)
 
 
 # ============================================================================
@@ -443,14 +449,7 @@ class Config:
                 self.clash_device = "cpu"
 
         if self.enrichment_metrics is None:
-            self.enrichment_metrics = [
-                "pae_cutoff", "dist_cutoff", "iptm_af",
-                "ipsae", "ipsae_d0chn", "ipsae_d0dom",
-                "iptm_d0chn", "pDockQ2", "LIS",
-                "n0res", "n0dom", "d0res", "d0dom",
-                "nres1", "nres2", "dist_nres1", "dist_nres2",
-                "pDockQ", "n0chn", "N_clash_backbone", "N_clash_heavyAtom",
-            ]
+            self.enrichment_metrics = list(DEFAULT_COMPLEX_ENRICHMENT_METRICS)
 
         # Set default python command if not provided
         if self.python_cmd is None:
@@ -948,59 +947,8 @@ def load_model_ids_from_manifest(chain_mapping: Path, logger: PipelineLogger) ->
 
 
 # ---------------------------------------------------------------------------
-# Enrichment helpers -- iPSAE + clash data → model/chain metadata JSONs
+# Enrichment helpers -- production-only clash/interface data parsing
 # ---------------------------------------------------------------------------
-
-# Regex: strip _{X}{Y} chain-pair suffix (e.g. "_AB", "_BA") from column name
-_CHAIN_PAIR_SUFFIX_RE = re.compile(r"_([A-Z])([A-Z])$")
-
-
-def _model_id_from_ipsae_pdb_path(pdb_path: str) -> Optional[str]:
-    """Extract model ID from ipSAE CSV pdb_path (supports homodimer and heterodimer naming).
-
-    Paths are like .../AF_0000000067800110_AF_0000000067800429-model_v1.pdb or
-    .../AF-1234567890123456-model_v1.pdb. We derive ID by stripping the trailing
-    -model_v1.pdb (or -model_v1) suffix from the filename.
-    """
-    if not pdb_path or not pdb_path.strip():
-        return None
-    name = Path(pdb_path).stem
-    for suffix in ("-model_v1", "-model-v1"):
-        if name.endswith(suffix):
-            return name[: -len(suffix)]
-    return None
-
-
-def _parse_ipsae_csv(csv_path: Path) -> Dict[str, Dict[str, Any]]:
-    """Read iPSAE summary CSV and return {model_id: {col: value, ...}}.
-
-    Non-metric columns (``pdb_path``, ``processing_time_ms``) are skipped.
-    The model ID is extracted from the ``pdb_path`` filename (supports both
-    homodimer and heterodimer naming, e.g. AF_..._AF_... or AF-...).
-    """
-    result: Dict[str, Dict[str, Any]] = {}
-    if not csv_path.exists():
-        return result
-
-    skip_cols = {"pdb_path", "processing_time_ms"}
-
-    with open(csv_path, newline="") as fh:
-        reader = csv.DictReader(fh)
-        for row in reader:
-            pdb_path = row.get("pdb_path", "")
-            model_id = _model_id_from_ipsae_pdb_path(pdb_path)
-            if not model_id:
-                continue
-            metrics: Dict[str, Any] = {}
-            for col, val in row.items():
-                if col in skip_cols:
-                    continue
-                try:
-                    metrics[col] = float(val)
-                except (ValueError, TypeError):
-                    metrics[col] = val
-            result[model_id] = metrics
-    return result
 
 
 def _model_id_from_clash_filename(stem: str) -> Optional[str]:
@@ -1070,82 +1018,6 @@ def _parse_interface_jsons(clash_dir: Path) -> Dict[str, int]:
         )
         result[model_id] = total
     return result
-
-
-def _base_name(col: str) -> str:
-    """Strip ``_{X}{Y}`` chain-pair suffix to get the base metric name.
-
-    ``ipsae_AB`` → ``ipsae``, ``pDockQ2_BA`` → ``pDockQ2``,
-    ``iptm_af`` → ``iptm_af`` (no two-char suffix → returned as-is).
-    """
-    m = _CHAIN_PAIR_SUFFIX_RE.search(col)
-    return col[: m.start()] if m else col
-
-
-def _ipsae_json_key(col: str) -> str:
-    """Map an iPSAE CSV column name to its JSON key.
-
-    Metrics that are NOT iPSAE-specific get ``complexPredictionAccuracy_{col}``,
-    iPSAE-derived metrics get ``complexPredictionAccuracy_ipsae_{col}``.
-    """
-    non_ipsae_bases = {"iptm_af", "pDockQ2", "LIS", "pDockQ", "N_clash_backbone", "N_clash_heavyAtom"}
-    if _base_name(col) in non_ipsae_bases:
-        return f"complexPredictionAccuracy_{col}"
-    # Columns already starting with "ipsae_" don't need the prefix doubled
-    if col.startswith("ipsae_"):
-        return f"complexPredictionAccuracy_{col}"
-    return f"complexPredictionAccuracy_ipsae_{col}"
-
-
-def _build_model_enrichment(
-    ipsae_row: Dict[str, Any],
-    clash_row: Dict[str, int],
-    metrics_filter: List[str],
-) -> Dict[str, Any]:
-    """Build ``complexPredictionAccuracy_*`` dict for one model."""
-    filter_set = set(metrics_filter)
-    out: Dict[str, Any] = {}
-
-    for col, val in ipsae_row.items():
-        if _base_name(col) in filter_set:
-            out[_ipsae_json_key(col)] = val
-
-    for key, val in clash_row.items():
-        if key in filter_set:
-            out[f"complexPredictionAccuracy_{key}"] = val
-
-    return out
-
-
-def _build_chain_enrichment(
-    ipsae_row: Dict[str, Any],
-    chain_id: str,
-    metrics_filter: List[str],
-) -> Dict[str, Any]:
-    """Build ``complexPredictionAccuracy_*`` dict for one chain.
-
-    General metrics (no chain-pair suffix) go to all chains.
-    Chain-specific metrics (e.g. ``ipsae_AB``) go only to the chain whose
-    ID matches the **first** letter of the suffix (A for ``_AB``).
-    """
-    filter_set = set(metrics_filter)
-    out: Dict[str, Any] = {}
-
-    for col, val in ipsae_row.items():
-        base = _base_name(col)
-        if base not in filter_set:
-            continue
-
-        m = _CHAIN_PAIR_SUFFIX_RE.search(col)
-        if m:
-            # Chain-specific: include only if first letter matches chain_id
-            if m.group(1) == chain_id:
-                out[_ipsae_json_key(col)] = val
-        else:
-            # General metric: all chains get it
-            out[_ipsae_json_key(col)] = val
-
-    return out
 
 
 # ---------------------------------------------------------------------------
