@@ -183,5 +183,24 @@
       "type": ["number", "null"]
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "isComplex": { "const": true } },
+        "required": ["isComplex"]
+      },
+      "then": {
+        "required": [
+          "complexComposition",
+          "complexPredictionAccuracy_ipTM",
+          "complexPredictionAccuracy_ipsae_pae_cutoff",
+          "complexPredictionAccuracy_ipsae_dist_cutoff",
+          "complexPredictionAccuracy_iptm_af",
+          "complexPredictionAccuracy_pDockQ",
+          "complexPredictionAccuracy_ipsae_n0chn"
+        ]
+      }
+    }
+  ],
   "additionalProperties": false
 }

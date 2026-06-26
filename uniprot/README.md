@@ -180,6 +180,12 @@ per release.
    Copy `uniprot/templates/colabfold_example_modelcif_metadata.json` to your workspace if you need
    to customise provider details, data-usage statements, or software fields
    before running large batches.
+   That template is intentionally static scaffolding. It defines ModelCIF
+   categories and software parameter metadata such as the iPSAE cutoffs, but it
+   must not be used to hard-code computed `complexPredictionAccuracy_*` values.
+   For complex examples, those computed interface metrics are produced later by
+   the iPSAE enrichment stage, written into the enriched model JSON metadata,
+   and then copied from that JSON into ModelCIF global QA metrics.
 
 
 6. **Run the Nextflow workflows**

@@ -16,6 +16,85 @@ if not logger.handlers:
 logger.setLevel(logging.INFO)
 
 
+COMPLEX_MODEL_SUMMARY_REQUIRED_FIELDS = (
+    "complexPredictionAccuracy_ipTM",
+    "complexPredictionAccuracy_ipsae_pae_cutoff",
+    "complexPredictionAccuracy_ipsae_dist_cutoff",
+    "complexPredictionAccuracy_iptm_af",
+    "complexPredictionAccuracy_ipsae_AB",
+    "complexPredictionAccuracy_ipsae_BA",
+    "complexPredictionAccuracy_ipsae_d0chn_AB",
+    "complexPredictionAccuracy_ipsae_d0chn_BA",
+    "complexPredictionAccuracy_ipsae_d0dom_AB",
+    "complexPredictionAccuracy_ipsae_d0dom_BA",
+    "complexPredictionAccuracy_ipsae_iptm_d0chn_AB",
+    "complexPredictionAccuracy_ipsae_iptm_d0chn_BA",
+    "complexPredictionAccuracy_pDockQ2_AB",
+    "complexPredictionAccuracy_pDockQ2_BA",
+    "complexPredictionAccuracy_LIS_AB",
+    "complexPredictionAccuracy_LIS_BA",
+    "complexPredictionAccuracy_ipsae_n0res_AB",
+    "complexPredictionAccuracy_ipsae_n0res_BA",
+    "complexPredictionAccuracy_ipsae_n0dom_AB",
+    "complexPredictionAccuracy_ipsae_n0dom_BA",
+    "complexPredictionAccuracy_ipsae_d0res_AB",
+    "complexPredictionAccuracy_ipsae_d0res_BA",
+    "complexPredictionAccuracy_ipsae_nres1_AB",
+    "complexPredictionAccuracy_ipsae_nres1_BA",
+    "complexPredictionAccuracy_ipsae_nres2_AB",
+    "complexPredictionAccuracy_ipsae_nres2_BA",
+    "complexPredictionAccuracy_ipsae_dist_nres1_AB",
+    "complexPredictionAccuracy_ipsae_dist_nres1_BA",
+    "complexPredictionAccuracy_ipsae_dist_nres2_AB",
+    "complexPredictionAccuracy_ipsae_dist_nres2_BA",
+    "complexPredictionAccuracy_pDockQ",
+    "complexPredictionAccuracy_ipsae_n0chn",
+)
+
+COMPLEX_COLLECTION_COMMON_REQUIRED_FIELDS = (
+    "complexComposition",
+    "complexPredictionAccuracy_ipTM",
+    "complexPredictionAccuracy_ipsae_pae_cutoff",
+    "complexPredictionAccuracy_ipsae_dist_cutoff",
+    "complexPredictionAccuracy_iptm_af",
+    "complexPredictionAccuracy_pDockQ",
+    "complexPredictionAccuracy_ipsae_n0chn",
+)
+
+COMPLEX_COLLECTION_DIRECTIONAL_REQUIRED_FIELDS = {
+    "A": (
+        "complexPredictionAccuracy_ipsae_AB",
+        "complexPredictionAccuracy_ipsae_d0chn_AB",
+        "complexPredictionAccuracy_ipsae_d0dom_AB",
+        "complexPredictionAccuracy_ipsae_iptm_d0chn_AB",
+        "complexPredictionAccuracy_pDockQ2_AB",
+        "complexPredictionAccuracy_LIS_AB",
+        "complexPredictionAccuracy_ipsae_n0res_AB",
+        "complexPredictionAccuracy_ipsae_n0dom_AB",
+        "complexPredictionAccuracy_ipsae_d0res_AB",
+        "complexPredictionAccuracy_ipsae_nres1_AB",
+        "complexPredictionAccuracy_ipsae_nres2_AB",
+        "complexPredictionAccuracy_ipsae_dist_nres1_AB",
+        "complexPredictionAccuracy_ipsae_dist_nres2_AB",
+    ),
+    "B": (
+        "complexPredictionAccuracy_ipsae_BA",
+        "complexPredictionAccuracy_ipsae_d0chn_BA",
+        "complexPredictionAccuracy_ipsae_d0dom_BA",
+        "complexPredictionAccuracy_ipsae_iptm_d0chn_BA",
+        "complexPredictionAccuracy_pDockQ2_BA",
+        "complexPredictionAccuracy_LIS_BA",
+        "complexPredictionAccuracy_ipsae_n0res_BA",
+        "complexPredictionAccuracy_ipsae_n0dom_BA",
+        "complexPredictionAccuracy_ipsae_d0res_BA",
+        "complexPredictionAccuracy_ipsae_nres1_BA",
+        "complexPredictionAccuracy_ipsae_nres2_BA",
+        "complexPredictionAccuracy_ipsae_dist_nres1_BA",
+        "complexPredictionAccuracy_ipsae_dist_nres2_BA",
+    ),
+}
+
+
 # --- Constants ---
 class SchemaType(Enum):
     MODEL = "model"
@@ -68,6 +147,55 @@ def _instances_to_validate(data, schema_enum: SchemaType):
     return [data]
 
 
+def _validate_complex_metric_contract(
+    entry: dict,
+    schema_enum: SchemaType,
+    index: int,
+) -> None:
+    if entry.get("isComplex") is not True:
+        return
+
+    if schema_enum is SchemaType.MODEL_SUMMARY:
+        missing_fields = [
+            field
+            for field in COMPLEX_MODEL_SUMMARY_REQUIRED_FIELDS
+            if field not in entry
+        ]
+        if missing_fields:
+            raise jsonschema.ValidationError(
+                f"entry #{index}: complex model summary is missing required iPSAE metrics: "
+                + ", ".join(missing_fields)
+            )
+        return
+
+    if schema_enum is not SchemaType.COLLECTION_DOC:
+        return
+
+    common_missing = [
+        field
+        for field in COMPLEX_COLLECTION_COMMON_REQUIRED_FIELDS
+        if field not in entry
+    ]
+    if common_missing:
+        raise jsonschema.ValidationError(
+            f"{entry.get('uniqueId') or f'entry #{index}'}: complex collection doc is missing required "
+            f"common iPSAE metrics: {', '.join(common_missing)}"
+        )
+
+    unique_id = entry.get("uniqueId")
+    chain_id = unique_id.rsplit("_", 1)[-1] if isinstance(unique_id, str) and "_" in unique_id else None
+    directional_fields = COMPLEX_COLLECTION_DIRECTIONAL_REQUIRED_FIELDS.get(chain_id)
+    if directional_fields is None:
+        return
+
+    directional_missing = [field for field in directional_fields if field not in entry]
+    if directional_missing:
+        raise jsonschema.ValidationError(
+            f"{unique_id}: complex collection doc for chain {chain_id} is missing required directional "
+            f"iPSAE metrics: {', '.join(directional_missing)}"
+        )
+
+
 def validate_against_schema(input_file: Path, schema_type: str):
     """
     Validate the input JSON file against the specified schema.
@@ -104,8 +232,9 @@ def validate_against_schema(input_file: Path, schema_type: str):
         instances = _instances_to_validate(data, schema_enum)
         if not instances:
             raise jsonschema.ValidationError("No documents found to validate")
-        for entry in instances:
+        for index, entry in enumerate(instances, start=1):
             jsonschema.validate(instance=entry, schema=schema)
+            _validate_complex_metric_contract(entry, schema_enum, index)
         logger.info(
             "Validation successful for '%s' against schema '%s'",
             input_file.name,

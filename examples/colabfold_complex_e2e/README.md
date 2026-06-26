@@ -46,11 +46,30 @@ The generated files follow the old Nextflow end-to-end order:
 4. Write per-model manifests in [`chain_manifests/`](./chain_manifests/) and [`model_manifests/`](./model_manifests/), then merge them into [`merged_manifests/`](./merged_manifests/).
 5. Export per-model metadata JSONs in [`model_jsons/`](./model_jsons/) and batch them into [`model_batches/`](./model_batches/).
 6. Export per-chain metadata JSONs in [`chain_jsons/`](./chain_jsons/) and batch them into [`chain_batches/`](./chain_batches/).
-7. Export ModelCIF generator input JSONs in [`modelcif_input/`](./modelcif_input/).
-8. Generate ModelCIF files in [`modelcif/`](./modelcif/).
-9. Run DSSP and write enriched mmCIF files in [`dssp/`](./dssp/).
-10. Generate enriched PDB files in [`modelpdb/`](./modelpdb/).
-11. Attempt BCIF generation and write results to [`bcif/`](./bcif/).
+7. Enrich the complex model and chain metadata with computed iPSAE/interface
+   summary metrics from [`ipsae/ipsae_summary.csv`](./ipsae/ipsae_summary.csv).
+8. Export ModelCIF generator input JSONs in [`modelcif_input/`](./modelcif_input/).
+9. Generate ModelCIF files in [`modelcif/`](./modelcif/).
+10. Run DSSP and write enriched mmCIF files in [`dssp/`](./dssp/).
+11. Generate enriched PDB files in [`modelpdb/`](./modelpdb/).
+12. Attempt BCIF generation and write results to [`bcif/`](./bcif/).
+
+## Complex Metrics Source
+
+- [`uniprot/templates/colabfold_example_modelcif_metadata.json`](../../uniprot/templates/colabfold_example_modelcif_metadata.json)
+  is static scaffolding for ModelCIF metadata categories, provider text, and
+  software parameter definitions.
+- That template must not contain fake computed iPSAE values.
+- The computed `complexPredictionAccuracy_*` values in the committed complex
+  JSON outputs come from the iPSAE summary CSV and are injected into:
+  - [`model_jsons/`](./model_jsons/) and [`model_batches/`](./model_batches/)
+  - [`chain_jsons/`](./chain_jsons/) and [`chain_batches/`](./chain_batches/)
+  - ModelCIF global QA metrics during ModelCIF generation
+- The lightweight complex e2e example currently carries only the iPSAE-derived
+  metric set. The separate clash/interface-analysis fields
+  (`complexPredictionAccuracy_N_clash_backbone`,
+  `complexPredictionAccuracy_N_clash_heavyAtom`, `numberOfInteractions`) are
+  not part of this committed example unless a later stage adds them explicitly.
 
 ## Tooling Caveats
 
@@ -74,9 +93,10 @@ The generated files follow the old Nextflow end-to-end order:
   entity/reference alignment metadata and the heterodimer complex now gets an
   AFDB-style fallback complex name (`Complex of .../...`) in the JSON and PDB
   outputs.
+- The committed complex metadata schemas require the computed iPSAE blocks on
+  both per-record files and batch files, so removing those fields from a
+  complex `model_jsons/*.json`, `model_batches/*.json`, `chain_jsons/*.json`,
+  or `chain_batches/*.json` file will fail validation.
 - Legacy PDB `DBREF` records remain a format caveat for long UniProt
   accessions. The mmCIF/ModelCIF and JSON artifacts are the authoritative
   metadata outputs for the heterodimer example.
-- iPSAE, clash, and interface analysis are intentionally not part of this
-  example because the target here is the raw ColabFold -> final AFDB artifact
-  path.

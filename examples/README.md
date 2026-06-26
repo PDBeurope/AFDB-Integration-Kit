@@ -25,6 +25,14 @@ Both references include:
 - BCIF outputs with backend/fallback notes
 - exact regeneration commands in `config/commands.txt`
 
+For the complex reference, the committed `complexPredictionAccuracy_*` fields
+in the JSON metadata are computed outputs from the iPSAE enrichment stage, not
+template literals. The ModelCIF template under
+[`uniprot/templates/colabfold_example_modelcif_metadata.json`](../uniprot/templates/colabfold_example_modelcif_metadata.json)
+only supplies static ModelCIF scaffolding plus software parameter definitions;
+the computed complex metrics are injected from the enriched complex model JSONs
+before ModelCIF export.
+
 The committed DuckDB subset
 [`examples/uniprot_example_subset.duckdb`](./uniprot_example_subset.duckdb)
 contains only the six UniProt accessions needed by the monomer and complex
@@ -62,7 +70,8 @@ the committed reference trees.
 
 Use `run-schema-validation` with the dedicated example-output schemas for
 committed `model_jsons/*.json`, `chain_jsons/*.json`, and
-`config/provider.json` files:
+`config/provider.json` files, and use the same validator on the committed batch
+files:
 
 ```bash
 .venv/bin/python main.py run-schema-validation \
@@ -79,7 +88,13 @@ committed `model_jsons/*.json`, `chain_jsons/*.json`, and
   -i examples/colabfold_complex_e2e/model_jsons/AF-0000000300000101.json \
   -t model-summary
 .venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_complex_e2e/model_batches/AF-metadata-1-of-1.json \
+  -t model-summary
+.venv/bin/python main.py run-schema-validation \
   -i examples/colabfold_complex_e2e/chain_jsons/AF-0000000300000101.json \
+  -t collection-doc
+.venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_complex_e2e/chain_batches/AF-chain-metadata-1-of-1.json \
   -t collection-doc
 .venv/bin/python main.py run-schema-validation \
   -i examples/colabfold_complex_e2e/config/provider.json \

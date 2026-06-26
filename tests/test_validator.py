@@ -1,5 +1,6 @@
 import json
 import tempfile
+from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
 
@@ -119,3 +120,71 @@ def test_load_json_file_invalid_json(tmp_path):
 
     with pytest.raises(json.JSONDecodeError):
         schema_validator._load_json_file(file_path)
+
+
+def test_monomer_model_summary_allows_absent_complex_metrics() -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    input_file = (
+        repo_root
+        / "examples/colabfold_monomer_e2e/model_jsons/AF-0000000300000001.json"
+    )
+
+    schema_validator.validate_against_schema(input_file, "model-summary")
+
+
+def test_complex_model_summary_requires_ipsae_metric_block(tmp_path) -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    source_file = (
+        repo_root
+        / "examples/colabfold_complex_e2e/model_jsons/AF-0000000300000101.json"
+    )
+    payload = json.loads(source_file.read_text(encoding="utf-8"))
+    payload.pop("complexPredictionAccuracy_ipsae_BA")
+
+    input_file = tmp_path / "broken_complex_model_summary.json"
+    input_file.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValidationError, match="complexPredictionAccuracy_ipsae_BA"):
+        schema_validator.validate_against_schema(input_file, "model-summary")
+
+
+def test_complex_model_summary_batch_validates() -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    input_file = (
+        repo_root
+        / "examples/colabfold_complex_e2e/model_batches/AF-metadata-1-of-1.json"
+    )
+
+    schema_validator.validate_against_schema(input_file, "model-summary")
+
+
+def test_complex_collection_doc_requires_directional_metrics(tmp_path) -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    source_file = (
+        repo_root
+        / "examples/colabfold_complex_e2e/chain_jsons/AF-0000000300000101.json"
+    )
+    payload = json.loads(source_file.read_text(encoding="utf-8"))
+    broken_payload = deepcopy(payload)
+    broken_payload[0].pop("complexPredictionAccuracy_ipsae_AB")
+
+    input_file = tmp_path / "broken_complex_chain_doc.json"
+    input_file.write_text(json.dumps(broken_payload), encoding="utf-8")
+
+    with pytest.raises(ValidationError, match="complexPredictionAccuracy_ipsae_AB"):
+        schema_validator.validate_against_schema(input_file, "collection-doc")
+
+
+def test_complex_collection_doc_and_batch_validate() -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    single_file = (
+        repo_root
+        / "examples/colabfold_complex_e2e/chain_jsons/AF-0000000300000101.json"
+    )
+    batch_file = (
+        repo_root
+        / "examples/colabfold_complex_e2e/chain_batches/AF-chain-metadata-1-of-1.json"
+    )
+
+    schema_validator.validate_against_schema(single_file, "collection-doc")
+    schema_validator.validate_against_schema(batch_file, "collection-doc")
