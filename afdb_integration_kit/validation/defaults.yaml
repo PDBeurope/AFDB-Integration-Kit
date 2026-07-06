@@ -15,3 +15,6 @@ plddt:
 pae:
   max_value: 35.0
   enforce_decimal_places: true
+metadata:
+  schema_type: model
+  allow_single_file: false

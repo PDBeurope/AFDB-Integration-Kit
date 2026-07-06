@@ -78,7 +78,13 @@ files:
   -i examples/colabfold_monomer_e2e/model_jsons/AF-0000000300000001.json \
   -t model-summary
 .venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_monomer_e2e/model_batches/AF-metadata-1-of-1.json \
+  -t model-summary
+.venv/bin/python main.py run-schema-validation \
   -i examples/colabfold_monomer_e2e/chain_jsons/AF-0000000300000001.json \
+  -t collection-doc
+.venv/bin/python main.py run-schema-validation \
+  -i examples/colabfold_monomer_e2e/chain_batches/AF-chain-metadata-1-of-1.json \
   -t collection-doc
 .venv/bin/python main.py run-schema-validation \
   -i examples/colabfold_monomer_e2e/config/provider.json \
@@ -101,9 +107,20 @@ files:
   -t provider
 ```
 
-The canonical `model` schema remains for full model metadata entries and
-`AF-metadata-*-of-*.json` batches. Do not use it for the e2e summary
-`model_jsons/*.json` files.
+For these committed e2e references, use `model-summary` for `model_jsons/*.json`
+and `model_batches/*.json`, `collection-doc` for `chain_jsons/*.json` and
+`chain_batches/*.json`, and `provider` for `config/provider.json`. The
+canonical `model` schema remains for full model metadata entries only.
+
+The `validate-metadata-file` command uses the same shared metadata schema
+validator as `run-schema-validation` and requires the same explicit `--type`
+value, for example:
+
+```bash
+.venv/bin/python main.py validate-metadata-file \
+  --file examples/colabfold_monomer_e2e/model_jsons/AF-0000000300000001.json \
+  --type model-summary
+```
 
 ### Score JSONs
 

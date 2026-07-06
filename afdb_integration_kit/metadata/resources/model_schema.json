@@ -7,7 +7,7 @@
     "toolUsed",
     "modelCreatedDate",
     "modelEntityId",
-    "stoichiometry",
+    "isComplex",
     "providerId",
     "entityType",
     "sequence",
@@ -52,8 +52,24 @@
     },
     "complexComposition": {
       "type": ["string", "null"],
-      "description": "Comma-separated list of components in the format <sequenceChecksum>_<stoichiometry>",
+      "description": "Comma-separated list of components in the format <component_identifier>_<copy_count>",
       "examples": ["408C22731C6EDFBE_2,A8B880A25617EC96_1"]
+    },
+    "isComplex": {
+      "type": "boolean",
+      "description": "Boolean indicating whether the model represents a complex",
+      "examples": [false]
+    },
+    "assemblyType": {
+      "type": ["string", "null"],
+      "enum": ["Homo", "Hetero", null],
+      "description": "Assembly type for complex models",
+      "examples": ["Homo"]
+    },
+    "oligomericState": {
+      "type": ["string", "null"],
+      "description": "Oligomeric state for complex models",
+      "examples": ["dimer"]
     },
     "uniprotAccession": {
       "type": ["string", "null"],
@@ -113,11 +129,6 @@
       "items": { "type": "string" },
       "examples": [["Homo sapiens", "Canis lupus familiaris"]]
     },
-    "stoichiometry": {
-      "type": "integer",
-      "description": "Number of entity copies (integer)",
-      "examples": [2]
-    },
     "oligomericStateDescription": {
       "type": ["string", "null"],
       "description": "Combined assembly type and oligomeric state for a complex",
@@ -172,6 +183,11 @@
     "isFragment": {
       "type": ["boolean", "null"],
       "description": "Boolean indicating whether the sequence is a fragment",
+      "examples": [false]
+    },
+    "isIsoform": {
+      "type": ["boolean", "null"],
+      "description": "Boolean indicating whether the sequence is a UniProt isoform",
       "examples": [false]
     },
     "isUniProt": {
@@ -257,6 +273,11 @@
       "description": "List of catalytic activities (from UniProt XML)",
       "items": { "type": "string" },
       "examples": [["EC 1.1.1.1 - alcohol dehydrogenase activity"]]
+    },
+    "isAMdata": {
+      "type": ["boolean", "null"],
+      "description": "Boolean indicating whether the model is AlphaMissense-derived data",
+      "examples": [false]
     },
     "latestVersion": {
       "type": "integer",

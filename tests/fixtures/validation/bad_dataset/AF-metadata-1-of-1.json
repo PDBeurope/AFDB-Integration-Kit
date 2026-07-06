@@ -17,7 +17,6 @@
   "fractionPlddtVeryHigh": 0.1,
   "latestVersion": 1,
   "allVersions": [1],
-  "stoichiometry": 1,
   "uniprotDescription": "Bad dataset missing UniProt identifier.",
   "geneSynonyms": ["BAD1"],
   "gene": "BAD1",

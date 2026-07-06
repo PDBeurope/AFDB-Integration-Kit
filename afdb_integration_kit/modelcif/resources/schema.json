@@ -206,6 +206,7 @@
           "properties": {
             "pdbx_ordinal": { "type": "array", "items": { "type": "string" }, "description": "An ordinal index for the software entry." },
             "name": { "type": "array", "items": { "type": "string" }, "description": "The name of the software." },
+            "version": { "type": "array", "items": { "type": "string" }, "description": "The version of the software." },
             "type": { "type": "array", "items": { "type": "string" }, "description": "The type of software (e.g., package)." },
             "description": { "type": "array", "items": { "type": "string" }, "description": "A description of the software's function." },
             "classification": { "type": "array", "items": { "type": "string" }, "description": "Classification of the software by major function." },
@@ -214,6 +215,7 @@
           "required": [
             "pdbx_ordinal",
             "name",
+            "version",
             "classification",
             "type"
           ]

@@ -279,8 +279,10 @@ uv run main.py run-dssp \
 
 The committed end-to-end examples under [`examples/`](examples/README.md)
 can be validated directly from the repo root. Use `model-summary` for committed
-e2e `model_jsons/*.json`; the canonical `model` schema remains reserved for
-full model metadata entries and `AF-metadata-*-of-*.json` batches.
+e2e `model_jsons/*.json` and `model_batches/*.json`, `collection-doc` for
+committed `chain_jsons/*.json` and `chain_batches/*.json`, and `provider` for
+the example `config/provider.json` files. The canonical `model` schema remains
+reserved for full model metadata entries.
 
 ```bash
 # Summary and provider metadata JSONs
@@ -463,9 +465,9 @@ Validate metadata JSON files against the required JSON schemas to ensure data co
 
 **Schemas:**
 
-* Model: `afdb_integration_kit/metadata/resources/model_schema.json` for full model metadata entries and batches
-* Model summary: `afdb_integration_kit/metadata/resources/model_summary_schema.json` for e2e `model_jsons/*.json` and search summary documents
-* Collection doc: `afdb_integration_kit/metadata/resources/collection_doc_schema.json` for e2e `chain_jsons/*.json` and collection documents
+* Model: `afdb_integration_kit/metadata/resources/model_schema.json` for full model metadata entries
+* Model summary: `afdb_integration_kit/metadata/resources/model_summary_schema.json` for e2e `model_jsons/*.json`, e2e `model_batches/*.json`, and search summary documents
+* Collection doc: `afdb_integration_kit/metadata/resources/collection_doc_schema.json` for e2e `chain_jsons/*.json`, e2e `chain_batches/*.json`, and collection documents
 * Provider: `afdb_integration_kit/metadata/resources/provider_schema.json`
 
 **Command:**
@@ -505,6 +507,7 @@ uv run main.py run-validations \
 ```
 
 - `run-validations` respects `validation/defaults.yaml` but you can override settings via `--config`.
+- The `metadata` check uses the same JSON schema validator as `run-schema-validation` and `validate-metadata-file`; its default schema type is `model` and can be changed with `metadata.schema_type` in the validation config.
 - Use `--summary`, `--errors-only`, and `--fail-on warn` to tailor CLI output/exit codes.
 - `run-naming-check` provides a lightweight naming/required-file audit with simplified flags:
 
@@ -520,11 +523,13 @@ uv run main.py plddt-check --root input/ --verbose
 
 #### Single-File Validators
 
-Ideal for workflow steps (e.g., Nextflow processes) that emit one artifact at a time:
+Ideal for workflow steps (e.g., Nextflow processes) that emit one artifact at a time. `validate-metadata-file`
+uses the same shared metadata schema validator as `run-schema-validation` and
+requires an explicit `--type` value:
 
 ```bash
 # Metadata (batch or per-accession JSON)
-uv run main.py validate-metadata-file --file path/to/metadata.json
+uv run main.py validate-metadata-file --file path/to/metadata.json --type model
 
 # pLDDT confidence JSON
 uv run main.py validate-plddt-file --file path/to/AF-...-confidence_v1.json

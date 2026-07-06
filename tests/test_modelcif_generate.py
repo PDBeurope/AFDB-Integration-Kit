@@ -3,6 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import orjson
+import pytest
+
 import afdb_integration_kit.modelcif.generate as modelcif_generate
 
 
@@ -75,3 +78,19 @@ def test_generate_does_not_synthesize_alphafold_software_version(
     software = captured_stores[0].data["_software"]
     assert software["name"] == ["AlphaFold"]
     assert "version" not in software
+
+
+def test_validate_json_requires_software_version(monkeypatch) -> None:
+    input_path = (
+        Path(__file__).resolve().parent.parent
+        / "examples/colabfold_monomer_e2e/modelcif_input/AF-0000000300000001.json"
+    )
+    input_metadata = orjson.loads(input_path.read_bytes())
+    input_metadata["categories"]["_software"].pop("version")
+
+    monkeypatch.setattr(modelcif_generate, "_SCHEMA_CACHE", None)
+
+    with pytest.raises(SystemExit):
+        modelcif_generate.validate_json_with_schema(
+            input_metadata, modelcif_generate.JSON_SCHEMA_PATH
+        )

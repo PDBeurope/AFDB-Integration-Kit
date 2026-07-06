@@ -97,6 +97,39 @@ def test_schema_validation_error(temp_json_file):
         schema_validator.validate_against_schema(input_file, "model")
 
 
+def test_model_schema_allows_missing_stoichiometry() -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    input_file = (
+        repo_root / "tests/fixtures/validation/good_dataset/AF-metadata-1-of-1.json"
+    )
+
+    schema_validator.validate_against_schema(input_file, "model")
+
+
+def test_model_schema_allows_vad_complex_metadata_fields(tmp_path) -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    fixture_path = (
+        repo_root / "tests/fixtures/validation/good_dataset/AF-metadata-1-of-1.json"
+    )
+    monomer_entry = json.loads(fixture_path.read_text(encoding="utf-8"))[0]
+    complex_entry = {
+        **monomer_entry,
+        "uniqueId": "AF-0000000000000002_v1_1",
+        "modelEntityId": "AF-0000000000000002",
+        "isComplex": True,
+        "assemblyType": "Homo",
+        "oligomericState": "dimer",
+        "complexComposition": "P01234_2",
+        "oligomericStateDescription": "Homodimer",
+        "isIsoform": False,
+        "isAMdata": False,
+    }
+    input_file = tmp_path / "vad_relevant_model_metadata.json"
+    input_file.write_text(json.dumps([monomer_entry, complex_entry]), encoding="utf-8")
+
+    schema_validator.validate_against_schema(input_file, "model")
+
+
 def test_load_json_file_success(tmp_path):
     # Create a valid JSON file
     valid_data = {"key": "value"}

@@ -17,7 +17,7 @@ from afdb_integration_kit.cif2bcif.convert import run_cif2bcif as cif2bcif_helpe
 from afdb_integration_kit.dssp.dssp import DEFAULT_ALGORITHM
 from afdb_integration_kit.dssp.dssp import run_dssp as dssp_helper
 from afdb_integration_kit.dssp.dssp import run_batch_dssp
-from afdb_integration_kit.metadata.validator import validate_against_schema
+from afdb_integration_kit.metadata.validator import SchemaType, validate_against_schema
 from afdb_integration_kit.modelcif.generate import generate
 from afdb_integration_kit.modelcif_replace.replace import replace_mmcif_with_json as replace_mmcif_with_json
 from afdb_integration_kit.modelpdb.generate import generate_pdb_headers
@@ -119,6 +119,12 @@ logging.basicConfig(
 )
 
 app = typer.Typer()
+
+
+def _schema_type_help() -> str:
+    return ", ".join(schema.value for schema in SchemaType)
+
+
 def _relative_path(path: Path, root: Optional[Path]) -> str:
     if root is None:
         return str(path)
@@ -375,7 +381,7 @@ def run_schema_validation(
         ...,
         "-t",
         "--type",
-        help="Type of schema to validate against ('model' or 'provider').",
+        help=f"Type of schema to validate against ({_schema_type_help()}).",
     ),
 ):
     """
@@ -398,15 +404,21 @@ def validate_metadata_file(
         readable=True,
         resolve_path=True,
     ),
+    type: str = typer.Option(
+        ...,
+        "--type",
+        "-t",
+        help=f"Metadata schema type ({_schema_type_help()}).",
+    ),
 ):
     """
-    Validate a single metadata JSON file (batch or per-accession).
+    Validate a single metadata JSON file against the shared metadata schema.
     """
     require_non_empty_file(metadata_file, description="Metadata JSON file")
     results = run_validation_check(
         "metadata",
         [metadata_file],
-        config={"metadata": {"allow_single_file": True}},
+        config={"metadata": {"allow_single_file": True, "schema_type": type}},
     )
     _emit_single_validation_results(results, metadata_file.parent)
 
