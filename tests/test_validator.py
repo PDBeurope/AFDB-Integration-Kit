@@ -165,6 +165,50 @@ def test_monomer_model_summary_allows_absent_complex_metrics() -> None:
     schema_validator.validate_against_schema(input_file, "model-summary")
 
 
+def test_metadata_schemas_allow_absent_gene_and_reject_placeholders(tmp_path) -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    validation_cases = [
+        (
+            "model",
+            repo_root / "tests/fixtures/validation/good_dataset/AF-metadata-1-of-1.json",
+            lambda payload: payload[0],
+            [None, "", "   "],
+        ),
+        (
+            "model-summary",
+            repo_root
+            / "examples/colabfold_monomer_e2e/model_jsons/AF-0000000300000001.json",
+            lambda payload: payload,
+            [[None], [], [""], ["   "]],
+        ),
+        (
+            "collection-doc",
+            repo_root
+            / "examples/colabfold_monomer_e2e/chain_jsons/AF-0000000300000001.json",
+            lambda payload: payload[0],
+            [None, "", "   "],
+        ),
+    ]
+
+    for schema_type, source_file, extract_entry, invalid_values in validation_cases:
+        source_payload = json.loads(source_file.read_text(encoding="utf-8"))
+        entry = deepcopy(extract_entry(source_payload))
+        entry.pop("gene")
+
+        absent_gene_file = tmp_path / f"{schema_type}-absent-gene.json"
+        absent_gene_file.write_text(json.dumps(entry), encoding="utf-8")
+        schema_validator.validate_against_schema(absent_gene_file, schema_type)
+
+        for index, invalid_value in enumerate(invalid_values):
+            invalid_entry = deepcopy(entry)
+            invalid_entry["gene"] = invalid_value
+            invalid_gene_file = tmp_path / f"{schema_type}-invalid-gene-{index}.json"
+            invalid_gene_file.write_text(json.dumps(invalid_entry), encoding="utf-8")
+
+            with pytest.raises(ValidationError):
+                schema_validator.validate_against_schema(invalid_gene_file, schema_type)
+
+
 def test_complex_model_summary_requires_ipsae_metric_block(tmp_path) -> None:
     repo_root = Path(__file__).resolve().parent.parent
     source_file = (

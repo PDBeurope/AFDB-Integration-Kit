@@ -93,7 +93,9 @@
       "examples": [["HBA1", "HB1", "Alpha-globin"]]
     },
     "gene": {
-      "type": ["string", "null"],
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*",
       "description": "Gene name (string)",
       "examples": ["HBA"]
     },

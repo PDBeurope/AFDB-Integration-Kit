@@ -22,6 +22,7 @@ from typing import Any, Dict, Iterable, List, Sequence, Set, Tuple
 
 import duckdb
 import orjson
+from afdb_integration_kit.modelcif.provenance import normalize_modelcif_provenance
 
 
 LOG = logging.getLogger("uniprot.batch_export_modelcif_input")
@@ -106,6 +107,12 @@ def parse_args() -> argparse.Namespace:
         "--stage-name",
         default="stage_09_export_modelcif_input",
         help="Stage label for the failed-ids file.",
+    )
+    parser.add_argument(
+        "--dssp-algorithm",
+        default="mkdssp",
+        choices=["mkdssp", "pydssp"],
+        help="Secondary-structure provenance mode to encode in the exported ModelCIF input.",
     )
     return parser.parse_args()
 
@@ -484,6 +491,7 @@ def process_model(
     entries_by_accession: Dict[str, Dict[str, Any]],
     base_template: Dict[str, Any],
     output_dir: Path,
+    dssp_algorithm: str,
 ) -> bool:
     """Process a single model and write output JSON."""
     try:
@@ -495,6 +503,11 @@ def process_model(
         populate_categories(template, entity_assignments, entries_by_accession, model_id)
         update_model_identifiers(template, model_id)
         template["chains"] = build_chains(manifest_entries)
+        normalize_modelcif_provenance(
+            template,
+            dssp_algorithm=dssp_algorithm,
+            allow_default_alphafold_version=True,
+        )
 
         output_path = output_dir / f"{model_id}.json"
         with output_path.open("wb") as handle:
@@ -564,7 +577,14 @@ def main() -> int:
         if not manifest_entries:
             LOG.warning("Model %s not found in manifest, skipping.", model_id)
             return False, model_id
-        success = process_model(model_id, manifest_entries, entries_by_accession, base_template, args.output_dir)
+        success = process_model(
+            model_id,
+            manifest_entries,
+            entries_by_accession,
+            base_template,
+            args.output_dir,
+            args.dssp_algorithm,
+        )
         return success, model_id
 
     # Process models in parallel

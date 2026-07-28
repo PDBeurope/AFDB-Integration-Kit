@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Sequence
 
 import duckdb
+from afdb_integration_kit.modelcif.provenance import normalize_modelcif_provenance
 
 
 LOG = logging.getLogger("uniprot.export_modelcif_input")
@@ -83,6 +84,12 @@ def parse_args() -> argparse.Namespace:
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Logging verbosity.",
+    )
+    parser.add_argument(
+        "--dssp-algorithm",
+        default="mkdssp",
+        choices=["mkdssp", "pydssp"],
+        help="Secondary-structure provenance mode to encode in the exported ModelCIF input.",
     )
     return parser.parse_args()
 
@@ -444,6 +451,11 @@ def generate_input(args: argparse.Namespace) -> None:
     populate_categories(template, entity_assignments, entries_by_entity, args.model_id)
     update_model_identifiers(template, args.model_id)
     template["chains"] = build_chains(manifest_entries)
+    normalize_modelcif_provenance(
+        template,
+        dssp_algorithm=args.dssp_algorithm,
+        allow_default_alphafold_version=True,
+    )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("wb") as handle:

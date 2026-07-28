@@ -13,7 +13,6 @@
     "isUniProtReviewed",
     "isIsoform",
     "organismScientificName",
-    "gene",
     "taxId",
     "globalMetricValue",
     "isAMdata"
@@ -95,7 +94,11 @@
     },
     "gene": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": ".*\\S.*"
+      },
       "minItems": 1
     },
     "gene_display": {
