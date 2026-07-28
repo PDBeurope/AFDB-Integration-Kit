@@ -4,6 +4,8 @@ import importlib.util
 import sys
 from pathlib import Path
 
+import orjson
+
 
 def _load_module(relative_path: str, module_name: str):
     repo_root = Path(__file__).resolve().parent.parent
@@ -15,6 +17,38 @@ def _load_module(relative_path: str, module_name: str):
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def test_modelcif_template_and_examples_keep_explicit_alphafold_versions() -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+
+    template = orjson.loads(
+        (
+            repo_root / "uniprot/templates/colabfold_example_modelcif_metadata.json"
+        ).read_bytes()
+    )
+    monomer_input = orjson.loads(
+        (
+            repo_root
+            / "examples/colabfold_monomer_e2e/modelcif_input/AF-0000000300000001.json"
+        ).read_bytes()
+    )
+    complex_input = orjson.loads(
+        (
+            repo_root
+            / "examples/colabfold_complex_e2e/modelcif_input/AF-0000000066074510.json"
+        ).read_bytes()
+    )
+
+    assert template["categories"]["_software"]["version"][0] == "2.3.2"
+    assert monomer_input["categories"]["_software"]["name"] == ["AlphaFold", "DSSP"]
+    assert monomer_input["categories"]["_software"]["version"] == ["2.3.2", "?"]
+    assert complex_input["categories"]["_software"]["name"] == [
+        "AlphaFold-Multimer",
+        "ipSAE",
+        "DSSP",
+    ]
+    assert complex_input["categories"]["_software"]["version"] == ["2.3.2", "?", "?"]
 
 
 def test_export_modelcif_input_uses_fragment_ranges() -> None:

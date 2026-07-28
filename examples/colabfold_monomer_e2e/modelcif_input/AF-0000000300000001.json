@@ -172,145 +172,75 @@
     "_software": {
       "pdbx_ordinal": [
         "1",
-        "2",
-        "3",
-        "4",
-        "5"
+        "2"
       ],
       "name": [
-        "ColabFold",
-        "MMseqs2-GPU",
-        "AlphaFold-Multimer",
-        "Interface QA",
-        "PyDSSP"
+        "AlphaFold",
+        "DSSP"
+      ],
+      "version": [
+        "2.3.2",
+        "?"
       ],
       "type": [
         "package",
-        "package",
-        "package",
-        "package",
-        "library"
+        "package"
       ],
       "description": [
-        "Example ColabFold pipeline wrapper coordinating search and model inference",
-        "Example MSA and search backend used by the ColabFold workflow",
-        "Example multimer structure prediction model used by the ColabFold workflow",
-        "Example interface scoring and quality-assessment stage",
-        "Example secondary-structure assignment and annotation extraction stage"
+        "Structure prediction",
+        "Secondary-structure assignment and annotation extraction from predicted coordinates"
       ],
       "classification": [
         "model building",
-        "data collection",
-        "model building",
-        "data processing",
         "data extraction"
-      ],
-      "version": [
-        "example-1.0",
-        "example-2.0",
-        "example-3.0",
-        "example-1.0",
-        "example-1.0"
       ]
     },
     "_ma_software_group": {
       "ordinal_id": [
         "1",
-        "2",
-        "3",
-        "4",
-        "5"
+        "2"
       ],
       "group_id": [
         "1",
-        "1",
-        "1",
-        "2",
-        "3"
+        "2"
       ],
       "software_id": [
         "1",
-        "2",
-        "3",
-        "4",
-        "5"
+        "2"
       ],
       "parameter_group_id": [
         "?",
-        "?",
-        "?",
-        "2",
         "?"
-      ]
-    },
-    "_ma_software_parameter": {
-      "parameter_id": [
-        "1",
-        "2"
-      ],
-      "group_id": [
-        "2",
-        "2"
-      ],
-      "data_type": [
-        "float",
-        "float"
-      ],
-      "name": [
-        "pae_cutoff",
-        "dist_cutoff"
-      ],
-      "value": [
-        "10.0",
-        "15.0"
-      ],
-      "description": [
-        "PAE cutoff used by IPSAE",
-        "Distance cutoff used by IPSAE"
       ]
     },
     "_ma_protocol_step": {
       "ordinal_id": [
         "1",
-        "2",
-        "3",
-        "4"
+        "2"
       ],
       "protocol_id": [
         "1",
-        "1",
-        "2",
-        "2"
+        "1"
       ],
       "step_id": [
         "1",
-        "2",
-        "3",
-        "4"
+        "2"
       ],
       "method_type": [
-        "coevolution MSA",
         "modeling",
-        "other",
         "other"
       ],
       "step_name": [
-        "paired MSA generation",
-        "complex or monomer model inference",
-        "interface or confidence scoring",
+        "model inference",
         "secondary structure assignment"
       ],
       "details": [
-        "Example paired or unpaired MSA generation using the MMseqs2-GPU backend through a ColabFold-style workflow",
-        "Example AlphaFold-Multimer or ColabFold inference with repository-owned example parameters and no external project-specific wording",
-        "Example post-processing quality metrics computed from the predicted structure output",
-        "Example post-processing secondary-structure assignment using the configured DSSP backend"
+        "Predicted structure generated with AlphaFold",
+        "Post-processing secondary-structure assignment using DSSP"
       ],
       "software_group_id": [
         "1",
-        "1",
-        "2",
-        "3"
+        "2"
       ]
     },
     "_ma_qa_metric": {

@@ -794,15 +794,13 @@ _ma_model_list.model_type
 loop_
 _software.pdbx_ordinal
 _software.name
+_software.version
 _software.type
 _software.description
 _software.classification
-_software.version
-1 ColabFold package 'Example ColabFold pipeline wrapper coordinating search and model inference' 'model building' example-1.0
-2 MMseqs2-GPU package 'Example MSA and search backend used by the ColabFold workflow' 'data collection' example-2.0
-3 AlphaFold-Multimer package 'Example multimer structure prediction model used by the ColabFold workflow' 'model building' example-3.0
-4 'Interface QA' package 'Example interface scoring and quality-assessment stage' 'data processing' example-1.0
-5 PyDSSP library 'Example secondary-structure assignment and annotation extraction stage' 'data extraction' example-1.0
+1 AlphaFold-Multimer 2.3.2 package 'Structure prediction' 'model building'
+2 ipSAE ? package 'Interface scoring / QA metrics (ipSAE, pDockQ, pDockQ2, LIS)' 'data processing'
+3 DSSP ? package 'Secondary-structure assignment and annotation extraction from predicted coordinates' 'data extraction'
 
 loop_
 _ma_software_group.ordinal_id
@@ -810,10 +808,8 @@ _ma_software_group.group_id
 _ma_software_group.software_id
 _ma_software_group.parameter_group_id
 1 1 1 ?
-2 1 2 ?
-3 1 3 ?
-4 2 4 2
-5 3 5 ?
+2 2 2 2
+3 3 3 ?
 
 loop_
 _ma_software_parameter.parameter_id
@@ -822,8 +818,8 @@ _ma_software_parameter.data_type
 _ma_software_parameter.name
 _ma_software_parameter.value
 _ma_software_parameter.description
-1 2 float pae_cutoff 10.0 'PAE cutoff used by IPSAE'
-2 2 float dist_cutoff 15.0 'Distance cutoff used by IPSAE'
+1 2 float pae_cutoff 10.0 'PAE cutoff used by ipSAE'
+2 2 float dist_cutoff 15.0 'Distance cutoff used by ipSAE'
 
 loop_
 _ma_protocol_step.ordinal_id
@@ -833,10 +829,9 @@ _ma_protocol_step.method_type
 _ma_protocol_step.step_name
 _ma_protocol_step.details
 _ma_protocol_step.software_group_id
-1 1 1 'coevolution MSA' 'paired MSA generation' 'Example paired or unpaired MSA generation using the MMseqs2-GPU backend through a ColabFold-style workflow' 1
-2 1 2 modeling 'complex or monomer model inference' 'Example AlphaFold-Multimer or ColabFold inference with repository-owned example parameters and no external project-specific wording' 1
-3 2 3 other 'interface or confidence scoring' 'Example post-processing quality metrics computed from the predicted structure output' 2
-4 2 4 other 'secondary structure assignment' 'Example post-processing secondary-structure assignment using the configured DSSP backend' 3
+1 1 1 modeling 'model inference' 'Predicted structure generated with AlphaFold-Multimer' 1
+2 1 2 other 'interface scoring' 'Post-processing interface QA metrics computed with ipSAE' 2
+3 1 3 other 'secondary structure assignment' 'Post-processing secondary-structure assignment using DSSP' 3
 
 loop_
 _ma_qa_metric.id
