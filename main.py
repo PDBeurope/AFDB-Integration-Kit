@@ -40,12 +40,12 @@ from typing import Tuple
 
 # --- Module-level worker functions for ProcessPoolExecutor (must be picklable) ---
 
-def _process_modelcif_single(args: Tuple[str, str, str, str, bool, bool, str, str]) -> Tuple[str, bool, Optional[str]]:
+def _process_modelcif_single(args: Tuple[str, str, str, str, bool, bool, str, str, str]) -> Tuple[str, bool, Optional[str]]:
     """
     Process a single model for ModelCIF generation.
     Module-level function required for ProcessPoolExecutor pickling.
     """
-    json_file, input_dir, output_dir, model_version, skip_validation, skip_alignment, model_json_dir, cif_qa_metrics = args
+    json_file, input_dir, output_dir, model_version, skip_validation, skip_alignment, model_json_dir, cif_qa_metrics, dssp_algorithm = args
     json_path = Path(json_file)
     input_path = Path(input_dir)
     output_path = Path(output_dir)
@@ -74,7 +74,7 @@ def _process_modelcif_single(args: Tuple[str, str, str, str, bool, bool, str, st
         generate(
             str(pdb_file), str(json_file), str(output_file), None, False,
             skip_validation, skip_alignment,
-            model_json_path, cif_qa_metrics or None,
+            model_json_path, cif_qa_metrics or None, dssp_algorithm or None,
         )
         return (model_id, True, None)
     except Exception as e:
@@ -581,6 +581,11 @@ def run_modelcif_gen(
         "--fetch-uniprot",
         help="Optionally fetch UniProt data for the chains in the PDB file.",
     ),
+    dssp_algorithm: str = typer.Option(
+        "mkdssp",
+        "--dssp-algorithm",
+        help="Secondary-structure provenance mode to encode in the output ModelCIF (`mkdssp` or `pydssp`).",
+    ),
 ):
     """
     Enrich a PDB file with metadata to produce a feature-rich mmCIF file.
@@ -588,6 +593,11 @@ def run_modelcif_gen(
     # Pre-flight checks
     require_non_empty_file(pdb, description="Input PDB file")
     require_non_empty_file(metadata, description="Input metadata JSON file")
+    if dssp_algorithm not in ("mkdssp", "pydssp"):
+        console.print(
+            f"[red]Invalid DSSP provenance mode '{dssp_algorithm}'. Use 'mkdssp' or 'pydssp'.[/red]"
+        )
+        raise typer.Exit(1)
 
     # If validate is passed as a flag (True but no value), default to 'mmcif_ma.dic'
     validate_path = validate if validate else None
@@ -600,7 +610,14 @@ def run_modelcif_gen(
         )
 
     # Call main logic (assuming main is imported or defined elsewhere)
-    generate(str(pdb), str(metadata), str(output), validate_path, fetch_uniprot)
+    generate(
+        str(pdb),
+        str(metadata),
+        str(output),
+        validate_path,
+        fetch_uniprot,
+        dssp_algorithm=dssp_algorithm,
+    )
 
 
 @app.command()
@@ -664,6 +681,11 @@ def run_batch_modelcif_gen(
         "--cif-qa-metrics",
         help="Comma-separated metric short names to add to CIF (e.g. 'ipsae_AB,iptm_af'). Use 'auto' for all.",
     ),
+    dssp_algorithm: str = typer.Option(
+        "mkdssp",
+        "--dssp-algorithm",
+        help="Secondary-structure provenance mode to encode in batch ModelCIF output (`mkdssp` or `pydssp`).",
+    ),
 ):
     """
     Batch process multiple PDB files to produce mmCIF files.
@@ -671,6 +693,11 @@ def run_batch_modelcif_gen(
     Uses ProcessPoolExecutor for CPU-bound parallel execution (bypasses GIL).
     """
     output_dir.mkdir(parents=True, exist_ok=True)
+    if dssp_algorithm not in ("mkdssp", "pydssp"):
+        console.print(
+            f"[red]Invalid DSSP provenance mode '{dssp_algorithm}'. Use 'mkdssp' or 'pydssp'.[/red]"
+        )
+        raise typer.Exit(1)
 
     # Find all JSON metadata files
     json_files = list(metadata_dir.glob("*.json"))
@@ -682,8 +709,17 @@ def run_batch_modelcif_gen(
 
     # Prepare work items as tuples for the module-level worker function
     work_items = [
-        (str(jf), str(input_dir), str(output_dir), model_version, skip_validation, skip_alignment,
-         str(model_json_dir) if model_json_dir else "", cif_qa_metrics or "")
+        (
+            str(jf),
+            str(input_dir),
+            str(output_dir),
+            model_version,
+            skip_validation,
+            skip_alignment,
+            str(model_json_dir) if model_json_dir else "",
+            cif_qa_metrics or "",
+            dssp_algorithm,
+        )
         for jf in json_files
     ]
 

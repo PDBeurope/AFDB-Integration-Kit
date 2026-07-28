@@ -1657,6 +1657,8 @@ def stage_09_export_modelcif_input(
         "--db", str(config.uniprot_db),
         "--template", str(config.modelcif_template),
         "--output-dir", str(modelcif_input_dir),
+        "--dssp-algorithm",
+        config.dssp_algorithm if config.dssp_algorithm in {"mkdssp", "pydssp"} else "mkdssp",
         "--workers", str(config.workers),
         "--failed-ids-file", str(failed_ids_file),
         "--stage-name", "stage_09_export_modelcif_input",
@@ -1711,6 +1713,8 @@ def stage_10_batch_modelcif_gen(
         "--metadata-dir", str(metadata_dir),
         "--output-dir", str(modelcif_dir),
         "--model-version", config.model_version,
+        "--dssp-algorithm",
+        config.dssp_algorithm if config.dssp_algorithm in {"mkdssp", "pydssp"} else "mkdssp",
         "--skip-validation",
         "--skip-alignment",
         "--workers", str(config.workers)

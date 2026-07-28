@@ -12,6 +12,7 @@ import jsonschema
 import numpy as np
 import orjson
 import requests
+from afdb_integration_kit.modelcif.provenance import normalize_modelcif_provenance
 from afdb_integration_kit.utils.pdbeditor import PDBFileEditor
 from afdb_integration_kit.utils.cifstorage import CifDataStorage
 from afdb_integration_kit.utils.uniprot import UniprotAPIClient
@@ -687,12 +688,18 @@ def generate(
     pdb_file: str, metadata_file: str, output_file: str, validate_dict_path: str, fetch_uniprot: bool = False,
     skip_validation: bool = False, skip_alignment: bool = False,
     model_json_path: Optional[str] = None, cif_qa_metrics: Optional[str] = None,
+    dssp_algorithm: Optional[str] = None,
 ):
     """Main function to orchestrate the PDB to mmCIF conversion and enrichment."""
     # 1. Load initial data
     input_metadata = load_json_file(metadata_file)
     if not skip_validation:
         validate_json_with_schema(input_metadata, JSON_SCHEMA_PATH)
+    normalize_modelcif_provenance(
+        input_metadata,
+        dssp_algorithm=dssp_algorithm,
+        allow_default_alphafold_version=False,
+    )
     cif_block = pdb_to_cif_block(pdb_file)
 
     # 2. Initialize data storage and populate from PDB
