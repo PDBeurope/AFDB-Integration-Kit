@@ -7,13 +7,10 @@
     "latestVersion",
     "providerId",
     "isComplex",
-    "uniprotAccession",
-    "uniprotDescription",
+    "isUniProt",
     "isUniProtReferenceProteome",
     "isUniProtReviewed",
     "isIsoform",
-    "organismScientificName",
-    "taxId",
     "globalMetricValue",
     "isAMdata"
   ],
@@ -32,21 +29,30 @@
     "isComplex": {
       "type": "boolean"
     },
+    "isUniProt": {
+      "type": "boolean"
+    },
     "complexName": {
-      "type": ["string", "null"]
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
     "assemblyType": {
-      "type": ["string", "null"],
-      "enum": ["Homo", "Hetero", null]
+      "type": "string",
+      "enum": ["Homo", "Hetero"]
     },
     "oligomericState": {
-      "type": ["string", "null"]
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
     "oligomericStateDescription": {
-      "type": ["string", "null"]
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
     "complexComposition": {
-      "type": ["array", "null"],
+      "type": "array",
       "items": {
         "type": "string",
         "pattern": "^[A-Za-z0-9-]+_[1-9][0-9]*$"
@@ -55,7 +61,11 @@
     },
     "uniprotAccession": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": ".*\\S.*"
+      },
       "minItems": 1
     },
     "uniprotAccession_display": {
@@ -65,7 +75,11 @@
     },
     "uniprotDescription": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": ".*\\S.*"
+      },
       "minItems": 1
     },
     "uniprotDescription_display": {
@@ -84,7 +98,11 @@
     },
     "organismScientificName": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": ".*\\S.*"
+      },
       "minItems": 1
     },
     "organismScientificName_display": {
@@ -136,7 +154,7 @@
   },
   "patternProperties": {
     "^complexPredictionAccuracy_[A-Za-z0-9_]+$": {
-      "type": ["number", "null"]
+      "type": "number"
     }
   },
   "allOf": [
@@ -184,6 +202,23 @@
           "complexPredictionAccuracy_pDockQ",
           "complexPredictionAccuracy_ipsae_n0chn"
         ]
+      }
+    },
+    {
+      "if": {
+        "properties": { "isUniProt": { "const": true } },
+        "required": ["isUniProt"]
+      },
+      "then": {
+        "required": ["uniprotAccession", "uniprotDescription"]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            { "required": ["uniprotAccession"] },
+            { "required": ["uniprotDescription"] }
+          ]
+        }
       }
     }
   ],

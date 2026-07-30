@@ -18,6 +18,7 @@
   "fractionPlddtVeryHigh": 0.4,
   "latestVersion": 1,
   "allVersions": [1],
+  "uniprotAccession": "P01234",
   "uniprotId": "P01234",
   "uniprotDescription": "Example UniProt protein entry.",
   "geneSynonyms": ["EXAMP1"],

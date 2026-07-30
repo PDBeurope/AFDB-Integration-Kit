@@ -3,6 +3,7 @@
   "latestVersion": 1,
   "providerId": "EXAMPLE",
   "isComplex": true,
+  "isUniProt": true,
   "complexName": "Homodimer of D-phenylhydantoinase",
   "assemblyType": "Homo",
   "oligomericState": "dimer",

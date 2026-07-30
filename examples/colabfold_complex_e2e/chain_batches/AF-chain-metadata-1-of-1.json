@@ -18,7 +18,6 @@
     "organismCommonNames": [
       "strain K12"
     ],
-    "organismSynonyms": [],
     "assemblyType": "Homo",
     "oligomericState": "dimer",
     "oligomericStateDescription": "Homodimer",
@@ -84,7 +83,6 @@
     "organismCommonNames": [
       "strain K12"
     ],
-    "organismSynonyms": [],
     "assemblyType": "Homo",
     "oligomericState": "dimer",
     "oligomericStateDescription": "Homodimer",
@@ -142,11 +140,8 @@
     "uniprotId": "A0ABS2QMZ4_9BACI",
     "uniprotDescription": "Cytochrome P450",
     "gene": "JOC77_003991",
-    "geneSynonyms": [],
     "taxId": 673318,
     "organismScientificName": "Peribacillus deserti",
-    "organismCommonNames": [],
-    "organismSynonyms": [],
     "assemblyType": "Hetero",
     "oligomericState": "dimer",
     "oligomericStateDescription": "Heterodimer",
@@ -204,11 +199,8 @@
     "uniprotId": "A0ABS2QMF5_9BACI",
     "uniprotDescription": "Large subunit ribosomal protein L3",
     "gene": "JOC77_003818",
-    "geneSynonyms": [],
     "taxId": 673318,
     "organismScientificName": "Peribacillus deserti",
-    "organismCommonNames": [],
-    "organismSynonyms": [],
     "assemblyType": "Hetero",
     "oligomericState": "dimer",
     "oligomericStateDescription": "Heterodimer",

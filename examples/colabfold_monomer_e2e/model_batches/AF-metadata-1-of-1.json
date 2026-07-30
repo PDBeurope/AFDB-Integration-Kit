@@ -4,6 +4,7 @@
     "latestVersion": 1,
     "providerId": "EXAMPLE",
     "isComplex": false,
+    "isUniProt": true,
     "uniprotAccession": [
       "O00400"
     ],
@@ -32,6 +33,7 @@
     "latestVersion": 1,
     "providerId": "EXAMPLE",
     "isComplex": false,
+    "isUniProt": true,
     "uniprotAccession": [
       "O64637"
     ],
@@ -60,6 +62,7 @@
     "latestVersion": 1,
     "providerId": "EXAMPLE",
     "isComplex": false,
+    "isUniProt": true,
     "uniprotAccession": [
       "Q9TVL3"
     ],

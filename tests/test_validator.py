@@ -209,6 +209,84 @@ def test_metadata_schemas_allow_absent_gene_and_reject_placeholders(tmp_path) ->
                 schema_validator.validate_against_schema(invalid_gene_file, schema_type)
 
 
+def test_metadata_schemas_enforce_uniprot_presence_and_absent_optional_metadata(
+    tmp_path,
+) -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    source_entries = {
+        "model": json.loads(
+            (
+                repo_root
+                / "tests/fixtures/validation/good_dataset/AF-metadata-1-of-1.json"
+            ).read_text(encoding="utf-8")
+        )[0],
+        "model-summary": json.loads(
+            (
+                repo_root
+                / "examples/colabfold_monomer_e2e/model_jsons/AF-0000000300000001.json"
+            ).read_text(encoding="utf-8")
+        ),
+        "collection-doc": json.loads(
+            (
+                repo_root
+                / "examples/colabfold_monomer_e2e/chain_jsons/AF-0000000300000001.json"
+            ).read_text(encoding="utf-8")
+        )[0],
+    }
+    uniprot_fields = {
+        "model": ["uniprotAccession", "uniprotId", "uniprotDescription"],
+        "model-summary": ["uniprotAccession", "uniprotDescription"],
+        "collection-doc": ["uniprotAccession", "uniprotId", "uniprotDescription"],
+    }
+
+    def validate(schema_type: str, payload: dict, name: str) -> None:
+        path = tmp_path / f"{schema_type}-{name}.json"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        schema_validator.validate_against_schema(path, schema_type)
+
+    for schema_type, source_entry in source_entries.items():
+        fields = uniprot_fields[schema_type]
+
+        for field in fields:
+            missing_uniprot_field = deepcopy(source_entry)
+            missing_uniprot_field.pop(field)
+            with pytest.raises(ValidationError, match=field):
+                validate(schema_type, missing_uniprot_field, f"missing-{field}")
+
+        non_uniprot_entry = deepcopy(source_entry)
+        non_uniprot_entry["isUniProt"] = False
+        for field in fields:
+            non_uniprot_entry.pop(field)
+        validate(schema_type, non_uniprot_entry, "non-uniprot")
+
+        non_uniprot_with_identifier = deepcopy(non_uniprot_entry)
+        non_uniprot_with_identifier[fields[0]] = source_entry[fields[0]]
+        with pytest.raises(ValidationError):
+            validate(schema_type, non_uniprot_with_identifier, "forbidden-identifier")
+
+        without_taxonomy = deepcopy(non_uniprot_entry)
+        without_taxonomy.pop("taxId", None)
+        without_taxonomy.pop("organismScientificName", None)
+        validate(schema_type, without_taxonomy, "absent-taxonomy")
+
+        null_taxonomy = deepcopy(non_uniprot_entry)
+        null_taxonomy["taxId"] = None
+        with pytest.raises(ValidationError, match="taxId"):
+            validate(schema_type, null_taxonomy, "null-taxonomy")
+
+        empty_organism = deepcopy(non_uniprot_entry)
+        empty_organism["organismScientificName"] = (
+            [""] if schema_type == "model-summary" else ""
+        )
+        with pytest.raises(ValidationError, match="organismScientificName"):
+            validate(schema_type, empty_organism, "empty-organism")
+
+        null_optional_field = deepcopy(non_uniprot_entry)
+        null_optional_field["complexName"] = None
+        with pytest.raises(ValidationError, match="complexName"):
+            validate(schema_type, null_optional_field, "null-optional-field")
+
+
 def test_complex_model_summary_requires_ipsae_metric_block(tmp_path) -> None:
     repo_root = Path(__file__).resolve().parent.parent
     source_file = (

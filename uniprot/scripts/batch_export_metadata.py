@@ -670,6 +670,7 @@ def build_model_record(
     record["latestVersion"] = latest_version
     record["providerId"] = config["providerId"]
     record["isComplex"] = is_complex
+    record["isUniProt"] = bool(accessions)
     if is_complex and complex_name:
         record["complexName"] = complex_name
     if is_complex and assembly_type and oligomeric_state:
@@ -869,6 +870,11 @@ def build_chain_records(
             "providerId": config["providerId"],
             "entityType": payload.entity_type,
             "isAMdata": is_am_data,
+        }
+        record = {
+            key: value
+            for key, value in record.items()
+            if value is not None and value != "" and value != []
         }
 
         if complex_composition:

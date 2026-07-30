@@ -8,17 +8,8 @@
     "modelCreatedDate",
     "modelEntityId",
     "isComplex",
-    "complexName",
-    "uniprotAccession",
-    "uniprotId",
-    "uniprotDescription",
-    "taxId",
-    "organismScientificName",
-    "assemblyType",
-    "oligomericState",
     "sequence",
     "sequenceChecksum",
-    "sequenceVersionDate",
     "sequenceStart",
     "sequenceEnd",
     "isIsoform",
@@ -57,16 +48,24 @@
       "type": "boolean"
     },
     "complexName": {
-      "type": ["string", "null"]
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
     "uniprotAccession": {
-      "type": ["string", "null"]
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
     "uniprotId": {
-      "type": ["string", "null"]
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
     "uniprotDescription": {
-      "type": ["string", "null"]
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
     "gene": {
       "type": "string",
@@ -75,34 +74,45 @@
     },
     "geneSynonyms": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },
+      "minItems": 1
     },
     "taxId": {
-      "type": ["integer", "null"]
+      "type": "integer"
     },
     "organismScientificName": {
-      "type": ["string", "null"]
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
     "organismScientificNameT": {
-      "type": ["string", "null"]
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
     "organismCommonNames": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },
+      "minItems": 1
     },
     "organismSynonyms": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },
+      "minItems": 1
     },
     "assemblyType": {
-      "type": ["string", "null"],
-      "enum": ["Homo", "Hetero", null]
+      "type": "string",
+      "enum": ["Homo", "Hetero"]
     },
     "oligomericState": {
-      "type": ["string", "null"]
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
     "oligomericStateDescription": {
-      "type": ["string", "null"]
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
     "sequence": {
       "type": "string"
@@ -112,7 +122,7 @@
       "pattern": "^[a-fA-F0-9]{32}$"
     },
     "sequenceVersionDate": {
-      "type": ["string", "null"],
+      "type": "string",
       "format": "date-time"
     },
     "sequenceStart": {
@@ -172,7 +182,7 @@
       "type": "boolean"
     },
     "complexComposition": {
-      "type": ["string", "null"],
+      "type": "string",
       "pattern": "^[A-Za-z0-9-]+_[1-9][0-9]*(,[A-Za-z0-9-]+_[1-9][0-9]*)*$"
     },
     "_version_": {
@@ -181,7 +191,7 @@
   },
   "patternProperties": {
     "^complexPredictionAccuracy_[A-Za-z0-9_]+$": {
-      "type": ["number", "null"]
+      "type": "number"
     }
   },
   "allOf": [
@@ -200,6 +210,28 @@
           "complexPredictionAccuracy_pDockQ",
           "complexPredictionAccuracy_ipsae_n0chn"
         ]
+      }
+    },
+    {
+      "if": {
+        "properties": { "isUniProt": { "const": true } },
+        "required": ["isUniProt"]
+      },
+      "then": {
+        "required": [
+          "uniprotAccession",
+          "uniprotId",
+          "uniprotDescription"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            { "required": ["uniprotAccession"] },
+            { "required": ["uniprotId"] },
+            { "required": ["uniprotDescription"] }
+          ]
+        }
       }
     }
   ],

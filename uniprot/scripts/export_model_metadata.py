@@ -695,6 +695,7 @@ def build_record(
     record["latestVersion"] = latest_version
     record["providerId"] = config["providerId"]
     record["isComplex"] = is_complex
+    record["isUniProt"] = bool(accessions)
     if is_complex and complex_name:
         record["complexName"] = complex_name
     if is_complex and assembly_type and oligomeric_state:
