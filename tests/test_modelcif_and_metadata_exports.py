@@ -178,6 +178,7 @@ def test_batch_export_metadata_generates_hetero_complex_name() -> None:
     model_record = module.build_model_record("AF-TEST", config, manifest_rows, entry_map, model_metadata)
     chain_records = module.build_chain_records("AF-TEST", config, manifest_rows, entry_map, model_metadata)
 
+    assert model_record["isUniProt"] is True
     assert model_record["complexName"] == "Complex of Protein one/Protein two"
     assert chain_records[0]["complexName"] == "Complex of Protein one/Protein two"
     assert chain_records[1]["complexName"] == "Complex of Protein one/Protein two"
@@ -305,4 +306,4 @@ def test_batch_export_metadata_does_not_generate_hetero_complex_name_for_three_c
     chain_records = module.build_chain_records("AF-TEST-3", config, manifest_rows, entry_map, model_metadata)
 
     assert "complexName" not in model_record
-    assert all(record["complexName"] is None for record in chain_records)
+    assert all("complexName" not in record for record in chain_records)

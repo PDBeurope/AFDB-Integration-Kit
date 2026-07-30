@@ -3,6 +3,7 @@
   "latestVersion": 1,
   "providerId": "EXAMPLE",
   "isComplex": false,
+  "isUniProt": true,
   "uniprotAccession": [
     "Q9TVL3"
   ],

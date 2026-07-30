@@ -735,6 +735,11 @@ def build_record(
             "entityType": payload.entity_type,
             "isAMdata": is_am_data,
         }
+        record = {
+            key: value
+            for key, value in record.items()
+            if value is not None and value != "" and value != []
+        }
 
         if complex_composition:
             record["complexComposition"] = ",".join(complex_composition)
