@@ -13,6 +13,8 @@ import numpy as np
 import orjson
 import threading
 
+from afdb_integration_kit.uniprot.naming import protein_description
+
 logger = logging.getLogger(__name__)
 
 # Module-level manifest cache to avoid re-parsing the same CSV file
@@ -37,10 +39,24 @@ def _query_duckdb_entries(
         return {}
 
     placeholders = ",".join("?" for _ in unique_accs)
-    query = (
-        "SELECT primary_ac, protein_full_names, sequence "
-        "FROM entry WHERE primary_ac IN ({})"
-    ).format(placeholders)
+    available_columns = {
+        str(row[0]) for row in con.execute("DESCRIBE entry").fetchall()
+    }
+    selected_columns = [
+        name
+        for name in (
+            "primary_ac",
+            "protein_full_names",
+            "protein_short_names",
+            "entry_name",
+            "sequence",
+        )
+        if name in available_columns
+    ]
+    query = "SELECT {} FROM entry WHERE primary_ac IN ({})".format(
+        ", ".join(selected_columns),
+        placeholders,
+    )
     rows_rel = con.execute(query, unique_accs)
     rows = rows_rel.fetchall()
     col_index = {
@@ -409,10 +425,16 @@ def _load_manifest_chains(
         for optional_key in (
             "sequence_start",
             "sequence_end",
+            "protein_name",
             "is_fragment",
             "is_isoform",
             "entity_type",
         ):
+            if optional_key == "protein_name" and optional_key in row:
+                chain_row[optional_key] = str(
+                    row.get(optional_key) or ""
+                ).strip()
+                continue
             value = row.get(optional_key)
             if value is None:
                 continue
@@ -420,23 +442,48 @@ def _load_manifest_chains(
             if text:
                 chain_row[optional_key] = text
         chain_rows.append(chain_row)
-    # Assign entity_id per accession if missing; preserve any provided values
-    acc_to_entity: Dict[str, str] = {}
-    next_id = 1
-    # respect provided ids
+    # Assign missing entity IDs by component identity.  Different fragments of
+    # one UniProt accession are different components, while repeated copies of
+    # the same fragment remain one entity.  Explicit manifest IDs are retained.
+    component_to_entity: Dict[tuple[str, int | None, int | None], str] = {}
+    used_ids: set[str] = set()
     for row in chain_rows:
-        acc = row["uniprot_ac"]
-        eid = row.get("entity_id")
+        key = _manifest_component_key(row)
+        eid = (row.get("entity_id") or "").strip()
         if eid:
-            acc_to_entity.setdefault(acc, eid)
-    # assign missing
+            existing = component_to_entity.setdefault(key, eid)
+            if existing != eid:
+                raise ValueError(
+                    "Manifest gives one component inconsistent entity IDs: "
+                    f"{existing!r} and {eid!r}."
+                )
+            used_ids.add(eid)
+    next_id = 1
     for row in chain_rows:
-        acc = row["uniprot_ac"]
-        if acc not in acc_to_entity:
-            acc_to_entity[acc] = str(next_id)
+        if row.get("entity_id"):
+            continue
+        key = _manifest_component_key(row)
+        if key not in component_to_entity:
+            while str(next_id) in used_ids:
+                next_id += 1
+            component_to_entity[key] = str(next_id)
+            used_ids.add(str(next_id))
             next_id += 1
-        row["entity_id"] = acc_to_entity[acc]
+        row["entity_id"] = component_to_entity[key]
     return model_entity_id, chain_rows
+
+
+def _manifest_component_key(
+    row: dict[str, str],
+) -> tuple[str, int | None, int | None]:
+    """Return the identity used for entity assignment in chain manifests."""
+    accession = row["uniprot_ac"]
+    is_fragment = str(row.get("is_fragment") or "").strip().lower()
+    start = _parse_int(row.get("sequence_start"))
+    end = _parse_int(row.get("sequence_end"))
+    if is_fragment in {"true", "1", "yes"} or start is not None or end is not None:
+        return accession, start, end
+    return accession, None, None
 
 
 def _as_string_list(value: Any) -> list[str]:
@@ -498,13 +545,16 @@ def _load_chain_metadata_from_duckdb(
                 # Homodimer/homomultimer: replicate the single accession for each PDB chain
                 base_acc = list(unique_accs)[0]
                 base_entity_id = manifest_chains[0].get("entity_id", "1")
+                base_chain = manifest_chains[0]
                 effective_chains = []
                 for chain_id in pdb_chain_ids:
-                    effective_chains.append({
+                    expanded_chain = dict(base_chain)
+                    expanded_chain.update({
                         "chain_id": chain_id,
                         "uniprot_ac": base_acc,
                         "entity_id": base_entity_id,
                     })
+                    effective_chains.append(expanded_chain)
                 logger.info(
                     "Auto-expanded manifest for homomultimer: %d chains -> %d chains (accession: %s)",
                     len(manifest_chains), len(effective_chains), base_acc
@@ -545,16 +595,7 @@ def _load_chain_metadata_from_duckdb(
         entry = entry_lookup.get(acc)
         if entry is None:
             raise ValueError(f"Accession {acc} not found in DuckDB entry table.")
-        # Try protein_full_names first, then fall back to entry_name or gene_names
-        names = _as_string_list(entry.get("protein_full_names"))
-        if names:
-            desc = names[0]
-        elif entry.get("entry_name"):
-            desc = str(entry["entry_name"])
-        elif entry.get("gene_names"):
-            desc = str(entry["gene_names"])
-        else:
-            desc = acc  # Ultimate fallback to accession itself
+        desc = protein_description(chain.get("protein_name"), entry, acc)
         seq = entry.get("sequence") or ""
         seqlen = len(seq)
         if seqlen == 0:
@@ -645,24 +686,25 @@ def _compute_plddt_metrics(
         fraction_plddt_low = round(int(np.sum((values >= 50.0) & (values < 70.0))) / n, 3)
         fraction_plddt_confident = round(int(np.sum((values >= 70.0) & (values <= 90.0))) / n, 3)
         fraction_plddt_very_high = round(int(np.sum(values > 90.0)) / n, 3)
-        chain_rows.append(
-            {
-                "model_entity_id": None,  # filled later
-                "entity_id": entity_lookup.get(chain["label_asym_id"]) or "",
-                "chain_id": chain["label_asym_id"],
-                "uniprot_ac": acc_lookup.get(chain["label_asym_id"]) or "",
-                "is_fragment": manifest_row.get("is_fragment", ""),
-                "is_isoform": manifest_row.get("is_isoform", ""),
-                "entity_type": manifest_row.get("entity_type", "protein"),
-                "sequence_start": sequence_start,
-                "sequence_end": sequence_end,
-                "average_plddt": avg,
-                "fraction_plddt_very_low": fraction_plddt_very_low,
-                "fraction_plddt_low": fraction_plddt_low,
-                "fraction_plddt_confident": fraction_plddt_confident,
-                "fraction_plddt_very_high": fraction_plddt_very_high,
-            }
-        )
+        chain_row = {
+            "model_entity_id": None,  # filled later
+            "entity_id": entity_lookup.get(chain["label_asym_id"]) or "",
+            "chain_id": chain["label_asym_id"],
+            "uniprot_ac": acc_lookup.get(chain["label_asym_id"]) or "",
+            "is_fragment": manifest_row.get("is_fragment", ""),
+            "is_isoform": manifest_row.get("is_isoform", ""),
+            "entity_type": manifest_row.get("entity_type", "protein"),
+            "sequence_start": sequence_start,
+            "sequence_end": sequence_end,
+            "average_plddt": avg,
+            "fraction_plddt_very_low": fraction_plddt_very_low,
+            "fraction_plddt_low": fraction_plddt_low,
+            "fraction_plddt_confident": fraction_plddt_confident,
+            "fraction_plddt_very_high": fraction_plddt_very_high,
+        }
+        if "protein_name" in manifest_row:
+            chain_row["protein_name"] = manifest_row["protein_name"]
+        chain_rows.append(chain_row)
     model_avg = round(total_sum / total_count, 2) if total_count else 0.0
     return chain_rows, model_avg
 
@@ -815,7 +857,14 @@ def convert_file(
                 f"DuckDB residue count ({len(residue_numbers)}) does not match pLDDT length ({len(plddt)})."
             )
     else:
-        display_names = {c["chain_id"]: c["uniprot_ac"] for c in manifest_chains} if manifest_chains else None
+        display_names = (
+            {
+                c["chain_id"]: c.get("protein_name") or c["uniprot_ac"]
+                for c in manifest_chains
+            }
+            if manifest_chains
+            else None
+        )
         chains, pdb_residue_total = _chain_spans_from_pdb(pdb, display_names)
         if pdb_residue_total != len(plddt):
             raise ValueError(
@@ -861,48 +910,40 @@ def convert_file(
     _dump(pae_payload, out_pae_path)
 
     if chain_manifest_rows is not None:
+        chain_manifest_fieldnames = [
+            "model_entity_id",
+            "entity_id",
+            "chain_id",
+            "uniprot_ac",
+        ]
+        if any("protein_name" in row for row in chain_manifest_rows):
+            chain_manifest_fieldnames.append("protein_name")
+        chain_manifest_fieldnames.extend(
+            [
+                "is_fragment",
+                "is_isoform",
+                "entity_type",
+                "sequence_start",
+                "sequence_end",
+                "average_plddt",
+                "fraction_plddt_very_low",
+                "fraction_plddt_low",
+                "fraction_plddt_confident",
+                "fraction_plddt_very_high",
+            ]
+        )
         chain_manifest_path: Path | None = None
         if chain_manifest_dir:
             chain_manifest_path = Path(chain_manifest_dir) / f"{base_name}_afid_mapping.csv"
             _write_manifest_csv(
                 chain_manifest_path,
-                [
-                    "model_entity_id",
-                    "entity_id",
-                    "chain_id",
-                    "uniprot_ac",
-                    "is_fragment",
-                    "is_isoform",
-                    "entity_type",
-                    "sequence_start",
-                    "sequence_end",
-                    "average_plddt",
-                    "fraction_plddt_very_low",
-                    "fraction_plddt_low",
-                    "fraction_plddt_confident",
-                    "fraction_plddt_very_high",
-                ],
+                chain_manifest_fieldnames,
                 chain_manifest_rows,
             )
         elif out_chain_manifest:
             _merge_manifest_csv(
                 Path(out_chain_manifest),
-                [
-                    "model_entity_id",
-                    "entity_id",
-                    "chain_id",
-                    "uniprot_ac",
-                    "is_fragment",
-                    "is_isoform",
-                    "entity_type",
-                    "sequence_start",
-                    "sequence_end",
-                    "average_plddt",
-                    "fraction_plddt_very_low",
-                    "fraction_plddt_low",
-                    "fraction_plddt_confident",
-                    "fraction_plddt_very_high",
-                ],
+                chain_manifest_fieldnames,
                 model_entity_id,
                 chain_manifest_rows,
             )

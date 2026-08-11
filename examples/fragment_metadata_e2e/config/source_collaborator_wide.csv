@@ -1,0 +1,8 @@
+afdb_id,proteome_id,ictv_id,virus_name,genome_accession,is_complex?,chain_a_id,chain_a_uniprot,chain_a_is_polyprotein?,chain_a_start,chain_a_end,chain_a_length,chain_b_id,chain_b_uniprot,chain_b_is_polyprotein?,chain_b_start,chain_b_end,chain_b_length,complex_length
+AF-0000000211971324,UP000008788,ICTV19710053,Canis familiaris oral papillomavirus 1,D55633,no,ICTV19710053_Q89536_Replication_protein_E1,Q89536,no,,,597,,,,,,,597
+AF-0000000212005744,UP000008762,ICTV19710061,feline calicivirus,M86379,no,ICTV19710061_pp_P27409_1-46_NS1,P27409,yes,1,46,46,,,,,,,46
+AF-0000000212013504,UP000241752,ICTV202009296,hepatitis D virus 4,AF018077,yes,ICTV202009296_O71020_Delta_antigen,O71020,no,,,194,ICTV202009296_O71020_Delta_antigen,O71020,no,,,194,388
+AF-0000000212013519,UP000122161,ICTV19931851,hepatitis D virus 1,AF104263,yes,ICTV19931851_Q9E926_Small_delta_antigen,Q9E926,no,,,195,ICTV19931851_Q9E927_Large_delta_antigen,Q9E927,no,,,214,409
+AF-0000000212039399,UP000008762,ICTV19710061,feline calicivirus,M86379,yes,ICTV19710061_pp_P27409_1-46_NS1,P27409,yes,1,46,46,ICTV19710061_pp_P27409_1-46_NS1,P27409,yes,1,46,46,92
+AF-0000000212039400,UP000008762,ICTV19710061,feline calicivirus,M86379,yes,ICTV19710061_pp_P27409_1-46_NS1,P27409,yes,1,46,46,ICTV19710061_P28711_Minor_capsid_protein_VP2,P28711,no,,,106,152
+AF-0000000212039401,UP000008762,ICTV19710061,feline calicivirus,M86379,yes,ICTV19710061_pp_P27409_1-46_NS1,P27409,yes,1,46,46,ICTV19710061_pp_P27409_961-1071_Viral_genome_linked_protein,P27409,yes,961,1071,111,157

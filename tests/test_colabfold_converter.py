@@ -1,3 +1,4 @@
+import csv
 import json
 import re
 from pathlib import Path
@@ -8,10 +9,40 @@ from afdb_integration_kit.colabfold.converter import (
     _chain_spans_from_pdb_gemmi,
     _chain_spans_from_pdb_legacy,
     _load_chain_metadata_from_duckdb,
+    _load_manifest_chains,
     cleanup_caches,
     convert_file,
     prefetch_duckdb_metadata,
 )
+
+
+@pytest.mark.parametrize(
+    ("second_range", "provided_ids", "expected_ids"),
+    [
+        ((961, 1071), ("1", "2"), ["1", "2"]),
+        ((961, 1071), ("", ""), ["1", "2"]),
+        ((1, 46), ("", ""), ["1", "1"]),
+    ],
+)
+def test_manifest_entity_assignment_uses_fragment_component_identity(
+    tmp_path: Path,
+    second_range: tuple[int, int],
+    provided_ids: tuple[str, str],
+    expected_ids: list[str],
+) -> None:
+    manifest = tmp_path / "manifest.csv"
+    manifest.write_text(
+        "model_entity_id,entity_id,chain_id,uniprot_ac,is_fragment,"
+        "sequence_start,sequence_end\n"
+        f"AF-TEST,{provided_ids[0]},A,P27409,true,1,46\n"
+        f"AF-TEST,{provided_ids[1]},B,P27409,true,"
+        f"{second_range[0]},{second_range[1]}\n",
+        encoding="utf-8",
+    )
+
+    _, rows = _load_manifest_chains(manifest, "AF-TEST")
+
+    assert [row["entity_id"] for row in rows] == expected_ids
 
 
 def _write_scores_json(path: Path, *, plddt: list[float], pae: list[list[float]], max_pae: float) -> None:
@@ -165,6 +196,59 @@ def test_convert_file_auto_expands_homomultimer_manifest_with_duckdb(tmp_path: P
         },
     ]
     assert plddt_payload["residueNumber"] == [1, 2, 3, 4]
+
+
+def test_convert_file_preserves_manifest_protein_name_in_generated_manifest(
+    tmp_path: Path,
+) -> None:
+    duckdb_path = tmp_path / "entries.duckdb"
+    manifest_path = tmp_path / "manifest.csv"
+    scores_json = tmp_path / "scores.json"
+    pdb_file = tmp_path / "test.pdb"
+    chain_manifest = tmp_path / "chain_manifest.csv"
+
+    _create_duckdb(duckdb_path, [("P11111", "Whole protein", "AC")])
+    manifest_path.write_text(
+        "model_entity_id,entity_id,chain_id,uniprot_ac,protein_name\n"
+        "AF-0000000000000003,1,A,P11111,Named fragment\n",
+        encoding="utf-8",
+    )
+    _write_scores_json(
+        scores_json,
+        plddt=[90.0, 80.0, 70.0, 60.0],
+        pae=[
+            [0.0, 1.0, 2.0, 3.0],
+            [1.0, 0.0, 2.0, 3.0],
+            [2.0, 2.0, 0.0, 1.0],
+            [3.0, 3.0, 1.0, 0.0],
+        ],
+        max_pae=3.0,
+    )
+    _write_test_pdb(pdb_file)
+
+    output_paths = convert_file(
+        str(scores_json),
+        str(pdb_file),
+        outdir=str(tmp_path),
+        manifest_path=str(manifest_path),
+        model_entity_id="AF-0000000000000003",
+        duckdb_path=str(duckdb_path),
+        out_chain_manifest=str(chain_manifest),
+    )
+
+    plddt_payload = json.loads(
+        Path(output_paths["plddt"]).read_text(encoding="utf-8")
+    )
+    assert [chain["name"] for chain in plddt_payload["chains"]] == [
+        "Named fragment",
+        "Named fragment",
+    ]
+    header = chain_manifest.read_text(encoding="utf-8").splitlines()[0]
+    assert "protein_name" in header
+    rows = list(
+        csv.DictReader(chain_manifest.read_text(encoding="utf-8").splitlines())
+    )
+    assert all(row["protein_name"] == "Named fragment" for row in rows)
 
 
 def test_convert_file_uses_manifest_sequence_overrides_with_duckdb(tmp_path: Path) -> None:

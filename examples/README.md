@@ -12,7 +12,14 @@ The two committed runnable references are:
 - [`examples/colabfold_complex_e2e/`](./colabfold_complex_e2e/): one homodimer
   and one heterodimer fixture
 
-Both references include:
+There is also a fragment-metadata reference:
+
+- [`examples/fragment_metadata_e2e/`](./fragment_metadata_e2e/): validates
+  custom fragment names across seven real collaborator monomer/dimer
+  topologies. Its committed runner stops before coordinates; a companion
+  deterministic synthetic-coordinate runner continues through final ModelCIF.
+
+The two coordinate references both include:
 
 - normalized `*-meta_v1.json` + `*-model_v1.pdb` inputs
 - converted confidence and PAE JSONs
@@ -60,11 +67,40 @@ See [`examples/colabfold_monomer_e2e/README.md`](./colabfold_monomer_e2e/README.
 and [`examples/colabfold_complex_e2e/README.md`](./colabfold_complex_e2e/README.md)
 for the selected fixtures, caveats, and generated file layout.
 
+Regenerate the fragment-metadata pre-structure reference with:
+
+```bash
+.venv/bin/python scripts/generate_fragment_metadata_e2e_example.py
+```
+
+It recreates `examples/fragment_metadata_e2e/generated/` and validates the
+DuckDB-to-manifest-to-metadata path only. See
+[`examples/fragment_metadata_e2e/README.md`](./fragment_metadata_e2e/README.md)
+for its coverage.
+
+When the local donor pairs are available under
+`/mnt/disks/toolkit-data/viruses/sample_data`, reproduce the synthetic
+coordinate continuation with:
+
+```bash
+.venv/bin/python scripts/generate_fragment_coordinate_e2e_example.py
+```
+
+It writes to
+`/mnt/disks/toolkit-data/viruses/fragment_metadata_synthetic_e2e/generated/`
+and validates seven PDB/meta pairs, converted scores, individual and batched
+metadata, ModelCIF input, and seven final ModelCIF files. The assets are
+deterministic software fixtures and are explicitly unsuitable for scientific
+interpretation.
+
 ## Validate Committed E2E Outputs
 
 Run these checks from the repo root after installing the project environment.
 They validate one representative monomer and one representative complex from
 the committed reference trees.
+
+The fragment-metadata reference has no committed coordinate artifacts. Run
+the appropriate pre-structure or external synthetic-coordinate command above.
 
 ### Metadata JSONs
 
