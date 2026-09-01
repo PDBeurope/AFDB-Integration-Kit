@@ -23,7 +23,7 @@ dependencies = [
 production = [
     "biotite>=1.0.0",
     "pydssp>=0.9.0",
-    "torch>=2.12.0",
+    "torch>=2.12.1",
     "fastpdb>=1.2",
 ]
 
