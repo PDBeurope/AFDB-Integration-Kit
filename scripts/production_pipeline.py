@@ -2033,7 +2033,12 @@ def stage_15_batch_cif2bcif(
         "batch-cif2bcif",
         "--input-dir", str(modelcif_dir),
         "--output-dir", str(bcif_dir),
-        "--workers", str(config.workers)
+        "--workers", str(config.workers),
+        # The molstar backend shells out to the external Mol* `cif2bcif`
+        # command, which needs Node and is absent from every container we
+        # build. "auto" keeps Mol* when it is installed and falls back to the
+        # Biotite backend - already a dependency - when it is not.
+        "--backend", "auto",
     ]
 
     duration, success, stdout, stderr = run_command(cmd, "stage_15", logger, error_tracker, config.repo_dir)
