@@ -7,23 +7,27 @@ requires-python = ">=3.12"
 dependencies = [
     "gemmi>=0.7.3",
     "gemmi-program>=0.7.3",
-    "jsonschema>=4.24.0",
+    # format-nongpl pulls rfc3339-validator so that "format": "date-time"
+    # constraints in the metadata schemas are actually enforced. Without it
+    # jsonschema silently skips them.
+    "jsonschema[format-nongpl]>=4.24.0",
     "numpy>=2.3.1",
-    "pyarrow>=23.0.1",
+    "pyarrow>=17.0.0",
     "duckdb>=1.1.3",
     "tqdm>=4.66.5",
-    "requests>=2.33.0",
+    "requests>=2.32.4",
     "typer>=0.16.0",
-    "orjson>=3.11.6",
+    "orjson>=3.9.0",
+    "mdtraj>=1.9.9",
+    "biotite>=1.0.0",
+    "pydssp>=0.9.0",
 ]
 
 [project.optional-dependencies]
 # Production pipeline dependencies (clash detection, interface residues)
 # Note: torch_cluster must be installed separately - see README for instructions
 production = [
-    "biotite>=1.0.0",
-    "pydssp>=0.9.0",
-    "torch>=2.12.0",
+    "torch>=2.0.0",
     "fastpdb>=1.2",
 ]
 
@@ -36,6 +40,9 @@ afdb-uniprot-export-model = "uniprot.scripts.export_model_metadata:main"
 afdb-uniprot-export-chain = "uniprot.scripts.export_chain_metadata:main"
 afdb-uniprot-combine = "uniprot.scripts.combine_metadata:main"
 afdb-colabfold-convert = "afdb_integration_kit.colabfold.converter:main"
+add-custom-metadata = "uniprot.scripts.add_custom_metadata:main"
+add-fragment-metadata = "uniprot.scripts.add_fragment_metadata:main"
+enrich-fragment-manifest = "uniprot.scripts.enrich_fragment_manifest:main"
 
 [tool.setuptools.package-data]
 "afdb_integration_kit.validation" = ["defaults.yaml"]
@@ -56,7 +63,7 @@ dev = [
     "coverage>=7.9.2",
     "flake8>=7.3.0",
     "pre-commit>=4.2.0",
-    "pytest>=9.0.3",
+    "pytest>=8.4.1",
 ]
 docs = [
     "furo>=2024.8.6",

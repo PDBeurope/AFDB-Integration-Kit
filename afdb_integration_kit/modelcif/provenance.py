@@ -154,25 +154,25 @@ def normalize_modelcif_provenance(
         }
     ]
     if detected_complex:
-        software_rows_out.append(
-            {
-                "pdbx_ordinal": "2",
-                "name": "ipSAE",
-                "version": "?",
-                "type": "package",
-                "description": IPSAE_DESCRIPTION,
-                "classification": "data processing",
-            }
-        )
-        software_rows_out.append(
-            {
-                "pdbx_ordinal": "3",
-                "name": dssp_name,
-                "version": "?",
-                "type": dssp_type,
-                "description": SECONDARY_STRUCTURE_DESCRIPTION,
-                "classification": "data extraction",
-            }
+        software_rows_out.extend(
+            [
+                {
+                    "pdbx_ordinal": "2",
+                    "name": "ipSAE",
+                    "version": "?",
+                    "type": "package",
+                    "description": IPSAE_DESCRIPTION,
+                    "classification": "data processing",
+                },
+                {
+                    "pdbx_ordinal": "3",
+                    "name": dssp_name,
+                    "version": "?",
+                    "type": dssp_type,
+                    "description": SECONDARY_STRUCTURE_DESCRIPTION,
+                    "classification": "data extraction",
+                },
+            ]
         )
     else:
         software_rows_out.append(
@@ -189,14 +189,7 @@ def normalize_modelcif_provenance(
     _set_rows(
         software,
         software_rows_out,
-        [
-            "pdbx_ordinal",
-            "name",
-            "version",
-            "type",
-            "description",
-            "classification",
-        ],
+        ["pdbx_ordinal", "name", "version", "type", "description", "classification"],
     )
 
     software_group = _as_category(payload, "_ma_software_group")

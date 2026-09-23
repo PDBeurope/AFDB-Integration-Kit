@@ -60,8 +60,8 @@ def _load_parse_dependencies():
 
 def _read_structure(path: str | Path, model: Optional[int] = 1) -> AtomArray:
     """Read PDB file using fastpdb."""
-    path = Path(path)
     fastpdb = _load_parse_dependencies()
+    path = Path(path)
     pdb = fastpdb.PDBFile.read(str(path))
     if model is None:
         return pdb.get_structure()

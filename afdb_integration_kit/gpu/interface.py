@@ -16,12 +16,11 @@ a CA from a different chain.
 """
 from __future__ import annotations
 
-from typing import List, Tuple
+from typing import List, Tuple, Set
 
-from ._runtime import require_torch
+import torch
+
 from .clashes import radius_graph
-
-torch = require_torch("GPU clash/interface analysis")
 
 try:
     from .batch import ProteinBatch
@@ -57,6 +56,7 @@ def compute_interface_residues(
     ca_flat = batch.ca_coords.reshape(B * batch.max_residues, 3)
     ca_mask_flat = batch.ca_mask.reshape(B * batch.max_residues)
     chain_flat = batch.chain_ids.reshape(B * batch.max_residues)
+    res_id_flat = batch.res_ids.reshape(B * batch.max_residues)
 
     # Protein index for each residue
     protein_idx = torch.arange(B, device=device).repeat_interleave(batch.max_residues)
@@ -67,6 +67,7 @@ def compute_interface_residues(
     valid = ca_mask_flat
     ca_valid = ca_flat[valid]
     chain_valid = chain_flat[valid]
+    res_id_valid = res_id_flat[valid]
     protein_valid = protein_idx[valid]
     res_idx_valid = res_idx[valid]
 
@@ -171,6 +172,7 @@ def compute_interface_residues_flat(
     chain_flat = chain_ids.reshape(B * N)
 
     protein_idx = torch.arange(B, device=device).repeat_interleave(N)
+    res_idx = torch.arange(N, device=device).repeat(B)
 
     # Filter valid
     valid = ca_mask_flat

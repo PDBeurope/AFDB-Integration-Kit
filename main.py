@@ -14,10 +14,9 @@ from afdb_integration_kit.cif2bcif.convert import (
     run_batch_cif2bcif,
 )
 from afdb_integration_kit.cif2bcif.convert import run_cif2bcif as cif2bcif_helper
-from afdb_integration_kit.dssp.dssp import DEFAULT_ALGORITHM
 from afdb_integration_kit.dssp.dssp import run_dssp as dssp_helper
 from afdb_integration_kit.dssp.dssp import run_batch_dssp
-from afdb_integration_kit.metadata.validator import SchemaType, validate_against_schema
+from afdb_integration_kit.metadata.validator import validate_against_schema
 from afdb_integration_kit.modelcif.generate import generate
 from afdb_integration_kit.modelcif_replace.replace import replace_mmcif_with_json as replace_mmcif_with_json
 from afdb_integration_kit.modelpdb.generate import generate_pdb_headers
@@ -90,19 +89,19 @@ def _process_modelpdb_single(args: Tuple[str, str, str, str, str]) -> Tuple[str,
     cif_path = Path(cif_file)
     pdb_path = Path(pdb_dir)
     output_path = Path(output_dir)
-
+    
     stem = cif_path.stem
     model_id = stem.replace(f"-model_{model_version}", "")
-
+    
     pdb_file = pdb_path / f"{model_id}-model_v1.pdb"
     if not pdb_file.exists():
         pdb_file = pdb_path / f"{model_id}-model_{model_version}.pdb"
-
+    
     if not pdb_file.exists():
         return (model_id, False, "PDB file not found")
-
+    
     output_file = output_path / f"{model_id}-model_{model_version}.pdb"
-
+    
     try:
         # Import here to ensure module is available in subprocess
         from afdb_integration_kit.modelpdb.generate import generate_pdb_headers
@@ -119,12 +118,6 @@ logging.basicConfig(
 )
 
 app = typer.Typer()
-
-
-def _schema_type_help() -> str:
-    return ", ".join(schema.value for schema in SchemaType)
-
-
 def _relative_path(path: Path, root: Optional[Path]) -> str:
     if root is None:
         return str(path)
@@ -381,7 +374,7 @@ def run_schema_validation(
         ...,
         "-t",
         "--type",
-        help=f"Type of schema to validate against ({_schema_type_help()}).",
+        help="Type of schema to validate against ('model' or 'provider').",
     ),
 ):
     """
@@ -404,21 +397,15 @@ def validate_metadata_file(
         readable=True,
         resolve_path=True,
     ),
-    type: str = typer.Option(
-        ...,
-        "--type",
-        "-t",
-        help=f"Metadata schema type ({_schema_type_help()}).",
-    ),
 ):
     """
-    Validate a single metadata JSON file against the shared metadata schema.
+    Validate a single metadata JSON file (batch or per-accession).
     """
     require_non_empty_file(metadata_file, description="Metadata JSON file")
     results = run_validation_check(
         "metadata",
         [metadata_file],
-        config={"metadata": {"allow_single_file": True, "schema_type": type}},
+        config={"metadata": {"allow_single_file": True}},
     )
     _emit_single_validation_results(results, metadata_file.parent)
 
@@ -584,7 +571,7 @@ def run_modelcif_gen(
     dssp_algorithm: str = typer.Option(
         "mkdssp",
         "--dssp-algorithm",
-        help="Secondary-structure provenance mode to encode in the output ModelCIF (`mkdssp` or `pydssp`).",
+        help="Secondary-structure provenance mode (`mkdssp` or `pydssp`).",
     ),
 ):
     """
@@ -594,9 +581,7 @@ def run_modelcif_gen(
     require_non_empty_file(pdb, description="Input PDB file")
     require_non_empty_file(metadata, description="Input metadata JSON file")
     if dssp_algorithm not in ("mkdssp", "pydssp"):
-        console.print(
-            f"[red]Invalid DSSP provenance mode '{dssp_algorithm}'. Use 'mkdssp' or 'pydssp'.[/red]"
-        )
+        console.print(f"[red]Invalid DSSP provenance mode '{dssp_algorithm}'.[/red]")
         raise typer.Exit(1)
 
     # If validate is passed as a flag (True but no value), default to 'mmcif_ma.dic'
@@ -611,11 +596,7 @@ def run_modelcif_gen(
 
     # Call main logic (assuming main is imported or defined elsewhere)
     generate(
-        str(pdb),
-        str(metadata),
-        str(output),
-        validate_path,
-        fetch_uniprot,
+        str(pdb), str(metadata), str(output), validate_path, fetch_uniprot,
         dssp_algorithm=dssp_algorithm,
     )
 
@@ -684,7 +665,7 @@ def run_batch_modelcif_gen(
     dssp_algorithm: str = typer.Option(
         "mkdssp",
         "--dssp-algorithm",
-        help="Secondary-structure provenance mode to encode in batch ModelCIF output (`mkdssp` or `pydssp`).",
+        help="Secondary-structure provenance mode (`mkdssp` or `pydssp`).",
     ),
 ):
     """
@@ -694,9 +675,7 @@ def run_batch_modelcif_gen(
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     if dssp_algorithm not in ("mkdssp", "pydssp"):
-        console.print(
-            f"[red]Invalid DSSP provenance mode '{dssp_algorithm}'. Use 'mkdssp' or 'pydssp'.[/red]"
-        )
+        console.print(f"[red]Invalid DSSP provenance mode '{dssp_algorithm}'.[/red]")
         raise typer.Exit(1)
 
     # Find all JSON metadata files
@@ -709,23 +688,14 @@ def run_batch_modelcif_gen(
 
     # Prepare work items as tuples for the module-level worker function
     work_items = [
-        (
-            str(jf),
-            str(input_dir),
-            str(output_dir),
-            model_version,
-            skip_validation,
-            skip_alignment,
-            str(model_json_dir) if model_json_dir else "",
-            cif_qa_metrics or "",
-            dssp_algorithm,
-        )
+        (str(jf), str(input_dir), str(output_dir), model_version, skip_validation, skip_alignment,
+         str(model_json_dir) if model_json_dir else "", cif_qa_metrics or "", dssp_algorithm)
         for jf in json_files
     ]
-
+    
     success_count = 0
     error_count = 0
-
+    
     with ProcessPoolExecutor(max_workers=workers) as executor:
         results = executor.map(_process_modelcif_single, work_items)
         for model_id, success, error in results:
@@ -735,7 +705,7 @@ def run_batch_modelcif_gen(
                 error_count += 1
                 if error:
                     console.print(f"[yellow]Error {model_id}: {error}[/yellow]")
-
+    
     console.print(f"[green]Batch complete: {success_count} success, {error_count} errors[/green]")
 
 
@@ -856,26 +826,26 @@ def run_batch_modelpdb_gen(
     Uses ProcessPoolExecutor for CPU-bound parallel execution (bypasses GIL).
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-
+    
     # Find all CIF files
     cif_files = list(cif_dir.glob("*-model_*.cif"))
     if not cif_files:
         console.print("[red]No CIF files found in CIF directory[/red]")
         raise typer.Exit(1)
-
+    
     console.print(f"[blue]Processing {len(cif_files)} models with {workers} workers (ProcessPool)...[/blue]")
-
+    
     provider_str = str(provider)
-
+    
     # Prepare work items as tuples for the module-level worker function
     work_items = [
         (str(cf), str(pdb_dir), str(output_dir), provider_str, model_version)
         for cf in cif_files
     ]
-
+    
     success_count = 0
     error_count = 0
-
+    
     with ProcessPoolExecutor(max_workers=workers) as executor:
         results = executor.map(_process_modelpdb_single, work_items)
         for model_id, success, error in results:
@@ -885,7 +855,7 @@ def run_batch_modelpdb_gen(
                 error_count += 1
                 if error:
                     console.print(f"[yellow]Error {model_id}: {error}[/yellow]")
-
+    
     console.print(f"[green]Batch complete: {success_count} success, {error_count} errors[/green]")
 
 
@@ -914,37 +884,13 @@ def run_dssp(
         readable=False,
         resolve_path=True,
     ),
-    algorithm: str = typer.Option(
-        DEFAULT_ALGORITHM,
-        "--algorithm",
-        "-a",
-        help=(
-            "Algorithm for secondary structure: 'mkdssp' (external DSSP), "
-            "'psea' (geometry), "
-            "'pydssp' (H-bond), or 'tmalign' (CA-CA distance)."
-        ),
-    ),
-    device: str = typer.Option(
-        "cpu",
-        "--device",
-        "-d",
-        help="Device for PyDSSP: 'cpu' or 'cuda'.",
-    ),
 ):
     """
     Run DSSP on a CIF file to generate secondary structure information.
     """
-    if algorithm not in ("mkdssp", "psea", "pydssp", "tmalign"):
-        console.print(
-            f"[red]Invalid algorithm '{algorithm}'. Use 'mkdssp', 'psea', "
-            "'pydssp', or 'tmalign'.[/red]"
-        )
-        raise typer.Exit(1)
-
     require_non_empty_file(input_file, description="DSSP input CIF file")
     logger.info(f"Converting {input_file} to {output_file}")
-    if not dssp_helper(input_file, output_file, algorithm=algorithm, device=device):
-        raise typer.Exit(1)
+    dssp_helper(input_file, output_file)
     logger.info("Conversion complete.")
 
 
@@ -975,14 +921,10 @@ def batch_dssp(
         8, "--workers", "-w", help="Number of parallel workers (default: 8)"
     ),
     algorithm: str = typer.Option(
-        DEFAULT_ALGORITHM,
+        "psea",
         "--algorithm",
         "-a",
-        help=(
-            "Algorithm for secondary structure: 'mkdssp' (external DSSP), "
-            "'psea' (geometry), 'pydssp' (H-bond), or 'tmalign' "
-            "(CA-CA distance)"
-        )
+        help="Algorithm for secondary structure: 'psea' (geometry), 'pydssp' (H-bond), or 'tmalign' (CA-CA distance)"
     ),
     device: str = typer.Option(
         "cpu",
@@ -993,29 +935,20 @@ def batch_dssp(
 ):
     """
     Batch process all CIF files in a directory to add secondary structure.
-
-    Supports four algorithms:
-    - mkdssp: external DSSP binary (historical default)
+    
+    Supports three algorithms:
     - psea: Biotite's P-SEA algorithm (geometry-based, ~95% agreement with DSSP)
     - pydssp: PyDSSP (simplified H-bond DSSP, ~97% agreement with DSSP)
     - tmalign: TM-align make_sec algorithm (CA-CA distance patterns, very fast)
-
+    
     When --device cuda is used with pydssp, the H-bond and SSE computation
     runs on GPU via PyTorch for faster processing.
     """
-    if algorithm not in ("mkdssp", "psea", "pydssp", "tmalign"):
-        console.print(
-            f"[red]Invalid algorithm '{algorithm}'. Use 'mkdssp', 'psea', "
-            "'pydssp', or 'tmalign'.[/red]"
-        )
+    if algorithm not in ("psea", "pydssp", "tmalign"):
+        console.print(f"[red]Invalid algorithm '{algorithm}'. Use 'psea', 'pydssp', or 'tmalign'.[/red]")
         raise typer.Exit(1)
-
-    algo_names = {
-        "mkdssp": "mkdssp",
-        "psea": "P-SEA (Biotite)",
-        "pydssp": "PyDSSP",
-        "tmalign": "TM-align",
-    }
+    
+    algo_names = {"psea": "P-SEA (Biotite)", "pydssp": "PyDSSP", "tmalign": "TM-align"}
     algo_name = algo_names[algorithm]
     device_label = f"GPU ({device})" if device != "cpu" else "CPU"
     logger.info(
@@ -1051,31 +984,13 @@ def run_cif2bcif(
         readable=False,
         resolve_path=True,
     ),
-    backend: str = typer.Option(
-        "molstar",
-        "-b",
-        "--backend",
-        help="Conversion backend: 'molstar' (default), 'biotite', or 'auto'.",
-    ),
 ):
     """
-    Convert CIF to BinaryCIF or BinaryCIF.GZ.
-
-    The default backend preserves the original toolkit behavior by using the
-    external Mol* `cif2bcif` command. The optional Biotite backend remains
-    explicit, and `auto` uses Mol* first with Biotite fallback.
+    Convert CIF to BinaryCIF or BinaryCIF.GZ using gemmi.
     """
-    if backend not in ("molstar", "biotite", "auto"):
-        console.print(
-            "[red]Invalid backend. Use 'molstar', 'biotite', or 'auto'.[/red]"
-        )
-        raise typer.Exit(1)
     require_non_empty_file(input_file, description="cif2bcif input CIF file")
-    logger.info(
-        f"Converting {input_file} to {output_file} using {backend} backend"
-    )
-    if not cif2bcif_helper(input_file, output_file, backend=backend):
-        raise typer.Exit(1)
+    logger.info(f"Converting {input_file} to {output_file}")
+    cif2bcif_helper(input_file, output_file)
     logger.info("Conversion complete.")
 
 
@@ -1108,34 +1023,15 @@ def batch_cif2bcif(
     gzip: bool = typer.Option(
         False, "--gzip", "-gz", help="Output .bcif.gz files instead of .bcif"
     ),
-    backend: str = typer.Option(
-        "molstar",
-        "-b",
-        "--backend",
-        help="Conversion backend: 'molstar' (default), 'biotite', or 'auto'.",
-    ),
 ):
     """
     Batch process all CIF files in a directory to BCIF or BCIF.GZ.
     """
-    if backend not in ("molstar", "biotite", "auto"):
-        console.print(
-            "[red]Invalid backend. Use 'molstar', 'biotite', or 'auto'.[/red]"
-        )
-        raise typer.Exit(1)
     logger.info(
         f"Batch converting CIF files from {input_dir} to {output_dir} "
-        f"using {workers} workers. Gzip: {gzip}. Backend: {backend}"
+        f"using {workers} workers. Gzip: {gzip}"
     )
-    success, errors = run_batch_cif2bcif(
-        input_dir,
-        output_dir,
-        workers=workers,
-        gzip=gzip,
-        backend=backend,
-    )
-    if errors:
-        raise typer.Exit(1)
+    run_batch_cif2bcif(input_dir, output_dir, workers=workers, gzip=gzip)
     logger.info("Batch conversion complete.")
 
 

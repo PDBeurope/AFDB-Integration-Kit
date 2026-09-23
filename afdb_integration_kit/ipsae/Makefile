@@ -5,93 +5,71 @@ CXX ?= g++
 CXXFLAGS = -O3 -mtune=generic -fopenmp -std=c++17
 LDFLAGS = -fopenmp
 
-# Eigen is fetched on demand into deps/ (not vendored in the repo).
-# Prefer an already-available local/system install before attempting a fetch.
-# Override EIGEN_DIR, EIGEN_VERSION, or EIGEN_URL as needed.
+# Eigen is a header-only third-party dependency and is NOT vendored in this
+# repository. It is fetched on first build and verified against a pinned
+# checksum. Packagers may point at a system install instead, e.g.
+#   make EIGEN_DIR=/usr/include/eigen3
 EIGEN_VERSION ?= 3.4.0
-EIGEN_FETCH_DIR = deps/eigen-$(EIGEN_VERSION)
-SYSTEM_EIGEN_DIR := $(firstword $(foreach dir,/usr/include/eigen3 /usr/local/include/eigen3,$(if $(wildcard $(dir)/Eigen),$(dir),)))
-EIGEN_DIR ?= $(if $(wildcard $(EIGEN_FETCH_DIR)/Eigen),$(EIGEN_FETCH_DIR),$(if $(SYSTEM_EIGEN_DIR),$(SYSTEM_EIGEN_DIR),$(EIGEN_FETCH_DIR)))
 EIGEN_URL ?= https://gitlab.com/libeigen/eigen/-/archive/$(EIGEN_VERSION)/eigen-$(EIGEN_VERSION).tar.gz
+EIGEN_SHA256 ?= 8586084f71f9bde545ee7fa6d00288b264a2b7ac3607b974e54d13e7162c1c72
+EIGEN_DIR ?= deps/eigen-$(EIGEN_VERSION)
 
-# Include paths for dependencies
 INCLUDES = -I $(EIGEN_DIR) -I deps
 
-# Source and target
 SRC = ipsae_cpp.cpp
 TARGET = ipsae_cpp
 
 # Static linking (creates portable binary ~3MB)
 STATIC_FLAGS = -static
 
-.PHONY: all clean static check help deps ensure-eigen
+.PHONY: all deps clean check help
 
-# Default target - static linking (portable binary ~3MB, no runtime dependencies)
 all: $(TARGET)
 
-$(TARGET): $(SRC) | ensure-eigen
+# Fetch and verify Eigen unless it is already present (vendored, fetched
+# earlier, or supplied via EIGEN_DIR). Safe to run offline once satisfied.
+deps:
+	@if [ -d "$(EIGEN_DIR)" ]; then \
+	    echo "Eigen present at $(EIGEN_DIR)"; \
+	else \
+	    echo "Fetching Eigen $(EIGEN_VERSION)"; \
+	    mkdir -p deps; \
+	    curl -fsSL -o deps/eigen-$(EIGEN_VERSION).tar.gz "$(EIGEN_URL)"; \
+	    echo "$(EIGEN_SHA256)  deps/eigen-$(EIGEN_VERSION).tar.gz" | sha256sum -c - ; \
+	    tar -xzf deps/eigen-$(EIGEN_VERSION).tar.gz -C deps; \
+	    rm -f deps/eigen-$(EIGEN_VERSION).tar.gz; \
+	    echo "Eigen unpacked to $(EIGEN_DIR)"; \
+	fi
+
+$(TARGET): $(SRC) | deps
 	$(CXX) $(CXXFLAGS) $(STATIC_FLAGS) $(INCLUDES) $< -o $@ $(LDFLAGS)
 	@echo "Built $(TARGET) (static linking - portable)"
 
-# Dynamic target - faster compile, requires libs at runtime
-dynamic: $(SRC) | ensure-eigen
+dynamic: $(SRC) | deps
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $< -o $(TARGET) $(LDFLAGS)
 	@echo "Built $(TARGET) (dynamic linking)"
 
-# Resolve Eigen from the selected directory, fetching only when the selected
-# directory is the repo-local cache path.
-ensure-eigen:
-	@if [ -d "$(EIGEN_DIR)/Eigen" ]; then \
-		echo "Using Eigen headers from $(EIGEN_DIR)"; \
-	elif [ "$(EIGEN_DIR)" = "$(EIGEN_FETCH_DIR)" ]; then \
-		$(MAKE) deps; \
-	else \
-		echo "ERROR: EIGEN_DIR=$(EIGEN_DIR) does not contain Eigen headers" >&2; \
-		exit 1; \
-	fi
-
-# Fetch Eigen header tree into the repo-local cache path.
-deps: $(EIGEN_FETCH_DIR)
-
-$(EIGEN_FETCH_DIR):
-	@echo "Fetching Eigen $(EIGEN_VERSION) into $(EIGEN_FETCH_DIR)..."
-	@mkdir -p deps
-	@curl -fsSL "$(EIGEN_URL)" -o deps/eigen-$(EIGEN_VERSION).tar.gz
-	@tar -xzf deps/eigen-$(EIGEN_VERSION).tar.gz -C deps
-	@rm -f deps/eigen-$(EIGEN_VERSION).tar.gz
-	@test -d "$(EIGEN_FETCH_DIR)" || (echo "ERROR: extraction did not produce $(EIGEN_FETCH_DIR)" && exit 1)
-	@echo "Eigen $(EIGEN_VERSION) ready."
-
-# Check that dependencies are available (will not fetch).
+# Verify dependencies are present. Does not create anything.
 check:
 	@echo "Checking dependencies..."
-	@test -d "$(EIGEN_DIR)/Eigen" || (echo "ERROR: Eigen headers not found under $(EIGEN_DIR). Set EIGEN_DIR or run 'make deps'." && exit 1)
+	@test -d "$(EIGEN_DIR)" || (echo "ERROR: $(EIGEN_DIR) not found - run 'make deps' or set EIGEN_DIR" && exit 1)
 	@test -f deps/json.hpp || (echo "ERROR: deps/json.hpp not found" && exit 1)
 	@echo "All dependencies found."
 
-# Clean build artifacts (does not delete fetched Eigen tree).
 clean:
 	rm -f $(TARGET)
 	@echo "Cleaned build artifacts"
 
-# Help target
 help:
 	@echo "ipSAE C++ Makefile"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all     - Build static portable binary (default; auto-fetches Eigen if missing)"
+	@echo "  all     - Fetch deps if needed and build the static binary (default)"
+	@echo "  deps    - Fetch and verify Eigen only (useful for offline/CI pre-caching)"
 	@echo "  dynamic - Build with dynamic linking"
-	@echo "  deps    - Fetch Eigen $(EIGEN_VERSION) into $(EIGEN_FETCH_DIR)"
-	@echo "  check   - Verify the selected Eigen directory and json.hpp exist"
+	@echo "  check   - Verify dependencies exist (creates nothing)"
 	@echo "  clean   - Remove built binary"
-	@echo "  help    - Show this help message"
 	@echo ""
-	@echo "Variables:"
-	@echo "  EIGEN_DIR     (default: $(EIGEN_DIR))"
-	@echo "  EIGEN_VERSION (default: $(EIGEN_VERSION))"
-	@echo "  EIGEN_URL     (default: $(EIGEN_URL))"
-	@echo ""
-	@echo "Usage:"
-	@echo "  make          # Use system/repo-local Eigen, fetching only if needed"
-	@echo "  make dynamic  # Build dynamic binary"
-	@echo "  make clean    # Remove binary"
+	@echo "Overrides:"
+	@echo "  make EIGEN_DIR=/usr/include/eigen3   # use a system Eigen"
+	@echo "  make EIGEN_VERSION=3.4.0             # pin a different release"

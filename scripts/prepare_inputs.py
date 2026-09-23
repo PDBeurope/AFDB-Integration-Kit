@@ -76,10 +76,10 @@ def find_model_pairs(
             continue
         name = entry.name
         if name.endswith(score_suffix):
-            model_id = name[: -len(score_suffix)]
+            model_id = name[: -len(score_suffix)].replace("AF_", "AF-", 1).replace("AF_", "AF-", 1)
             scores[model_id] = Path(entry.path)
         elif name.endswith(pdb_suffix):
-            model_id = name[: -len(pdb_suffix)]
+            model_id = name[: -len(pdb_suffix)].replace("AF_", "AF-", 1).replace("AF_", "AF-", 1)
             pdbs[model_id] = Path(entry.path)
 
     matched_ids = scores.keys() & pdbs.keys()
@@ -414,6 +414,14 @@ def main() -> int:
         from afdb_integration_kit.manifest.resolver import resolve_and_build_manifest
 
         logger.info("Resolving accessions from AFCDB manifest...")
+        # uniprot_db_path/input_dir are deliberately not passed here. The
+        # resolver's sequence-length disambiguation reads
+        # {model_id}-meta_v1.json, but those are written later by
+        # prepare_input_files() into output_dir/inputs, and resolution has to
+        # run first because it decides which models proceed. Passing the raw
+        # ColabFold directory would find no meta files and skip the models
+        # anyway, so the resolver is left to fail ambiguous models outright
+        # rather than appear to resolve them.
         manifest_rows, skipped, af_to_uniprot = resolve_and_build_manifest(
             model_ids, args.build_from_api,
         )

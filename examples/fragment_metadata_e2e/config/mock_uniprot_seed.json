@@ -1,0 +1,10 @@
+{
+  "entries": [
+    {"primary_ac": "Q89536", "sequence_length": 597, "protein_name": "Mock replication protein E1"},
+    {"primary_ac": "P27409", "sequence_length": 1763, "protein_name": "Mock feline calicivirus polyprotein"},
+    {"primary_ac": "O71020", "sequence_length": 194, "protein_name": "Mock delta antigen"},
+    {"primary_ac": "Q9E926", "sequence_length": 195, "protein_name": "Mock small delta antigen"},
+    {"primary_ac": "Q9E927", "sequence_length": 214, "protein_name": "Mock large delta antigen"},
+    {"primary_ac": "P28711", "sequence_length": 106, "protein_name": "Mock minor capsid protein VP2"}
+  ]
+}

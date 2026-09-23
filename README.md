@@ -11,17 +11,15 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
   - [Installation](#installation)
     - [1. Clone the Repository](#1-clone-the-repository)
     - [2. Install UV (Python Package Manager)](#2-install-uv-python-package-manager)
-    - [3. Install Core Python Dependencies](#3-install-core-python-dependencies)
-    - [4. Install Mol\* CLI](#4-install-mol-cli)
-    - [5. Install DSSP](#5-install-dssp)
-    - [6. Download mmCIF Dictionary (Optional)](#6-download-mmcif-dictionary-optional)
-    - [7. Install Production Pipeline Dependencies (Optional)](#7-install-production-pipeline-dependencies-optional)
-    - [8. Install Nextflow (Optional)](#8-install-nextflow-optional)
-    - [9. Install Docker (Optional)](#9-install-docker-optional)
+    - [3. Install Mol\* CLI](#3-install-mol-cli)
+    - [4. Install DSSP](#4-install-dssp)
+    - [5. Download mmCIF Dictionary (Required for ModelCIF Generator)](#5-download-mmcif-dictionary-required-for-modelcif-generator)
+    - [6. Install Production Pipeline Dependencies (Optional)](#6-install-production-pipeline-dependencies-optional)
+    - [7. Install Nextflow (Optional)](#7-install-nextflow-optional)
+    - [8. Install Docker (Optional)](#8-install-docker-optional)
   - [Quick Start](#quick-start)
     - [Verify Installation](#verify-installation)
     - [Basic Usage Example](#basic-usage-example)
-    - [Validate Example Outputs](#validate-example-outputs)
   - [Usage](#usage)
     - [ModelCIF Generator](#modelcif-generator)
     - [CIF to BCIF Converter](#cif-to-bcif-converter)
@@ -32,6 +30,7 @@ A comprehensive toolkit for integrating structural models into the AlphaFold Dat
   - [Docker Usage](#docker-usage)
     - [Use Prebuilt Docker Image (Recommended)](#use-prebuilt-docker-image-recommended)
     - [Build Docker Image (Optional)](#build-docker-image-optional)
+    - [Build Docker Image](#build-docker-image)
     - [Run Tools in Docker](#run-tools-in-docker)
   - [Nextflow Workflow](#nextflow-workflow)
     - [End-to-End Processing](#end-to-end-processing)
@@ -102,28 +101,7 @@ pip install uv
 conda install -c conda-forge uv
 ```
 
-### 3. Install Core Python Dependencies
-
-Install the default dependency set from the locked project environment:
-
-```bash
-uv sync --locked --no-dev
-```
-
-The core install is intended for normal CLI usage, help output, metadata and
-schema validation, UniProt metadata tooling, ColabFold conversion, ModelCIF/PDB
-generation, CIF to BCIF conversion through the Mol* CLI fallback, and
-non-production helper scripts. It intentionally does not install the heavier
-production structure-analysis packages.
-
-Contributors who need development tools and tests can install the full locked
-environment instead:
-
-```bash
-uv sync --locked
-```
-
-### 4. Install Mol* CLI
+### 3. Install Mol* CLI
 
 If you use nvm (Node Version Manager):
 ```bash
@@ -136,15 +114,9 @@ Without nvm:
 npm install -g molstar
 ```
 
-### 5. Install DSSP
+### 4. Install DSSP (Nextflow workflow only)
 
-The default `run-dssp` and `batch-dssp` commands use the external `mkdssp`
-binary, so install DSSP when using the default secondary-structure path. DSSP is
-also needed for Nextflow workflows.
-
-The standalone production pipeline defaults to the built-in `pydssp` algorithm
-and does **not** require an external DSSP binary unless you select
-`--dssp-algorithm mkdssp`.
+The production pipeline uses built-in Python DSSP algorithms (`pydssp`, `psea`, `tmalign`) and does **not** require an external DSSP binary. This step is only needed if you use the Nextflow workflow.
 
 We use the modern DSSP implementation by the PDB-REDO team:
 
@@ -161,7 +133,7 @@ sudo make install
 
 For detailed installation instructions, visit: https://github.com/PDB-REDO/dssp
 
-### 6. Download mmCIF Dictionary (Optional)
+### 5. Download mmCIF Dictionary (Optional)
 
 The ModelCIF tool has an additional option to validate the mmCIF files against the updated model cif dictionary. 
 This is an optional parameter, but it is recommended to validate the output files when first setting up the tool.
@@ -175,39 +147,34 @@ curl -o mmcif_ma.dic https://raw.githubusercontent.com/ihmwg/ModelCIF/refs/heads
 
 **Note:** This step is automatically handled in the Docker environment, but is required for local installations.
 
-### 7. Install Production Pipeline Dependencies (Optional)
+### 6. Install Production Pipeline Dependencies (Optional)
 
-The production pipeline (`scripts/production_pipeline.py`) requires additional dependencies for structure analysis, DSSP algorithms, clash detection, and interface residues.
+The production pipeline (`scripts/production_pipeline.py`) requires additional dependencies for structure analysis (clash detection, interface residues). These use PyTorch and torch_cluster.
 
-Install the project production extra into the uv environment:
-
-```bash
-uv pip install '.[production]'
-```
-
-This installs the production Python packages declared by the project, including
-`biotite`, `pydssp`, `torch`, and `fastpdb`.
-
-Install `torch_cluster` separately after PyTorch is installed. Its wheel must
-match the installed PyTorch version and CUDA runtime. Pick the `CUDA` suffix
-from the PyTorch Geometric wheel index for your environment (`cpu`, `cu118`,
-`cu121`, `cu124`, `cu126`, `cu128`, etc.):
+**Option A: Using `environment.yml` (recommended):**
 
 ```bash
-# Check the installed PyTorch build first
-python -c "import torch; print(torch.__version__, torch.version.cuda)"
+conda env create -f environment.yml
+conda activate afdb-toolkit
 
-# Example: CPU wheel for PyTorch 2.8.0
-uv pip install torch_cluster -f https://data.pyg.org/whl/torch-2.8.0+cpu.html
-
-# Example: CUDA 12.8 wheel for PyTorch 2.8.0
-uv pip install torch_cluster -f https://data.pyg.org/whl/torch-2.8.0+cu128.html
+# Install Mol* CLI into the environment
+npm install -g molstar
 ```
 
-If `uv pip install '.[production]'` resolves a different PyTorch version, change
-the `torch-<version>+<cuda>` part of the `torch_cluster` URL to match that
-installed build. For available `torch_cluster` wheels, see
-https://data.pyg.org/whl/.
+This installs everything (core + production + C++ build tools + Node.js) in one step.
+
+**Option B: Manual pip installation:**
+
+```bash
+# Install PyTorch 2.8.0 (CPU version) - pinned for torch_cluster compatibility
+pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
+
+# Install torch_cluster (CPU version)
+pip install torch_cluster -f https://data.pyg.org/whl/torch-2.8.0+cpu.html
+
+# Install other production dependencies
+uv pip install ".[production]"
+```
 
 **Verify installation:**
 
@@ -215,7 +182,9 @@ https://data.pyg.org/whl/.
 python -c "import torch; from torch_cluster import radius_graph; print('torch_cluster OK')"
 ```
 
-### 8. Install Nextflow (Optional)
+For available torch_cluster versions, see: https://data.pyg.org/whl/
+
+### 7. Install Nextflow (Optional)
 
 For workflow automation:
 
@@ -228,7 +197,7 @@ chmod +x nextflow
 sudo mv nextflow /usr/local/bin/
 ```
 
-### 9. Install Docker (Optional)
+### 8. Install Docker (Optional)
 
 For containerized execution:
 - **macOS/Windows**: Download Docker Desktop from https://www.docker.com/products/docker-desktop
@@ -238,22 +207,13 @@ For containerized execution:
 
 ### Verify Installation
 
-Verify the core Python install:
-
-```bash
-uv run main.py --help
-uv run main.py list-validations
-```
-
-To check the optional external toolchain as well, install Mol*, DSSP, and any
-other workflow tools you need, then run:
+Test that all dependencies are correctly installed:
 
 ```bash
 uv run main.py test
 ```
 
-This command reports missing external executables such as `cif2bcif` or
-`mkdssp`.
+This command will validate your environment and report any missing dependencies.
 
 ### Basic Usage Example
 
@@ -274,46 +234,6 @@ uv run main.py run-dssp \
     -i input/AF-0000000000000001-model-v1.cif \
     -o output/AF-0000000000000001-model-v1.cif
 ```
-
-### Validate Example Outputs
-
-The committed end-to-end examples under [`examples/`](examples/README.md)
-can be validated directly from the repo root. Use `model-summary` for committed
-e2e `model_jsons/*.json` and `model_batches/*.json`, `collection-doc` for
-committed `chain_jsons/*.json` and `chain_batches/*.json`, and `provider` for
-the example `config/provider.json` files. The canonical `model` schema remains
-reserved for full model metadata entries.
-
-```bash
-# Summary and provider metadata JSONs
-.venv/bin/python main.py run-schema-validation \
-  -i examples/colabfold_monomer_e2e/model_jsons/AF-0000000300000001.json \
-  -t model-summary
-.venv/bin/python main.py run-schema-validation \
-  -i examples/colabfold_monomer_e2e/config/provider.json \
-  -t provider
-
-# Score JSONs and confidence/PAE relationship
-.venv/bin/python main.py validate-plddt-file \
-  --file examples/colabfold_monomer_e2e/scores/AF-0000000300000001-confidence_v1.json
-.venv/bin/python main.py validate-pae-file \
-  --file examples/colabfold_monomer_e2e/scores/AF-0000000300000001-predicted_aligned_error_v1.json
-.venv/bin/python main.py validate-relationships-pair \
-  --plddt-file examples/colabfold_monomer_e2e/scores/AF-0000000300000001-confidence_v1.json \
-  --pae-file examples/colabfold_monomer_e2e/scores/AF-0000000300000001-predicted_aligned_error_v1.json
-
-# ModelCIF dictionary validation
-gemmi validate -p -d mmcif_ma.dic \
-  examples/colabfold_monomer_e2e/modelcif/AF-0000000300000001-model_v1.cif
-```
-
-For manual coordinate-file sanity checks, open representative PDB, ModelCIF,
-and BCIF files in the Mol* web viewer at https://molstar.org/viewer/. Drag and
-drop the files into the browser window, or use **Open Files** in the left
-panel. The structure should open correctly, no error messages should be shown
-in the viewer, and the structure should look structurally correct by eye. The
-same representative files can also be opened in ChimeraX or PyMOL; expect a
-clean import with no parser errors.
 
 ## Usage
 
@@ -419,9 +339,6 @@ uv run main.py run-modelpdb-gen \
 ### CIF to BCIF Converter
 
 Converts mmCIF files to Binary CIF format for efficient storage and transmission.
-The default backend preserves the original toolkit behavior by using the
-external Mol* `cif2bcif` command. Biotite remains optional and can be selected
-explicitly or used as an `auto` fallback.
 
 **Command:**
 ```bash
@@ -431,16 +348,12 @@ uv run main.py run-cif2bcif -i <input_cif> -o <output_bcif>
 **Parameters:**
 - `-i, --input`: Input mmCIF file path
 - `-o, --output`: Output BCIF file path
-- `-b, --backend`: `molstar` (default), `biotite`, or `auto`
 
 ### DSSP Secondary Structure Assignment
 
-Assigns secondary structure annotations based on atomic coordinates. The default
-uses the external DSSP binary, preserving the historical CLI behavior. Python
-algorithms are available as opt-in 3-state alternatives:
+Assigns 3-state secondary structure annotations (helix, strand, coil) based on atomic coordinates. Three algorithms are available:
 
-- **mkdssp** (default) — external DSSP binary
-- **pydssp** — hydrogen-bond based assignment
+- **pydssp** (default) — hydrogen-bond based assignment
 - **psea** — geometry-based assignment using CA coordinates
 - **tmalign** — CA-CA distance-based assignment
 
@@ -452,8 +365,6 @@ uv run main.py run-dssp -i <input_cif> -o <output_cif>
 **Parameters:**
 - `-i, --input`: Input mmCIF file path
 - `-o, --output`: Output annotated mmCIF file path
-- `-a, --algorithm`: `mkdssp` (default), `pydssp`, `psea`, or `tmalign`
-- `-d, --device`: `cpu` (default) or `cuda` for PyDSSP
 
 ### Validation Toolkit
 
@@ -461,13 +372,11 @@ Use these commands to sanity-check individual artifacts or entire datasets befor
 
 #### Schema Validation
 
-Validate metadata JSON files against the required JSON schemas to ensure data consistency and compliance.
+Validate metadata JSON files (`model` or `provider`) against the required JSON schemas to ensure data consistency and compliance.
 
 **Schemas:**
 
-* Model: `afdb_integration_kit/metadata/resources/model_schema.json` for full model metadata entries
-* Model summary: `afdb_integration_kit/metadata/resources/model_summary_schema.json` for e2e `model_jsons/*.json`, e2e `model_batches/*.json`, and search summary documents
-* Collection doc: `afdb_integration_kit/metadata/resources/collection_doc_schema.json` for e2e `chain_jsons/*.json`, e2e `chain_batches/*.json`, and collection documents
+* Model: `afdb_integration_kit/metadata/resources/model_schema.json`
 * Provider: `afdb_integration_kit/metadata/resources/provider_schema.json`
 
 **Command:**
@@ -479,14 +388,12 @@ uv run main.py run-schema-validation -i <metadata_json_file> -t <type>
 **Parameters:**
 
 * `-i, --input`: Path to the metadata JSON file to validate
-* `-t, --type`: Type of metadata to validate (`model`, `model-summary`, `collection-doc`, or `provider`)
+* `-t, --type`: Type of metadata to validate (`model` or `provider`)
 
 **Examples:**
 
 ```bash
 uv run main.py run-schema-validation -i model.json -t model
-uv run main.py run-schema-validation -i model_summary.json -t model-summary
-uv run main.py run-schema-validation -i collection_doc.json -t collection-doc
 uv run main.py run-schema-validation -i provider.json -t provider
 ```
 
@@ -507,7 +414,6 @@ uv run main.py run-validations \
 ```
 
 - `run-validations` respects `validation/defaults.yaml` but you can override settings via `--config`.
-- The `metadata` check uses the same JSON schema validator as `run-schema-validation` and `validate-metadata-file`; its default schema type is `model` and can be changed with `metadata.schema_type` in the validation config.
 - Use `--summary`, `--errors-only`, and `--fail-on warn` to tailor CLI output/exit codes.
 - `run-naming-check` provides a lightweight naming/required-file audit with simplified flags:
 
@@ -523,13 +429,11 @@ uv run main.py plddt-check --root input/ --verbose
 
 #### Single-File Validators
 
-Ideal for workflow steps (e.g., Nextflow processes) that emit one artifact at a time. `validate-metadata-file`
-uses the same shared metadata schema validator as `run-schema-validation` and
-requires an explicit `--type` value:
+Ideal for workflow steps (e.g., Nextflow processes) that emit one artifact at a time:
 
 ```bash
 # Metadata (batch or per-accession JSON)
-uv run main.py validate-metadata-file --file path/to/metadata.json --type model
+uv run main.py validate-metadata-file --file path/to/metadata.json
 
 # pLDDT confidence JSON
 uv run main.py validate-plddt-file --file path/to/AF-...-confidence_v1.json
@@ -571,11 +475,11 @@ The production pipeline (`scripts/production_pipeline.py`) provides a standalone
 
 > **Note:** ipSAE and clash analysis (stages 5-6) run *before* metadata export (stages 7-8) so that quality metrics are available for JSON enrichment and CIF embedding.
 
-**Prerequisites:** Install production dependencies first (see [Installation section 7](#7-install-production-pipeline-dependencies-optional)). For clash/interface analysis, also install a `torch_cluster` wheel that matches your PyTorch and CUDA build.
+**Prerequisites:** Install production dependencies first (see [Installation section 6](#6-install-production-pipeline-dependencies-optional)), or use the `environment.yml`:
 
 ```bash
-uv pip install '.[production]'
-uv pip install torch_cluster -f https://data.pyg.org/whl/torch-<torch-version>+<cuda>.html
+conda env create -f environment.yml
+conda activate afdb-toolkit
 ```
 
 #### Homodimer mode (default)
@@ -619,7 +523,7 @@ The `--input-dir` may contain raw ColabFold outputs (long suffixes like `_unrela
 | `--resume` | Resume from previous run (skip completed stages) |
 | `--skip-stages stage_12,stage_13` | Skip specific stages (comma-separated) |
 | `--dry-run` | Show what would be executed without running |
-| `--dssp-algorithm` | Production pipeline secondary structure algorithm: `mkdssp`, `psea`, `pydssp` (production default), or `tmalign` |
+| `--dssp-algorithm` | Secondary structure algorithm: `psea`, `pydssp` (default), or `tmalign` |
 | `--workers N` | Parallel workers (default: all CPUs) |
 | `--pae-cutoff` / `--dist-cutoff` | ipSAE thresholds (default: 10.0 / 15.0) |
 | `--clash-cutoff` / `--interface-cutoff` | Clash/interface thresholds (default: 0.4 / 8.0 Å) |
@@ -627,7 +531,7 @@ The `--input-dir` may contain raw ColabFold outputs (long suffixes like `_unrela
 | `--cif-qa-metrics` | QA metrics to embed in mmCIF: `auto` (default, all metrics) or comma-separated list (e.g. `ipsae_AB,iptm_af,N_clash_backbone`) |
 | `--enrichment-metrics` | iPSAE/clash metric names to include in model/chain metadata JSONs (default: all known metrics) |
 | `--interface-clash-analysis` | Which analyses to run: `interface`, `backbone_clashes`, `heavy_atom_clashes` (default: all three) |
-| `--modelcif-template` | Path to ModelCIF metadata template JSON (default: `uniprot/templates/colabfold_example_modelcif_metadata.json`) |
+| `--modelcif-template` | Path to ModelCIF metadata template JSON (default: `uniprot/templates/modelcif_metadata.json`) |
 
 **Output:** Results are written to the output directory with logs in `logs/`, cache in `.pipeline_cache.json`, and a results summary in `pipeline_results.json`.
 
@@ -664,13 +568,6 @@ By default, scores files are **symlinked** as meta JSONs (zero I/O). Pass `--ext
 
 ## Docker Usage
 
-The Dockerfile installs the core Python dependency set from `requirements.txt`,
-plus Mol*, DSSP, Nextflow, and the ModelCIF dictionary. It is intended for the
-core CLI, validation, ModelCIF/PDB, CIF/BCIF, and Nextflow workflows. It does
-not install the `production` extra or `torch_cluster`; build a derived image
-with a PyTorch/CUDA-compatible `torch_cluster` wheel if you need the standalone
-production pipeline inside Docker.
-
 ### Use Prebuilt Docker Image (Recommended)
 
 You can skip building the image locally by using the prebuilt image available on Docker Hub:
@@ -696,6 +593,13 @@ docker run \
 ### Build Docker Image (Optional)
 
 If you prefer to build the image yourself:
+
+```bash
+docker build -t afdb-toolkit .
+```
+
+
+### Build Docker Image
 
 ```bash
 docker build -t afdb-toolkit .

@@ -2,9 +2,6 @@
 
 High-throughput analysis of protein structures for clashes and interfaces using GPU acceleration. Designed for processing millions of generated complexes.
 
-The throughput figures in this directory come from the copied PR materials.
-They are not re-verified in this CPU-only integration environment.
-
 ## Features
 
 - **Fast**: ~1500 proteins/s on a single GPU
@@ -16,32 +13,27 @@ They are not re-verified in this CPU-only integration environment.
 ## Installation
 
 ```bash
-# Project production dependencies
-uv pip install '.[production]'
+# PyTorch (adjust for your CUDA version)
+pip install torch --index-url https://download.pytorch.org/whl/cu118
 
-# Check the installed PyTorch build
-python -c "import torch; print(torch.__version__, torch.version.cuda)"
+# torch_cluster
+pip install torch_cluster -f https://data.pyg.org/whl/torch-2.0.0+cu118.html
 
-# torch_cluster must match the installed PyTorch version and CUDA runtime.
-# Replace the URL suffix with the wheel index for your environment.
-uv pip install torch_cluster -f https://data.pyg.org/whl/torch-2.8.0+cu128.html
+# Other dependencies
+pip install fastpdb biotite numpy tqdm
 ```
-
-Use `+cpu` for CPU-only PyTorch builds, or a CUDA suffix such as `+cu118`,
-`+cu121`, `+cu124`, `+cu126`, or `+cu128` when it matches your installed
-PyTorch wheel. Available wheels are listed at https://data.pyg.org/whl/.
 
 ## Quick Start
 
 ```python
-from afdb_integration_kit.gpu import analyze_pdb_files_pipelined
+from gpu import analyze_pdb_files_pipelined
 
 # Analyze PDB files and write results to JSON
 results = analyze_pdb_files_pipelined(
     ["complex1.pdb", "complex2.pdb", ...],
-    output_dir="results",
+    output_path="results",
     batch_size=512,
-    device="auto",
+    device="cuda",
     n_workers=16,
 )
 
@@ -53,18 +45,6 @@ for r in results:
     print(f"  Clashing residues: {r.backbone_clashing_residues}")
     print(f"  Interface residues: {r.interface_residues}")
 ```
-
-Device options:
-
-- `device="auto"`: use CUDA when available, otherwise CPU
-- `device="cuda"`: require CUDA and fail early if it is unavailable
-- `device="cpu"`: run the Torch implementation on CPU for small/correctness jobs
-
-Import note:
-
-- `import afdb_integration_kit.gpu` stays lightweight.
-- Production analysis entry points still require the optional production
-  dependencies (`torch`, `fastpdb`, and related packages) when you call them.
 
 ## Module Structure
 
@@ -124,3 +104,4 @@ Default parameters:
 
 ### Interface Residues
 A residue is an interface residue if its CA atom is within `interface_cutoff` (default 8.0 Å) of a CA atom from a different chain.
+

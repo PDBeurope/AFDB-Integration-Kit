@@ -37,7 +37,10 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Matches heterodimer composite IDs like AF_0000000000000001_AF_0000000000000002
-_HETERODIMER_PATTERN = re.compile(r"^(AF_\d{16})_(AF_\d{16})$")
+# or the hyphenated AF-0000000000000001_AF-0000000000000002. The single-ID
+# pattern below already accepts either separator; this one must match, or a
+# hyphenated composite falls through to "unrecognised" and the model is dropped.
+_HETERODIMER_PATTERN = re.compile(r"^(AF([_-])\d{16})_(AF\2\d{16})$")
 
 # Matches a single AF ID: AF_0000000000000001 or AF-0000000000000001.
 _SINGLE_AF_PATTERN = re.compile(r"^(AF[_-]\d{16})$")
@@ -63,7 +66,7 @@ def classify_model_ids(
     for mid in model_ids:
         het_match = _HETERODIMER_PATTERN.match(mid)
         if het_match:
-            classified[mid] = [het_match.group(1), het_match.group(2)]
+            classified[mid] = [het_match.group(1), het_match.group(3)]
             continue
 
         single_match = _SINGLE_AF_PATTERN.match(mid)

@@ -23,6 +23,8 @@ import re
 from collections import defaultdict
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
+from afdb_integration_kit.utils.rounding import round_float
+
 if TYPE_CHECKING:
     from .analyze import ClashContact, ProteinAnalysisResult
 
@@ -68,7 +70,7 @@ def _precompute_closest_partners(contacts) -> Dict[Tuple[str, int], dict]:
                 "partner_chain": c.chain_2,
                 "partner_res_label": str(c.res_2_id),
                 "partner_aa_type": c.aa_2_type,
-                "distance_angstrom": round(c.distance, 2),
+                "distance_angstrom": round_float(c.distance, 2),
                 "method": "ca_ca_distance",
             })
         # Side 2 -> partner is side 1
@@ -78,7 +80,7 @@ def _precompute_closest_partners(contacts) -> Dict[Tuple[str, int], dict]:
                 "partner_chain": c.chain_1,
                 "partner_res_label": str(c.res_1_id),
                 "partner_aa_type": c.aa_1_type,
-                "distance_angstrom": round(c.distance, 2),
+                "distance_angstrom": round_float(c.distance, 2),
                 "method": "ca_ca_distance",
             })
     return {k: v[1] for k, v in best.items()}
@@ -126,7 +128,7 @@ def result_to_interface_schema(
                     "chain_2": c.chain_2,
                     "res_2_label": str(c.res_2_id),
                     "aa_2_type": c.aa_2_type,
-                    "distance_angstrom": round(c.distance, 2),
+                    "distance_angstrom": round_float(c.distance, 2),
                 }
             else:
                 interaction = {
@@ -136,7 +138,7 @@ def result_to_interface_schema(
                     "chain_2": c.chain_1,
                     "res_2_label": str(c.res_1_id),
                     "aa_2_type": c.aa_1_type,
-                    "distance_angstrom": round(c.distance, 2),
+                    "distance_angstrom": round_float(c.distance, 2),
                 }
             interactions.append(interaction)
 
@@ -256,7 +258,7 @@ def _build_clash_site(
         worst = worst_overlaps.get((res["chain_id"], res["res_id"]), 0.0)
         residue_site_data[key].append({
             "site_id_ref": site_id,
-            "raw_score": round(worst, 2),
+            "raw_score": round_float(worst, 2),
             "raw_score_unit": "vdw_overlap_angstrom",
             "confidence_classification": _clash_severity(worst),
         })

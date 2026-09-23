@@ -22,9 +22,7 @@ from dataclasses import dataclass
 from typing import List, Sequence, Iterator
 
 import numpy as np
-from ._runtime import require_torch, resolve_device
-
-torch = require_torch("GPU batch creation")
+import torch
 
 try:
     from .protein import Protein, MAX_HEAVY_ATOMS
@@ -92,18 +90,13 @@ _SIDECHAIN_HETEROATOMS = {
 def create_batch(
     proteins: Sequence[Protein],
     indices: List[int],
-    device: str = "auto",
+    device: str = "cuda",
 ) -> ProteinBatch:
     """
     Create a GPU-resident batch from proteins.
 
     Optimized using array slicing instead of loops.
     """
-    resolved_device = resolve_device(
-        device,
-        torch_module=torch,
-        feature="GPU batch creation",
-    )
     B = len(proteins)
     if B == 0:
         raise ValueError("Cannot create batch from empty protein list")
@@ -165,22 +158,22 @@ def create_batch(
     ca_mask_np = mask_np[:, :, 1]
 
     # Transfer to GPU
-    if resolved_device.startswith("cuda"):
-        coords = torch.from_numpy(coords_np).pin_memory().to(resolved_device, non_blocking=True)
-        mask = torch.from_numpy(mask_np).pin_memory().to(resolved_device, non_blocking=True)
-        ca_coords = torch.from_numpy(ca_coords_np.copy()).pin_memory().to(resolved_device, non_blocking=True)
-        ca_mask = torch.from_numpy(ca_mask_np.copy()).pin_memory().to(resolved_device, non_blocking=True)
-        chain_ids = torch.from_numpy(chain_ids_np).pin_memory().to(resolved_device, non_blocking=True)
-        res_ids = torch.from_numpy(res_ids_np).pin_memory().to(resolved_device, non_blocking=True)
-        vdw_radii = torch.from_numpy(vdw_np).pin_memory().to(resolved_device, non_blocking=True)
+    if device == "cuda" and torch.cuda.is_available():
+        coords = torch.from_numpy(coords_np).pin_memory().to(device, non_blocking=True)
+        mask = torch.from_numpy(mask_np).pin_memory().to(device, non_blocking=True)
+        ca_coords = torch.from_numpy(ca_coords_np.copy()).pin_memory().to(device, non_blocking=True)
+        ca_mask = torch.from_numpy(ca_mask_np.copy()).pin_memory().to(device, non_blocking=True)
+        chain_ids = torch.from_numpy(chain_ids_np).pin_memory().to(device, non_blocking=True)
+        res_ids = torch.from_numpy(res_ids_np).pin_memory().to(device, non_blocking=True)
+        vdw_radii = torch.from_numpy(vdw_np).pin_memory().to(device, non_blocking=True)
     else:
-        coords = torch.from_numpy(coords_np).to(resolved_device)
-        mask = torch.from_numpy(mask_np).to(resolved_device)
-        ca_coords = torch.from_numpy(ca_coords_np.copy()).to(resolved_device)
-        ca_mask = torch.from_numpy(ca_mask_np.copy()).to(resolved_device)
-        chain_ids = torch.from_numpy(chain_ids_np).to(resolved_device)
-        res_ids = torch.from_numpy(res_ids_np).to(resolved_device)
-        vdw_radii = torch.from_numpy(vdw_np).to(resolved_device)
+        coords = torch.from_numpy(coords_np).to(device)
+        mask = torch.from_numpy(mask_np).to(device)
+        ca_coords = torch.from_numpy(ca_coords_np.copy()).to(device)
+        ca_mask = torch.from_numpy(ca_mask_np.copy()).to(device)
+        chain_ids = torch.from_numpy(chain_ids_np).to(device)
+        res_ids = torch.from_numpy(res_ids_np).to(device)
+        vdw_radii = torch.from_numpy(vdw_np).to(device)
 
     return ProteinBatch(
         coords=coords,
@@ -192,24 +185,19 @@ def create_batch(
         vdw_radii=vdw_radii,
         batch_indices=list(indices),
         proteins=list(proteins),
-        device=resolved_device,
+        device=device,
     )
 
 
 def iter_batches(
     proteins: Sequence[Protein],
     batch_size: int = 32,
-    device: str = "auto",
+    device: str = "cuda",
 ) -> Iterator[ProteinBatch]:
     """Iterate over proteins in batches."""
-    resolved_device = resolve_device(
-        device,
-        torch_module=torch,
-        feature="GPU batch creation",
-    )
     n = len(proteins)
     for start in range(0, n, batch_size):
         end = min(start + batch_size, n)
         batch_proteins = proteins[start:end]
         indices = list(range(start, end))
-        yield create_batch(batch_proteins, indices, resolved_device)
+        yield create_batch(batch_proteins, indices, device)

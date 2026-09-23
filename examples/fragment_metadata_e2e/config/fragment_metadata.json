@@ -1,0 +1,14 @@
+{
+  "P27409": [
+    {
+      "sequence_start": 1,
+      "sequence_end": 46,
+      "protein_name": "Development fragment alpha"
+    },
+    {
+      "sequence_start": 961,
+      "sequence_end": 1071,
+      "protein_name": "Development fragment omega"
+    }
+  ]
+}

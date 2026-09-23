@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_COMPLEX_ENRICHMENT_METRICS = [
+DEFAULT_COMPLEX_ENRICHMENT_METRICS: list[str] = [
     "pae_cutoff",
     "dist_cutoff",
     "iptm_af",
@@ -32,13 +32,11 @@ DEFAULT_COMPLEX_ENRICHMENT_METRICS = [
     "N_clash_heavyAtom",
 ]
 
-
-# Regex: strip _{X}{Y} chain-pair suffix (e.g. "_AB", "_BA") from column name.
 _CHAIN_PAIR_SUFFIX_RE = re.compile(r"_([A-Z])([A-Z])$")
 
 
 def model_id_from_ipsae_pdb_path(pdb_path: str) -> str | None:
-    """Extract model ID from an iPSAE CSV pdb_path value."""
+    """Extract a model ID from an iPSAE CSV ``pdb_path`` value."""
     if not pdb_path or not pdb_path.strip():
         return None
     name = Path(pdb_path).stem
@@ -49,7 +47,7 @@ def model_id_from_ipsae_pdb_path(pdb_path: str) -> str | None:
 
 
 def parse_ipsae_csv(csv_path: Path) -> dict[str, dict[str, Any]]:
-    """Read iPSAE summary CSV and return ``{model_id: {column: value}}``."""
+    """Read an iPSAE summary CSV as ``{model_id: {column: value}}``."""
     result: dict[str, dict[str, Any]] = {}
     if not csv_path.exists():
         return result
@@ -61,7 +59,6 @@ def parse_ipsae_csv(csv_path: Path) -> dict[str, dict[str, Any]]:
             model_id = model_id_from_ipsae_pdb_path(row.get("pdb_path", ""))
             if not model_id:
                 continue
-
             metrics: dict[str, Any] = {}
             for col, val in row.items():
                 if col in skip_cols:
@@ -71,18 +68,17 @@ def parse_ipsae_csv(csv_path: Path) -> dict[str, dict[str, Any]]:
                 except (ValueError, TypeError):
                     metrics[col] = val
             result[model_id] = metrics
-
     return result
 
 
 def base_metric_name(col: str) -> str:
-    """Strip a chain-pair suffix to get the base metric name."""
+    """Strip a chain-pair suffix from a metric name."""
     match = _CHAIN_PAIR_SUFFIX_RE.search(col)
     return col[: match.start()] if match else col
 
 
 def ipsae_json_key(col: str) -> str:
-    """Map an iPSAE CSV column name to its ``complexPredictionAccuracy_*`` key."""
+    """Map an iPSAE CSV column to its existing metadata JSON key."""
     non_ipsae_bases = {
         "iptm_af",
         "pDockQ2",
@@ -106,15 +102,12 @@ def build_model_enrichment(
     """Build ``complexPredictionAccuracy_*`` values for one model."""
     filter_set = set(metrics_filter)
     out: dict[str, Any] = {}
-
     for col, val in ipsae_row.items():
         if base_metric_name(col) in filter_set:
             out[ipsae_json_key(col)] = val
-
     for key, val in clash_row.items():
         if key in filter_set:
             out[f"complexPredictionAccuracy_{key}"] = val
-
     return out
 
 
@@ -123,24 +116,16 @@ def build_chain_enrichment(
     chain_id: str,
     metrics_filter: list[str],
 ) -> dict[str, Any]:
-    """Build ``complexPredictionAccuracy_*`` values for one chain.
-
-    General metrics go to all chains. Chain-pair metrics go to the chain whose
-    ID matches the first letter of the suffix, e.g. ``ipsae_AB`` goes to chain A.
-    """
+    """Build enrichment for one chain, routing pair metrics by first chain."""
     filter_set = set(metrics_filter)
     out: dict[str, Any] = {}
-
     for col, val in ipsae_row.items():
-        base = base_metric_name(col)
-        if base not in filter_set:
+        if base_metric_name(col) not in filter_set:
             continue
-
         match = _CHAIN_PAIR_SUFFIX_RE.search(col)
         if match:
             if match.group(1) == chain_id:
                 out[ipsae_json_key(col)] = val
         else:
             out[ipsae_json_key(col)] = val
-
     return out

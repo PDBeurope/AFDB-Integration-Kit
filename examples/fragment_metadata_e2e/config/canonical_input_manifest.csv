@@ -1,0 +1,13 @@
+model_entity_id,entity_id,chain_id,uniprot_ac,is_fragment,sequence_start,sequence_end,protein_name,topology_case,source_kind
+AF-0000000211971324,1,A,Q89536,false,,,,full_monomer,collaborator_wide
+AF-0000000212005744,1,A,P27409,true,1,46,,fragment_monomer,collaborator_wide
+AF-0000000212013504,1,A,O71020,false,,,,full_homodimer,collaborator_wide
+AF-0000000212013504,1,B,O71020,false,,,,full_homodimer,collaborator_wide
+AF-0000000212013519,1,A,Q9E926,false,,,,full_heterodimer,collaborator_wide
+AF-0000000212013519,2,B,Q9E927,false,,,,full_heterodimer,collaborator_wide
+AF-0000000212039399,1,A,P27409,true,1,46,,fragment_homodimer,collaborator_wide
+AF-0000000212039399,1,B,P27409,true,1,46,,fragment_homodimer,collaborator_wide
+AF-0000000212039400,1,A,P27409,true,1,46,,mixed_fragment_full_heterodimer,collaborator_wide
+AF-0000000212039400,2,B,P28711,false,,,,mixed_fragment_full_heterodimer,collaborator_wide
+AF-0000000212039401,1,A,P27409,true,1,46,,fragment_heterodimer,collaborator_wide
+AF-0000000212039401,2,B,P27409,true,961,1071,,fragment_heterodimer,collaborator_wide

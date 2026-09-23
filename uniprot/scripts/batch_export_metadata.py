@@ -15,6 +15,7 @@ import logging
 import os
 import sys
 from collections import defaultdict
+from decimal import Decimal, ROUND_HALF_EVEN
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,6 +23,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 import duckdb
 import orjson
+from afdb_integration_kit.uniprot.naming import protein_description
 
 
 @dataclass
@@ -40,6 +42,7 @@ class ManifestRow:
     fraction_plddt_low: Optional[float]
     fraction_plddt_confident: Optional[float]
     fraction_plddt_very_high: Optional[float]
+    protein_name: Optional[str] = None
 
 
 @dataclass
@@ -296,6 +299,7 @@ def load_manifest(path: Path) -> ManifestData:
                 fraction_plddt_very_high=parse_float_field(
                     row.get("fraction_plddt_very_high"), "fraction_plddt_very_high"
                 ),
+                protein_name=(row.get("protein_name") or "").strip() or None,
             )
             by_model[model_id].append(manifest_row)
             if uniprot_ac:
@@ -378,17 +382,12 @@ def as_string_list(value: Any) -> List[str]:
     return []
 
 
-def derive_description(entry: Dict[str, Any]) -> Optional[str]:
-    full_names = as_string_list(entry.get("protein_full_names"))
-    if full_names:
-        return full_names[0]
-    short_names = as_string_list(entry.get("protein_short_names"))
-    if short_names:
-        return short_names[0]
-    entry_name = entry.get("entry_name")
-    if isinstance(entry_name, str) and entry_name:
-        return entry_name
-    return None
+def derive_description(
+    entry: Dict[str, Any],
+    accession: Optional[str] = None,
+    manifest_name: Optional[str] = None,
+) -> Optional[str]:
+    return protein_description(manifest_name, entry, accession or "") or None
 
 
 def derive_gene(entry: Dict[str, Any]) -> tuple[Optional[str], List[str]]:
@@ -434,7 +433,12 @@ def aggregate_metric(rows: Sequence[ManifestRow], attr: str) -> Optional[float]:
     values = [getattr(row, attr) for row in rows if getattr(row, attr) is not None]
     if not values:
         return None
-    return round(sum(values) / len(values), 2)
+    # Half-even rounding on the exact decimal value so the same model yields identical
+    # metadata bytes across runs, independent of float summation order. Mirrors
+    # afdb_integration_kit/utils/rounding.round_float; inlined to keep this script
+    # importable when run standalone.
+    mean = sum(values) / len(values)
+    return float(Decimal(str(mean)).quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN))
 
 
 def aggregate_model_metrics(rows: Sequence[ManifestRow]) -> Dict[str, Optional[float]]:
@@ -496,7 +500,10 @@ def build_component_payload(
     isoform_override = resolve_consistent_value(rows, "is_isoform", "is_isoform", accession)
     is_isoform = bool(isoform_override) if isoform_override is not None else False
 
-    uniprot_description = derive_description(entry) or accession
+    protein_name = resolve_consistent_value(
+        rows, "protein_name", "protein_name", accession
+    )
+    uniprot_description = derive_description(entry, accession, protein_name)
     gene, gene_synonyms = derive_gene(entry)
 
     sequence_version_date = ensure_iso_date(entry.get("sequence_version_date"))
@@ -578,13 +585,17 @@ def build_model_record(
         rows_for_key = component_groups[key]
         component_counts.append(len(rows_for_key))
         components.append(
-            build_component_payload(accession, entry_map[accession], rows_for_key, default_entity_type)
+            build_component_payload(
+                accession, entry_map[accession], rows_for_key, default_entity_type
+            )
         )
 
     accessions = [component.accession for component in components]
     descriptions = [component.uniprot_description for component in components]
     tax_ids = [component.tax_id for component in components]
-    genes = [component.gene for component in components]
+    # A component without a gene symbol must not leak a null into the array:
+    # the schema requires non-empty strings. Mirrors the organism handling below.
+    genes = [component.gene for component in components if component.gene]
 
     organism_values: List[str] = []
     for component in components:
@@ -608,8 +619,7 @@ def build_model_record(
     oligomeric_state = None
     oligomeric_state_description = None
     if is_complex:
-        unique_accessions = {row.uniprot_ac for row in manifest_rows if row.uniprot_ac}
-        assembly_type = "Hetero" if len(unique_accessions) > 1 else "Homo"
+        assembly_type = "Hetero" if len(component_order) > 1 else "Homo"
         oligomeric_state = derive_oligomeric_state(len(manifest_rows))
         oligomeric_state_description = derive_oligomeric_state_description(
             assembly_type,
@@ -686,7 +696,8 @@ def build_model_record(
     record["isUniProtReviewed"] = is_uniprot_reviewed
     record["isIsoform"] = is_isoform_flag
     record["organismScientificName"] = organism_scientific_names
-    record["gene"] = genes
+    if genes:
+        record["gene"] = genes
     record["taxId"] = tax_ids
     if sequence_start_value is not None and sequence_end_value is not None:
         record["sequenceStart"] = sequence_start_value
@@ -736,13 +747,16 @@ def build_chain_records(
 
     components: List[ComponentPayload] = []
     component_counts: List[int] = []
+    key_to_component: Dict[tuple, ComponentPayload] = {}
     for key in component_order:
         accession = key[0]
         rows_for_key = component_groups[key]
         component_counts.append(len(rows_for_key))
-        components.append(
-            build_component_payload(accession, entry_map[accession], rows_for_key, default_entity_type)
+        payload = build_component_payload(
+            accession, entry_map[accession], rows_for_key, default_entity_type
         )
+        components.append(payload)
+        key_to_component[key] = payload
 
     latest_version, all_versions = normalise_versions(
         config.get("latestVersion"),
@@ -768,8 +782,7 @@ def build_chain_records(
     oligomeric_state = None
     oligomeric_state_description = None
     if is_complex:
-        unique_accessions = {row.uniprot_ac for row in manifest_rows if row.uniprot_ac}
-        assembly_type = "Hetero" if len(unique_accessions) > 1 else "Homo"
+        assembly_type = "Hetero" if len(component_order) > 1 else "Homo"
         oligomeric_state = derive_oligomeric_state(len(manifest_rows))
         oligomeric_state_description = derive_oligomeric_state_description(
             assembly_type,
@@ -801,13 +814,15 @@ def build_chain_records(
         accession = row.uniprot_ac
         if not accession:
             continue
-        payload = None
-        for comp in components:
-            if comp.accession == accession:
-                payload = comp
-                break
-        if payload is None:
-            raise ValueError(f"No payload built for accession {accession} in model {model_entity_id}.")
+        key = (
+            accession,
+            row.sequence_start,
+            row.sequence_end,
+            row.is_fragment if row.is_fragment is not None else False,
+            row.is_isoform if row.is_isoform is not None else False,
+            row.entity_type or default_entity_type,
+        )
+        payload = key_to_component[key]
 
         unique_id = f"{base_unique_id}_{version_tag}_{row.chain_id}"
 
@@ -833,7 +848,9 @@ def build_chain_records(
 
         record = {
             "uniqueId": unique_id,
-            "toolUsed": config["toolUsed"],
+            "toolUsed": (config["homodimerToolUsed"]
+                         if assembly_type == "Homo" and "homodimerToolUsed" in config
+                         else config["toolUsed"]),
             "modelCreatedDate": ensure_iso_date(config.get("modelCreatedDate")),
             "modelEntityId": model_entity_id,
             "isComplex": is_complex,

@@ -15,6 +15,7 @@ import requests
 from afdb_integration_kit.modelcif.provenance import normalize_modelcif_provenance
 from afdb_integration_kit.utils.pdbeditor import PDBFileEditor
 from afdb_integration_kit.utils.cifstorage import CifDataStorage
+from afdb_integration_kit.utils.rounding import mean_2dp_str
 from afdb_integration_kit.utils.uniprot import UniprotAPIClient
 from afdb_integration_kit.utils.constant import (
     CAT_ATOM_SITE,
@@ -101,15 +102,20 @@ def process_uniprot_response(data: Dict[str, Any]) -> Dict[str, str]:
     }
 
 
-def compute_global_plddt(b_factors: List[str]) -> float:
-    """Computes the average pLDDT from a list of B-factor strings."""
+def compute_global_plddt(b_factors: List[str]) -> Optional[str]:
+    """Computes the average pLDDT from a list of B-factor strings.
+
+    Returns the value pre-formatted to two decimals (or ``None`` when there are no
+    usable B-factors). Aggregation uses exact ``Decimal`` arithmetic so the result is
+    deterministic and independent of atom summation order — see
+    ``afdb_integration_kit.utils.rounding``.
+    """
     logger.info("Computing global pLDDT...")
     try:
-        b_floats = [float(v) for v in b_factors if v not in ("?", ".", "")]
-        return sum(b_floats) / len(b_floats) if b_floats else -1.0
+        return mean_2dp_str(b_factors)
     except (ValueError, TypeError, ZeroDivisionError) as e:
         logger.error(f"Error parsing B-factors for global pLDDT: {e}")
-        return -1.0
+        return None
 
 
 def compute_local_plddt_metrics(
@@ -118,8 +124,10 @@ def compute_local_plddt_metrics(
     """Computes local pLDDT per residue."""
     logger.info("Computing local pLDDT...")
 
-    # Use dict to accumulate b-factors per residue, preserving insertion order (Python 3.7+)
-    residue_bfactors: Dict[tuple, List[float]] = {}
+    # Accumulate the raw B-factor *strings* per residue, preserving insertion order
+    # (Python 3.7+). Keeping them as strings lets us average via exact Decimal
+    # arithmetic, so per-residue metric_value is deterministic (see utils.rounding).
+    residue_bfactors: Dict[tuple, List[str]] = {}
     residue_comp_ids: Dict[tuple, str] = {}
 
     for i in range(len(asym_ids)):
@@ -127,7 +135,7 @@ def compute_local_plddt_metrics(
         if b_factor in ("?", ".", ""):
             continue
         try:
-            bf = float(b_factor)
+            float(b_factor)  # validate parseable; keep the original string for Decimal
         except (ValueError, TypeError):
             continue
 
@@ -135,7 +143,7 @@ def compute_local_plddt_metrics(
         if key not in residue_bfactors:
             residue_bfactors[key] = []
             residue_comp_ids[key] = comp_ids[i]
-        residue_bfactors[key].append(bf)
+        residue_bfactors[key].append(b_factor)
 
     # Build output lists in single pass
     local_metrics: Dict[str, List[Any]] = {
@@ -149,12 +157,12 @@ def compute_local_plddt_metrics(
     }
 
     for ordinal, ((asym_id, seq_id), b_list) in enumerate(residue_bfactors.items(), 1):
-        mean_plddt = sum(b_list) / len(b_list)
+        mean_plddt = mean_2dp_str(b_list)
         local_metrics["label_asym_id"].append(asym_id)
         local_metrics["label_comp_id"].append(residue_comp_ids[(asym_id, seq_id)])
         local_metrics["label_seq_id"].append(seq_id)
         local_metrics["metric_id"].append("2")
-        local_metrics["metric_value"].append(f"{mean_plddt:.2f}")
+        local_metrics["metric_value"].append(mean_plddt)
         local_metrics["model_id"].append("1")
         local_metrics["ordinal_id"].append(str(ordinal))
 
@@ -245,6 +253,7 @@ def create_polymer_sequence_categories(
 
 CAT_STRUCT_REF = "_struct_ref"
 CAT_STRUCT_REF_SEQ = "_struct_ref_seq"
+CAT_TARGET_ENTITY_INSTANCE = "_ma_target_entity_instance"
 
 
 def _clamp_struct_ref_seq_to_entity_poly_seq(cif_data: CifDataStorage) -> None:
@@ -293,6 +302,308 @@ def _clamp_struct_ref_seq_to_entity_poly_seq(cif_data: CifDataStorage) -> None:
         seq_align_beg[i] = str(new_beg)
     cif_data.set_item(CAT_STRUCT_REF_SEQ, "seq_align_end", seq_align_end)
     cif_data.set_item(CAT_STRUCT_REF_SEQ, "seq_align_beg", seq_align_beg)
+
+
+# Standard + common modified residue 3-letter -> 1-letter codes, used to derive
+# per-chain sequences from coordinates for structure-based entity reconciliation.
+_AA3TO1 = {
+    "ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C", "GLN": "Q",
+    "GLU": "E", "GLY": "G", "HIS": "H", "ILE": "I", "LEU": "L", "LYS": "K",
+    "MET": "M", "PHE": "F", "PRO": "P", "SER": "S", "THR": "T", "TRP": "W",
+    "TYR": "Y", "VAL": "V", "MSE": "M", "SEC": "U", "PYL": "O",
+}
+
+
+def _chain_seqs_from_atom_site(atom_site_data: Dict[str, Any]) -> Dict[str, str]:
+    """Per-chain one-letter sequence in coordinate order, keyed by label_asym_id.
+
+    One residue per (asym_id, label_seq_id); this mirrors the deposited structure,
+    which is the ground truth for which protein is physically in each chain.
+    """
+    asym = atom_site_data.get(ITEM_LABEL_ASYM_ID, [])
+    comp = atom_site_data.get(ITEM_LABEL_COMP_ID, [])
+    seqid = atom_site_data.get(ITEM_LABEL_SEQ_ID, [])
+    per: Dict[str, List[str]] = defaultdict(list)
+    seen: Dict[str, set] = defaultdict(set)
+    for a, c, s in zip(asym, comp, seqid):
+        if s in seen[a]:
+            continue
+        seen[a].add(s)
+        per[a].append(_AA3TO1.get(c, "X"))
+    return {a: "".join(v) for a, v in per.items()}
+
+
+def _assign_chains_to_entities(
+    chain_seqs: Dict[str, str], entity_seqs: Dict[str, str]
+) -> Dict[str, str]:
+    """Map each physical chain (label_asym_id) to the entity whose reference sequence
+    it matches: exact sequence, then length, then positional fallback. Used only for
+    the 1:1 multi-entity (heterodimer) case so names/provenance follow the coordinates.
+    """
+    remaining = dict(entity_seqs)
+    out: Dict[str, str] = {}
+    # Pass 1: exact sequence match (disambiguates equal-length pairs).
+    for asym, cs in chain_seqs.items():
+        eid = next((e for e, es in remaining.items() if es and es == cs), None)
+        if eid is not None:
+            out[asym] = eid
+            del remaining[eid]
+    # Pass 2: sequence-length match.
+    for asym, cs in chain_seqs.items():
+        if asym in out:
+            continue
+        eid = next((e for e, es in remaining.items() if len(es) == len(cs)), None)
+        if eid is not None:
+            out[asym] = eid
+            del remaining[eid]
+    # Pass 3: positional fallback for anything still unmatched.
+    leftover = list(remaining.keys())
+    li = 0
+    for asym in chain_seqs:
+        if asym in out:
+            continue
+        if li < len(leftover):
+            out[asym] = leftover[li]
+            li += 1
+    return out
+
+
+def _get_cat(cif_data: CifDataStorage, dotless: str) -> Dict[str, Any] | None:
+    """Fetch a category whether it is stored dotless (input JSON) or dotted (gemmi)."""
+    data = cif_data.get_data()
+    return data.get(dotless) or data.get(dotless + ".")
+
+
+def _cat_key(cif_data: CifDataStorage, dotless: str) -> str | None:
+    """Return the actual key (dotless or dotted) under which a category is stored."""
+    data = cif_data.get_data()
+    if dotless in data:
+        return dotless
+    if dotless + "." in data:
+        return dotless + "."
+    return None
+
+
+def _entity_to_accession(cif_data: CifDataStorage) -> Dict[str, str]:
+    """entity_id -> UniProt accession, from the (entity-keyed, correct) _struct_ref."""
+    sr = _get_cat(cif_data, CAT_STRUCT_REF) or {}
+    return {
+        str(e): str(a)
+        for e, a in zip(sr.get("entity_id", []), sr.get("pdbx_db_accession", []))
+    }
+
+
+def _entity_to_ref_id(cif_data: CifDataStorage) -> Dict[str, str]:
+    """entity_id -> _struct_ref.id (the ref_id referenced by _struct_ref_seq)."""
+    sr = _get_cat(cif_data, CAT_STRUCT_REF) or {}
+    return {str(e): str(i) for e, i in zip(sr.get("entity_id", []), sr.get("id", []))}
+
+
+def _remap_target_entity_instance(
+    cif_data: CifDataStorage, new_map: Dict[str, str], ent_to_acc: Dict[str, str]
+) -> None:
+    """Re-attribute each chain row of _ma_target_entity_instance to its true entity.
+
+    Keeps asym_id (physical chain label) fixed; updates entity_id and the
+    "Chain X from UniProt Y" details to the entity/accession the coordinates say.
+    """
+    key = _cat_key(cif_data, CAT_TARGET_ENTITY_INSTANCE)
+    if key is None:
+        return
+    cat = cif_data.get_data()[key]
+    asyms = list(cat.get("asym_id", []))
+    if not asyms:
+        return
+    new_entity = [str(new_map.get(a, cat.get("entity_id", ["?"] * len(asyms))[i]))
+                  for i, a in enumerate(asyms)]
+    updates: Dict[str, List[str]] = {"entity_id": new_entity}
+    if "details" in cat:
+        updates["details"] = [
+            f"Chain {a} from UniProt {ent_to_acc.get(new_map.get(a, ''), '?')}"
+            for a in asyms
+        ]
+    cif_data.set_items(key, updates)
+
+
+def _remap_struct_ref_seq(
+    cif_data: CifDataStorage, new_map: Dict[str, str], ent_to_ref: Dict[str, str]
+) -> None:
+    """Re-point each chain row of _struct_ref_seq at the entity the coordinates say.
+
+    Keyed on pdbx_strand_id (one row per chain). The alignment ranges
+    (seq_align_*/db_align_*) and ref_id travel with the *entity*, not the chain
+    label, so each strand inherits its true entity's ranges.
+    """
+    key = _cat_key(cif_data, CAT_STRUCT_REF_SEQ)
+    if key is None:
+        return
+    cat = cif_data.get_data()[key]
+    strands = list(cat.get("pdbx_strand_id", []))
+    ref_ids = [str(r) for r in cat.get("ref_id", [])]
+    if not strands or not ref_ids:
+        logger.warning(
+            "_struct_ref_seq lacks pdbx_strand_id/ref_id; cannot remap by chain "
+            "(consistency guard will catch any residual mismatch)."
+        )
+        return
+    # source row index by ref_id so we can copy that entity's ranges
+    row_by_ref = {ref_ids[i]: i for i in range(len(ref_ids))}
+    travel_cols = [
+        c for c in ("ref_id", "seq_align_beg", "seq_align_end", "db_align_beg", "db_align_end")
+        if c in cat
+    ]
+    new_cols: Dict[str, List[Any]] = {c: [] for c in travel_cols}
+    for p, strand in enumerate(strands):
+        target_ref = ent_to_ref.get(new_map.get(strand, ""))
+        src = row_by_ref.get(target_ref, p)  # fall back to same row if unresolved
+        for c in travel_cols:
+            new_cols[c].append(cat[c][src])
+    cif_data.set_items(key, new_cols)
+
+
+def assert_chain_entity_consistency(cif_data: CifDataStorage) -> None:
+    """Fail loud if any chain-attributed category disagrees on a chain's entity.
+
+    Compares _struct_asym (reference) against _atom_site.label_entity_id,
+    _ma_target_entity_instance, and _struct_ref_seq (via _struct_ref). Absent
+    categories are skipped; homomultimers (all chains -> one entity) pass.
+    """
+    sa = _get_cat(cif_data, "_struct_asym") or {}
+    ref = {str(i): str(e) for i, e in zip(sa.get("id", []), sa.get("entity_id", []))}
+    if not ref:
+        return
+
+    def _check(name: str, mapping: Dict[str, str]) -> None:
+        for chain, ent in mapping.items():
+            if chain in ref and str(ent) != ref[chain]:
+                raise ValueError(
+                    f"Chain/entity inconsistency for chain {chain!r}: {name} says "
+                    f"entity {ent} but _struct_asym says {ref[chain]}."
+                )
+
+    atom = cif_data.get_data().get(CAT_ATOM_SITE, {})
+    a_asym = atom.get(ITEM_LABEL_ASYM_ID, [])
+    a_ent = atom.get("label_entity_id", [])
+    if a_asym and a_ent:
+        seen: Dict[str, str] = {}
+        for ch, e in zip(a_asym, a_ent):
+            if ch in seen and seen[ch] != str(e):
+                raise ValueError(
+                    f"_atom_site maps chain {ch!r} to multiple entities "
+                    f"({seen[ch]} and {e})."
+                )
+            seen[ch] = str(e)
+        _check("_atom_site.label_entity_id", seen)
+
+    tei = _get_cat(cif_data, CAT_TARGET_ENTITY_INSTANCE)
+    if tei and tei.get("asym_id") and tei.get("entity_id"):
+        _check(
+            "_ma_target_entity_instance",
+            {str(a): str(e) for a, e in zip(tei["asym_id"], tei["entity_id"])},
+        )
+
+    srs = _get_cat(cif_data, CAT_STRUCT_REF_SEQ)
+    ref_to_entity = {v: k for k, v in _entity_to_ref_id(cif_data).items()}
+    if srs and srs.get("pdbx_strand_id") and srs.get("ref_id") and ref_to_entity:
+        mapping = {}
+        for strand, rid in zip(srs["pdbx_strand_id"], srs["ref_id"]):
+            ent = ref_to_entity.get(str(rid))
+            if ent is not None:
+                mapping[str(strand)] = ent
+        _check("_struct_ref_seq", mapping)
+
+
+def reconcile_entities_with_structure(
+    cif_data: CifDataStorage, entity_ref_seqs: Dict[str, str]
+) -> None:
+    """Re-derive chain->entity from the coordinates for the 1:1 multi-entity case.
+
+    Fixes the heterodimer chain-swap: the chain->entity (and thus chain->accession)
+    assignment must follow the physical structure, not the manifest order. Only acts
+    when every chain is its own entity and reference sequences are available; otherwise
+    leaves the existing mapping untouched (homomultimers, single chain, missing seqs).
+    """
+    atom = cif_data.get_data().get(CAT_ATOM_SITE, {})
+    asym_ids = atom.get(ITEM_LABEL_ASYM_ID, [])
+    chains = sorted(set(asym_ids))
+    if len(chains) < 2 or len(entity_ref_seqs) != len(chains):
+        return
+    if any(not s for s in entity_ref_seqs.values()):
+        logger.warning("Missing entity reference sequence(s); skipping structure reconciliation.")
+        return
+    chain_seqs = _chain_seqs_from_atom_site(atom)
+    new_map = _assign_chains_to_entities(chain_seqs, entity_ref_seqs)
+    if len(new_map) != len(chains) or len(set(new_map.values())) != len(chains):
+        logger.warning("Structure reconciliation could not produce a 1:1 chain->entity map; keeping existing.")
+        return
+    current = dict(
+        zip(
+            cif_data.get_data().get(CAT_STRUCT_ASYM, {}).get("id", []),
+            cif_data.get_data().get(CAT_STRUCT_ASYM, {}).get("entity_id", []),
+        )
+    )
+    if current and current != new_map:
+        logger.warning(
+            "Structure-based reconciliation corrected chain->entity mapping %s -> %s "
+            "(manifest order disagreed with the coordinates).",
+            current, new_map,
+        )
+    cif_data.data[CAT_ATOM_SITE]["label_entity_id"] = [new_map.get(a, "?") for a in asym_ids]
+    sorted_asym = sorted(new_map.keys())
+    cif_data.set_items(
+        CAT_STRUCT_ASYM,
+        {"id": sorted_asym, "entity_id": [new_map[a] for a in sorted_asym]},
+    )
+    # Also remap the chain-attributed provenance categories that were copied from
+    # the manifest-ordered input metadata, so they follow the structure too.
+    _remap_target_entity_instance(cif_data, new_map, _entity_to_accession(cif_data))
+    _remap_struct_ref_seq(cif_data, new_map, _entity_to_ref_id(cif_data))
+
+
+def _entity_ref_seqs_from_input(input_metadata: Dict[str, Any]) -> Dict[str, str]:
+    """Build entity_id -> one-letter reference sequence from the input metadata.
+
+    Primary source is _entity_poly.pdbx_seq_one_letter_code (per-entity full sequence,
+    which is what export_modelcif_input writes). Falls back to _entity_poly_seq
+    (per-monomer mon_id ordered by num) if present. Network-free.
+    """
+    cats = input_metadata.get("categories", {}) or {}
+
+    # Primary: _entity_poly (entity_id -> one-letter sequence string)
+    ep = cats.get("_entity_poly") or cats.get("_entity_poly.") or {}
+    ep_ids = ep.get("entity_id", [])
+    ep_seqs = ep.get("pdbx_seq_one_letter_code", [])
+    if ep_ids and ep_seqs and len(ep_ids) == len(ep_seqs):
+        out: Dict[str, str] = {}
+        for eid, seq in zip(ep_ids, ep_seqs):
+            # strip whitespace/newlines that mmCIF may embed in long sequences
+            out[str(eid)] = "".join(str(seq).split())
+        if all(out.values()):
+            return out
+
+    # Fallback: _entity_poly_seq (per-monomer 3-letter codes)
+    eps = (
+        cats.get(CAT_ENTITY_POLY_SEQ)
+        or cats.get("_entity_poly_seq")
+        or cats.get("_entity_poly_seq.")
+        or {}
+    )
+    eids = eps.get("entity_id", [])
+    mons = eps.get("mon_id", [])
+    nums = eps.get("num", [])
+    if not eids or not mons or len(eids) != len(mons):
+        return {}
+    by_entity: Dict[str, List[tuple]] = defaultdict(list)
+    for i, eid in enumerate(eids):
+        try:
+            n = int(nums[i]) if i < len(nums) else i
+        except (ValueError, TypeError):
+            n = i
+        by_entity[str(eid)].append((n, mons[i]))
+    return {
+        eid: "".join(_AA3TO1.get(m, "X") for _, m in sorted(residues))
+        for eid, residues in by_entity.items()
+    }
 
 
 def map_entities_and_chains(
@@ -708,6 +1019,10 @@ def generate(
     map_entities_and_chains(cif_data, input_metadata.get("chains"))
     add_standard_chem_comp_data(cif_data)
 
+    # Per-entity reference sequence (network-free, from the input metadata), used to
+    # reconcile chain->entity against the actual coordinates further below.
+    entity_ref_seqs = _entity_ref_seqs_from_input(input_metadata)
+
     # 3. Add metadata from JSON file
     for category, items in input_metadata.get("categories", {}).items():
         if items:
@@ -731,16 +1046,27 @@ def generate(
                     # For single chain it is assumed 1.
                     entity_id = chain_info.get("entity_id", i + 1)
                     uniprot_details["target_entity_id"].append(str(entity_id))
+                    # Fallback reference sequence if not already supplied by input metadata.
+                    fetched_seq = (response_data or {}).get("sequence", {}).get("value", "")
+                    if fetched_seq:
+                        entity_ref_seqs.setdefault(str(entity_id), fetched_seq)
 
         if uniprot_details:
             cif_data.set_items(CAT_TARGET_REF_DB, dict(uniprot_details))
+
+    # 4b. Reconcile chain->entity with the structure so all chain-attributed provenance
+    # (_struct_asym, _atom_site.label_entity_id, _ma_target_entity_instance,
+    # _struct_ref_seq) follows the coordinates rather than the manifest order. Fixes the
+    # heterodimer chain-swap; no-ops for single-chain, homomultimers, or when reference
+    # sequences are unavailable.
+    reconcile_entities_with_structure(cif_data, entity_ref_seqs)
 
     # 5. Compute metrics from atomic data
     atom_site_data = cif_data.get_data().get(CAT_ATOM_SITE, {})
 
     global_plddt = compute_global_plddt(atom_site_data.get(ITEM_B_FACTOR, []))
-    if global_plddt >= 0:
-        cif_data.set_item(CAT_GLOBAL_QA, "metric_value", [f"{global_plddt:.2f}"])
+    if global_plddt is not None:
+        cif_data.set_item(CAT_GLOBAL_QA, "metric_value", [global_plddt])
 
     local_plddt_metrics = compute_local_plddt_metrics(
         atom_site_data.get(ITEM_LABEL_ASYM_ID, []),
@@ -763,6 +1089,10 @@ def generate(
     # 5b. Optionally inject model-level QA metrics from model JSON
     if model_json_path and cif_qa_metrics:
         extend_qa_with_model_metrics(cif_data, model_json_path, cif_qa_metrics)
+
+    # Fail loud if any chain-attributed category disagrees on a chain's entity
+    # (guards against a partial/incorrect chain->entity reconciliation shipping).
+    assert_chain_entity_consistency(cif_data)
 
     # 6. Write the final mmCIF file
     block_name = Path(output_file).stem

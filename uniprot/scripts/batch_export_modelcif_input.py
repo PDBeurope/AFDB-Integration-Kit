@@ -22,7 +22,15 @@ from typing import Any, Dict, Iterable, List, Sequence, Set, Tuple
 
 import duckdb
 import orjson
-from afdb_integration_kit.modelcif.provenance import normalize_modelcif_provenance
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from afdb_integration_kit.modelcif.provenance import (  # noqa: E402
+    normalize_modelcif_provenance,
+)
+from afdb_integration_kit.uniprot.naming import protein_description  # noqa: E402
 
 
 LOG = logging.getLogger("uniprot.batch_export_modelcif_input")
@@ -36,6 +44,7 @@ class ManifestEntry:
     uniprot_ac: str
     sequence_start: int | None = None
     sequence_end: int | None = None
+    protein_name: str | None = None
 
 
 @dataclass
@@ -45,6 +54,7 @@ class EntityAssignment:
     chain_ids: List[str]
     sequence_start: int | None = None
     sequence_end: int | None = None
+    protein_name: str | None = None
 
 
 @dataclass
@@ -112,7 +122,7 @@ def parse_args() -> argparse.Namespace:
         "--dssp-algorithm",
         default="mkdssp",
         choices=["mkdssp", "pydssp"],
-        help="Secondary-structure provenance mode to encode in the exported ModelCIF input.",
+        help="Secondary-structure provenance mode to encode in exported ModelCIF input.",
     )
     return parser.parse_args()
 
@@ -139,29 +149,29 @@ def load_manifest(path: Path, model_ids: List[str]) -> ManifestData:
     """Load manifest entries for specified models into memory."""
     if not path.exists():
         raise FileNotFoundError(f"Manifest file {path} does not exist.")
-
+    
     model_ids_set = set(model_ids)
     by_model: Dict[str, List[ManifestEntry]] = defaultdict(list)
     all_accessions: Set[str] = set()
-
+    
     with path.open("r", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         expected = {"model_entity_id", "entity_id", "chain_id", "uniprot_ac"}
         if reader.fieldnames is None or expected - set(reader.fieldnames):
             raise ValueError(f"Manifest {path} must contain columns {expected}, found {reader.fieldnames}")
-
+        
         for row in reader:
             model_id = (row.get("model_entity_id") or "").strip()
             if model_id not in model_ids_set:
                 continue
-
+            
             entity_id = (row.get("entity_id") or "").strip()
             chain_id = (row.get("chain_id") or "").strip()
             uniprot_ac = (row.get("uniprot_ac") or "").strip()
-
+            
             if not entity_id or not chain_id or not uniprot_ac:
                 raise ValueError(f"Incomplete manifest row for model {model_id}: {row}")
-
+            
             entry = ManifestEntry(
                 model_entity_id=model_id,
                 entity_id=entity_id,
@@ -169,10 +179,11 @@ def load_manifest(path: Path, model_ids: List[str]) -> ManifestData:
                 uniprot_ac=uniprot_ac,
                 sequence_start=int(row["sequence_start"]) if (row.get("sequence_start") or "").strip() else None,
                 sequence_end=int(row["sequence_end"]) if (row.get("sequence_end") or "").strip() else None,
+                protein_name=(row.get("protein_name") or "").strip() or None,
             )
             by_model[model_id].append(entry)
             all_accessions.add(uniprot_ac)
-
+    
     return ManifestData(by_model=dict(by_model), all_accessions=all_accessions)
 
 
@@ -189,6 +200,7 @@ def group_entities(entries: Sequence[ManifestEntry]) -> List[EntityAssignment]:
                 chain_ids=[entry.chain_id],
                 sequence_start=entry.sequence_start,
                 sequence_end=entry.sequence_end,
+                protein_name=entry.protein_name,
             )
         else:
             if entry.uniprot_ac != current.uniprot_ac:
@@ -207,6 +219,17 @@ def group_entities(entries: Sequence[ManifestEntry]) -> List[EntityAssignment]:
                 raise ValueError(
                     f"Entity {entry.entity_id} has inconsistent fragment ranges across chains."
                 )
+            if (
+                entry.protein_name
+                and current.protein_name
+                and entry.protein_name != current.protein_name
+            ):
+                raise ValueError(
+                    f"Entity {entry.entity_id} has conflicting "
+                    "protein_name values."
+                )
+            if current.protein_name is None:
+                current.protein_name = entry.protein_name
             current.chain_ids.append(entry.chain_id)
     return list(grouped.values())
 
@@ -266,7 +289,7 @@ def normalise_optional_text(value: object, placeholder: str = "?") -> str:
                 flattened.extend(_flatten(item))
             return flattened
         return [str(obj)]
-
+    
     parts = _flatten(value)
     return ", ".join(parts) if parts else placeholder
 
@@ -306,12 +329,6 @@ def populate_categories(
         sequence: str = entry.get("sequence") or ""
         if not sequence:
             raise ValueError(f"No sequence stored for accession {assignment.uniprot_ac}.")
-        seq_start = assignment.sequence_start or 1
-        seq_end = assignment.sequence_end or len(sequence)
-        if seq_start < 1 or seq_end < seq_start or seq_end > len(sequence):
-            raise ValueError(
-                f"Invalid fragment range {seq_start}-{seq_end} for accession {assignment.uniprot_ac}."
-            )
         crc64 = crc64_ecma(sequence)
         ref_fields["target_entity_id"].append(assignment.entity_id)
         ref_fields["db_name"].append("UNP")
@@ -321,6 +338,12 @@ def populate_categories(
         taxid = entry.get("taxid")
         ref_fields["ncbi_taxonomy_id"].append(normalise_optional_text(taxid))
         ref_fields["organism_scientific"].append(normalise_optional_text(entry.get("organism")))
+        seq_start = assignment.sequence_start or 1
+        seq_end = assignment.sequence_end or len(sequence)
+        if seq_start < 1 or seq_end < seq_start or seq_end > len(sequence):
+            raise ValueError(
+                f"Invalid fragment range {seq_start}-{seq_end} for accession {assignment.uniprot_ac}."
+            )
         ref_fields["seq_db_align_begin"].append(seq_start)
         ref_fields["seq_db_align_end"].append(seq_end)
         ref_fields["seq_db_isoform"].append("?")
@@ -360,10 +383,11 @@ def populate_categories(
     descriptions: List[str] = []
     for assignment in entities:
         entry = entries_by_entity[assignment.entity_id]
-        full_names = entry.get("protein_full_names") or []
-        if isinstance(full_names, str):
-            full_names = [full_names]
-        description = full_names[0] if full_names else entry.get("entry_name") or assignment.uniprot_ac
+        description = protein_description(
+            assignment.protein_name,
+            entry,
+            assignment.uniprot_ac,
+        )
         entity_ids.append(assignment.entity_id)
         entity_types.append("polymer")
         src_method.append("man")
@@ -434,6 +458,10 @@ def populate_categories(
             raise ValueError(f"No sequence stored for accession {assignment.uniprot_ac}.")
         seq_start = assignment.sequence_start or 1
         seq_end = assignment.sequence_end or len(sequence)
+        if seq_start < 1 or seq_end < seq_start or seq_end > len(sequence):
+            raise ValueError(
+                f"Invalid fragment range {seq_start}-{seq_end} for accession {assignment.uniprot_ac}."
+            )
         fragment_length = seq_end - seq_start + 1
         for chain_id in assignment.chain_ids:
             align_ids.append(align_counter)
@@ -496,10 +524,10 @@ def process_model(
     """Process a single model and write output JSON."""
     try:
         entity_assignments = group_entities(manifest_entries)
-
+        
         # Deep copy template to avoid mutation
         template = copy.deepcopy(base_template)
-
+        
         populate_categories(template, entity_assignments, entries_by_accession, model_id)
         update_model_identifiers(template, model_id)
         template["chains"] = build_chains(manifest_entries)
@@ -508,12 +536,12 @@ def process_model(
             dssp_algorithm=dssp_algorithm,
             allow_default_alphafold_version=True,
         )
-
+        
         output_path = output_dir / f"{model_id}.json"
         with output_path.open("wb") as handle:
             handle.write(orjson.dumps(template, option=orjson.OPT_INDENT_2))
             handle.write(b"\n")
-
+        
         return True
     except Exception as exc:
         LOG.error("Error processing model %s: %s", model_id, exc)

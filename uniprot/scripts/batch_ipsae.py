@@ -6,8 +6,10 @@ Uses the optimized C++ ipsae_cpp binary for high-performance calculations
 of pDockQ, pDockQ2, LIS, and ipSAE metrics.
 """
 import argparse
+import csv
 import logging
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -19,35 +21,36 @@ logger = logging.getLogger(__name__)
 # Binary path relative to this script
 IPSAE_CPP_DIR = Path(__file__).parent.parent.parent / "afdb_integration_kit" / "ipsae"
 IPSAE_BINARY = IPSAE_CPP_DIR / "ipsae_cpp"
+SAFE_MODEL_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 def ensure_ipsae_binary() -> bool:
     """Ensure the ipSAE binary exists, compiling if necessary.
-
+    
     Returns:
         True if binary is available, False if compilation failed.
     """
     if IPSAE_BINARY.exists():
         return True
-
+    
     logger.info("ipSAE binary not found, attempting to compile...")
     makefile = IPSAE_CPP_DIR / "Makefile"
     if not makefile.exists():
         logger.error(f"Cannot compile: Makefile not found at {makefile}")
         return False
-
+    
     result = subprocess.run(
         ["make"],
         cwd=IPSAE_CPP_DIR,
         capture_output=True,
         text=True
     )
-
+    
     if result.returncode != 0:
         logger.error(f"Compilation failed: {result.stderr}")
         logger.error("Make sure you have g++ and OpenMP installed")
         return False
-
+    
     logger.info("Successfully compiled ipSAE binary")
     return IPSAE_BINARY.exists()
 
@@ -60,17 +63,17 @@ def find_pae_file(model_id: str, scores_dir: Path) -> Optional[Path]:
         f"{model_id}_pae.json",
         f"{model_id}_scores.json",
     ]
-
+    
     for pattern in patterns:
         pae_file = scores_dir / pattern
         if pae_file.exists():
             return pae_file
-
+    
     # Try to find meta file that might contain PAE
     meta_file = scores_dir / f"{model_id}-meta_v1.json"
     if meta_file.exists():
         return meta_file
-
+    
     return None
 
 
@@ -80,12 +83,12 @@ def find_pdb_file(model_id: str, pdb_dir: Path) -> Optional[Path]:
         f"{model_id}-model_v1.pdb",
         f"{model_id}.pdb",
     ]
-
+    
     for pattern in patterns:
         pdb_file = pdb_dir / pattern
         if pdb_file.exists():
             return pdb_file
-
+    
     return None
 
 
@@ -97,6 +100,28 @@ def get_model_ids_from_pdb_dir(pdb_dir: Path) -> list[str]:
         model_id = pdb_file.stem.replace("-model_v1", "")
         model_ids.append(model_id)
     return sorted(model_ids)
+
+
+def validate_model_ids(model_ids: list[str]) -> Optional[str]:
+    """Return an error message when model IDs are unsafe or duplicated."""
+    unsafe = [model_id for model_id in model_ids if not SAFE_MODEL_ID.fullmatch(model_id)]
+    if unsafe:
+        return f"Unsafe model ID: {unsafe[0]!r}"
+    if len(set(model_ids)) != len(model_ids):
+        return "Duplicate model IDs are not allowed"
+    return None
+
+
+def count_summary_rows(summary_csv: Path) -> int:
+    """Read a structurally valid summary CSV and return its data-row count."""
+    with summary_csv.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.reader(handle))
+    if not rows or not rows[0] or any(not column for column in rows[0]):
+        raise ValueError("summary CSV has no valid header")
+    column_count = len(rows[0])
+    if any(len(row) != column_count for row in rows[1:]):
+        raise ValueError("summary CSV has malformed rows")
+    return len(rows) - 1
 
 
 def run_ipsae_batch(
@@ -115,11 +140,11 @@ def run_ipsae_batch(
             f"  Expected at: {IPSAE_BINARY}\n"
             f"  To compile manually: cd {IPSAE_CPP_DIR} && make"
         )
-
+    
     # Set OpenMP thread count
     env = os.environ.copy()
     env["OMP_NUM_THREADS"] = str(num_threads)
-
+    
     cmd = [
         str(IPSAE_BINARY),
         "--batch",
@@ -132,9 +157,9 @@ def run_ipsae_batch(
         str(num_threads),
         "--quiet",
     ]
-
+    
     logger.info(f"Running: {' '.join(cmd)}")
-
+    
     return subprocess.run(
         cmd,
         capture_output=True,
@@ -188,20 +213,20 @@ def main():
         default=os.cpu_count() or 1,
         help="Number of OpenMP threads (default: all available CPUs)"
     )
-
+    
     args = parser.parse_args()
-
+    
     # Validate directories
     if not args.pae_dir.exists():
         logger.error(f"PAE directory does not exist: {args.pae_dir}")
         sys.exit(1)
-
+    
     if not args.pdb_dir.exists():
         logger.error(f"PDB directory does not exist: {args.pdb_dir}")
         sys.exit(1)
-
+    
     args.output_dir.mkdir(exist_ok=True, parents=True)
-
+    
     # Get model IDs
     if args.model_ids and args.model_ids.exists():
         model_ids = [line.strip() for line in args.model_ids.read_text().splitlines() if line.strip()]
@@ -210,28 +235,37 @@ def main():
         model_ids = get_model_ids_from_pdb_dir(args.pdb_dir)
         logger.info(f"Found {len(model_ids)} models in PDB directory")
 
+    model_id_error = validate_model_ids(model_ids)
+    if model_id_error:
+        logger.error(model_id_error)
+        sys.exit(1)
+    
     if not model_ids:
         logger.warning("No models found to process")
         sys.exit(0)
-
+    
     batch_input_dir = args.output_dir / "input"
     batch_input_dir.mkdir(exist_ok=True, parents=True)
+    for pattern in ("*-meta_v1.json", "*-model_v1.pdb"):
+        for staged_file in batch_input_dir.glob(pattern):
+            if staged_file.is_file() or staged_file.is_symlink():
+                staged_file.unlink()
 
     entries = []
     missing_pae = []
     missing_pdb = []
-
+    
     for model_id in model_ids:
         pae_file = find_pae_file(model_id, args.pae_dir)
         pdb_file = find_pdb_file(model_id, args.pdb_dir)
-
+        
         if not pae_file:
             missing_pae.append(model_id)
             continue
         if not pdb_file:
             missing_pdb.append(model_id)
             continue
-
+        
         staged_pae = batch_input_dir / f"{model_id}-meta_v1.json"
         staged_pdb = batch_input_dir / f"{model_id}-model_v1.pdb"
 
@@ -243,18 +277,24 @@ def main():
         staged_pae.symlink_to(pae_file.resolve())
         staged_pdb.symlink_to(pdb_file.resolve())
         entries.append(model_id)
-
+    
     if missing_pae:
         logger.warning(f"Missing PAE files for {len(missing_pae)} models")
     if missing_pdb:
         logger.warning(f"Missing PDB files for {len(missing_pdb)} models")
-
+    
     if not entries:
         logger.error("No valid model entries found")
         sys.exit(1)
-
+    
     logger.info(f"Processing {len(entries)} models with {args.workers} threads")
     summary_csv = args.output_dir / "ipsae_summary.csv"
+    if summary_csv.exists() or summary_csv.is_symlink():
+        if not summary_csv.is_file() and not summary_csv.is_symlink():
+            logger.error(f"Summary path is not a file: {summary_csv}")
+            sys.exit(1)
+        summary_csv.unlink()
+
     result = run_ipsae_batch(
         batch_input_dir,
         summary_csv,
@@ -267,10 +307,16 @@ def main():
         logger.error(f"ipSAE binary failed: {result.stderr.strip() or result.stdout.strip()}")
         sys.exit(result.returncode)
 
-    row_count = 0
-    if summary_csv.exists():
-        with summary_csv.open(encoding="utf-8") as handle:
-            row_count = max(0, sum(1 for _ in handle) - 1)
+    try:
+        row_count = count_summary_rows(summary_csv)
+    except (OSError, UnicodeError, csv.Error, ValueError) as exc:
+        logger.error(f"Invalid or missing ipSAE summary: {exc}")
+        sys.exit(1)
+    if row_count != len(entries):
+        logger.error(
+            f"ipSAE summary row count mismatch: expected {len(entries)}, got {row_count}"
+        )
+        sys.exit(1)
 
     logger.info("")
     logger.info("=" * 40)

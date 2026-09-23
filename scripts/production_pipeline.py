@@ -20,6 +20,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -408,11 +409,12 @@ class Config:
     retry: int = 2
     skip_stages: List[str] = None
     dry_run: bool = False
-    dssp_algorithm: str = "pydssp"  # "mkdssp", "psea", "pydssp", or "tmalign"
+    dssp_algorithm: str = "psea"  # "psea", "pydssp", or "tmalign"
     parallel_stages: bool = False  # wave-based parallel execution of independent stages
 
     # Dataset metadata
     tool_used: str = "ColabFold v1.6.0 / AlphaFold-Multimer"
+    homodimer_tool_used: str = "ColabFold v1.6.0 / AlphaFold-Multimer"
 
     # Heterodimer mode
     heterodimers: bool = False
@@ -455,9 +457,13 @@ class Config:
         if self.python_cmd is None:
             self.python_cmd = ["python"]
 
-        # Use the repo-neutral example-safe ModelCIF template by default.
+        # Select modelcif template based on tool_used if not explicitly provided
         if self.modelcif_template is None:
-            template_name = "colabfold_example_modelcif_metadata.json"
+            is_colabfold = (self.tool_used or "").lower().startswith("colabfold")
+            if is_colabfold:
+                template_name = "colabfold_modelcif_metadata.json"
+            else:
+                template_name = "openfold_modelcif_metadata.json"
             self.modelcif_template = self.repo_dir / "uniprot/templates" / template_name
 
     def get_hash(self) -> str:
@@ -588,6 +594,17 @@ Examples:
         default="ColabFold v1.6.0 / AlphaFold-Multimer",
         help="Prediction tool recorded in dataset_config.json (default: %(default)s)."
     )
+    parser.add_argument(
+        "--homodimer-tool-used",
+        type=str,
+        choices=[
+            "ColabFold v1.6.0 / AlphaFold-Multimer",
+            "OpenFold-TRT / AlphaFold-Multimer",
+        ],
+        default="ColabFold v1.6.0 / AlphaFold-Multimer",
+        help="Prediction tool for homodimer (same-accession) models, recorded as "
+             "homodimerToolUsed so exporters pick it per-model (default: %(default)s)."
+    )
 
     # Heterodimer mode
     parser.add_argument(
@@ -676,13 +693,9 @@ Examples:
 
     parser.add_argument(
         "--dssp-algorithm",
-        choices=["mkdssp", "psea", "pydssp", "tmalign"],
+        choices=["psea", "pydssp", "tmalign"],
         default="pydssp",
-        help=(
-            "Algorithm for secondary structure: 'mkdssp' (external DSSP), "
-            "'psea' (geometry), 'pydssp' (H-bond), or 'tmalign' "
-            "(CA-CA distance). Production default: %(default)s"
-        )
+        help="Algorithm for secondary structure: 'psea' (geometry), 'pydssp' (H-bond), or 'tmalign' (CA-CA distance). Default: %(default)s"
     )
 
     parser.add_argument(
@@ -850,6 +863,7 @@ Examples:
         dssp_algorithm=args.dssp_algorithm,
         parallel_stages=args.parallel_stages,
         tool_used=args.tool_used,
+        homodimer_tool_used=args.homodimer_tool_used,
         heterodimers=args.heterodimers,
         provider_id=args.provider_id,
         provider_name=args.provider_name,
@@ -1138,10 +1152,14 @@ def generate_dataset_config(
     provider_id: str,
     input_dir: Path,
     tool_used: str,
+    homodimer_tool_used: str = "",
 ) -> None:
     """Write a dataset configuration JSON with dynamically inferred fields.
 
     modelCreatedDate is derived from the earliest PDB file mtime in input_dir.
+    ``homodimer_tool_used``, when set, records the predictor for homodimer (same-accession)
+    models so the metadata exporters can pick it per-model (heterodimers that are actually
+    homodimers, e.g. leaked into the het set).
     """
     model_created_date = _infer_model_created_date(input_dir)
     config = {
@@ -1155,6 +1173,8 @@ def generate_dataset_config(
         "latestVersion": 1,
         "allVersions": [1],
     }
+    if homodimer_tool_used:
+        config["homodimerToolUsed"] = homodimer_tool_used
     path.write_bytes(orjson.dumps(config, option=orjson.OPT_INDENT_2))
 
 
@@ -1175,23 +1195,23 @@ def generate_provider_json(
 
 def preflight_checks(config: "Config", logger: PipelineLogger) -> bool:
     """Run pre-flight checks before pipeline execution.
-
+    
     Checks for required binaries and attempts to compile them if missing.
-
+    
     Returns:
         True if all checks pass, False otherwise.
     """
     logger.info("Running pre-flight checks...")
     all_passed = True
-
+    
     # Check ipSAE binary
     ipsae_binary = config.repo_dir / "afdb_integration_kit" / "ipsae" / "ipsae_cpp"
     ipsae_cpp_dir = ipsae_binary.parent
-
+    
     if not ipsae_binary.exists():
         logger.warning("ipSAE binary not found, attempting to compile...")
         makefile = ipsae_cpp_dir / "Makefile"
-
+        
         if not makefile.exists():
             logger.error("=" * 60)
             logger.error("PREFLIGHT CHECK FAILED: ipSAE Makefile missing")
@@ -1221,10 +1241,10 @@ def preflight_checks(config: "Config", logger: PipelineLogger) -> bool:
                 logger.info("  Successfully compiled ipSAE binary")
     else:
         logger.info("  ipSAE binary: OK")
-
+    
     if all_passed:
         logger.info("Pre-flight checks passed")
-
+    
     return all_passed
 
 
@@ -1742,12 +1762,7 @@ def stage_11_batch_dssp(
     error_tracker: ErrorTracker
 ) -> Dict[str, Any]:
     """STAGE 11: BATCH_RUN_DSSP"""
-    algo_names = {
-        "mkdssp": "mkdssp",
-        "psea": "P-SEA",
-        "pydssp": "PyDSSP",
-        "tmalign": "TM-align",
-    }
+    algo_names = {"psea": "P-SEA", "pydssp": "PyDSSP", "tmalign": "TM-align"}
     algo_name = algo_names.get(config.dssp_algorithm, config.dssp_algorithm)
     device = config.clash_device
     logger.info(f"STAGE 11: BATCH_DSSP ({config.workers} workers, {algo_name}, device={device})")
@@ -2148,6 +2163,7 @@ def main():
             generate_dataset_config(
                 config.dataset_config, config.provider_id,
                 config.input_dir, config.tool_used,
+                homodimer_tool_used=config.homodimer_tool_used,
             )
             logger.info(f"  Generated {config.dataset_config}", indent=1)
 
@@ -2174,6 +2190,7 @@ def main():
             generate_dataset_config(
                 config.dataset_config, config.provider_id,
                 config.input_dir, config.tool_used,
+                homodimer_tool_used=config.homodimer_tool_used,
             )
             logger.info(f"  Auto-generated {config.dataset_config}", indent=1)
 

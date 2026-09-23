@@ -83,7 +83,7 @@ class PDBFileEditor:
         # final_lines.append("END")
 
         with open(filename, 'w') as f:
-            f.writelines(line.rstrip() + '\n' for line in final_lines)
+            f.writelines(final_lines)
     
     def _get_record_name(self, line):
         """Helper to get the record name from a line."""
@@ -173,8 +173,11 @@ class PDBFileEditor:
         organism_line = f"SOURCE   2 ORGANISM_SCIENTIFIC: {organism_scientific};"
         self._header_lines_to_insert.append(f"{organism_line:<80}\n")
 
-        taxid_line = f"SOURCE   3 ORGANISM_TAXID: {organism_taxid}"
-        self._header_lines_to_insert.append(f"{taxid_line:<80}\n")
+        # Omit the taxonomy line entirely when the source mmCIF has no taxon,
+        # rather than writing the text "None" into the record.
+        if organism_taxid is not None:
+            taxid_line = f"SOURCE   3 ORGANISM_TAXID: {organism_taxid}"
+            self._header_lines_to_insert.append(f"{taxid_line:<80}\n")
 
     def add_header(self, pdb_id, date):
         """

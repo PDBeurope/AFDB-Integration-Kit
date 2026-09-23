@@ -1,11 +1,12 @@
 import logging
 import sys
-from collections import defaultdict
 from pathlib import Path
-import datetime
-from typing import Any, Dict
 
 import orjson
+from collections import defaultdict
+from pathlib import Path
+from typing import Any, Dict
+import datetime
 
 import gemmi
 from afdb_integration_kit.utils.pdbeditor import PDBFileEditor
@@ -18,12 +19,22 @@ CAT_STRUCT_ASYM = "_struct_asym."
 CAT_TARGET_REF_DB = "_ma_target_ref_db_details."
 ITEM_AUTH_ASYM_ID = "auth_asym_id"
 
+# Configure logger
+logger = logging.getLogger("afdb_integration_kit")
 
 def _normalise_scalar(value: Any) -> str:
-    if value is None:
+    """Normalise an mmCIF scalar, mapping every null marker to "?".
+
+    The CIF loader renders the mmCIF missing-value marker ``.`` as ``False``
+    and the unknown marker ``?`` as the literal string, so both - along with
+    ``None`` and the empty string - have to collapse to a single sentinel.
+    Otherwise ``str(False)`` leaks the text ``"False"`` into PDB records and
+    into ``int()`` conversions.
+    """
+    if value is None or value is False:
         return "?"
     if isinstance(value, str):
-        return value
+        return "?" if value.strip() in {"", ".", "?"} else value
     return str(value)
 
 
@@ -45,6 +56,7 @@ def _category_rows(category: Dict[str, list[Any]]) -> list[Dict[str, Any]]:
 
 # Configure logger
 logger = logging.getLogger("afdb_integration_kit")
+
 
 def load_cif_file(cif_path: str) -> CifDataStorage:
     """Loads a mmCIF file and returns a CifDataStorage instance."""
@@ -82,12 +94,13 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
     data = cif_data.get_data()
 
     # Get data from common categories
+    citation = data.get("_citation.", {})
     citation_author = data.get("_citation_author.", {})
     entity_poly = data.get("_entity_poly.", {})
     entity = data.get("_entity.", {})
     target_ref_db = data.get("_ma_target_ref_db_details.", {})
     data_usage = data.get("_pdbx_data_usage.", {})
-    db_status = data.get("_pdbx_database_status.", {})
+    seq_scheme = data.get("_pdbx_poly_seq_scheme.", {})
     struct_asym_rows = _category_rows(data.get(CAT_STRUCT_ASYM, {}))
     entity_rows = _category_rows(entity)
     target_ref_rows = _category_rows(target_ref_db)
@@ -97,6 +110,7 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
         asym_id = _normalise_scalar(row.get("id"))
         if entity_id != "?" and asym_id != "?":
             chains_by_entity[entity_id].append(asym_id)
+    db_status = data.get("_pdbx_database_status.", {})
 
     # 1. HEADER and AUDIT
     # The date is the most recent revision date from recvd_initial_deposition_date
@@ -135,6 +149,7 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
             title_text = "Complex of " + "/".join(descriptions)
         pdb_editor.add_title(title_text.upper())
 
+        # COMPND: one MOL_ID per entity, mapped to the chains that entity occupies.
         for entity_row in entity_rows:
             entity_id = _normalise_scalar(entity_row.get("id"))
             description = _normalise_scalar(entity_row.get("pdbx_description"))
@@ -158,7 +173,7 @@ def add_pdb_headers(pdb_editor: PDBFileEditor, cif_data: CifDataStorage, output_
             pdb_editor.add_source(
                 molecule_id=_normalise_scalar(row.get("target_entity_id")),
                 organism_scientific=scientific_name.upper(),
-                organism_taxid=int(taxonomy_id) if taxonomy_id != "?" else None,
+                organism_taxid=int(taxonomy_id) if taxonomy_id not in {"?", ".", ""} else None,
             )
     else:
         logger.warning(

@@ -1,6 +1,5 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Model Summary Metadata Schema",
   "type": "object",
   "required": [
     "modelEntityId",
@@ -24,35 +23,69 @@
       "minimum": 1
     },
     "providerId": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "isComplex": {
       "type": "boolean"
+    },
+    "numberOfInteractions": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of inter-chain interface interactions for a complex."
     },
     "isUniProt": {
       "type": "boolean"
     },
     "complexName": {
-      "type": "string",
-      "minLength": 1,
-      "pattern": ".*\\S.*"
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
     },
     "assemblyType": {
-      "type": "string",
-      "enum": ["Homo", "Hetero"]
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "Homo",
+        "Hetero",
+        null
+      ]
     },
     "oligomericState": {
-      "type": "string",
-      "minLength": 1,
-      "pattern": ".*\\S.*"
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "monomer",
+        "dimer",
+        "trimer",
+        "tetramer",
+        "pentamer",
+        "hexamer",
+        "heptamer",
+        "octamer",
+        "nonamer",
+        "decamer",
+        "oligomer",
+        null
+      ]
     },
     "oligomericStateDescription": {
-      "type": "string",
-      "minLength": 1,
-      "pattern": ".*\\S.*"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "complexComposition": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "type": "string",
         "pattern": "^[A-Za-z0-9-]+_[1-9][0-9]*$"
@@ -63,28 +96,30 @@
       "type": "array",
       "items": {
         "type": "string",
-        "minLength": 1,
-        "pattern": ".*\\S.*"
+        "minLength": 1
       },
       "minItems": 1
     },
     "uniprotAccession_display": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "minItems": 1
     },
     "uniprotDescription": {
       "type": "array",
       "items": {
         "type": "string",
-        "minLength": 1,
-        "pattern": ".*\\S.*"
+        "minLength": 1
       },
       "minItems": 1
     },
     "uniprotDescription_display": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "minItems": 1
     },
     "isUniProtReferenceProteome": {
@@ -100,14 +135,15 @@
       "type": "array",
       "items": {
         "type": "string",
-        "minLength": 1,
-        "pattern": ".*\\S.*"
+        "minLength": 1
       },
       "minItems": 1
     },
     "organismScientificName_display": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "minItems": 1
     },
     "gene": {
@@ -121,17 +157,25 @@
     },
     "gene_display": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "minItems": 1
     },
     "taxId": {
       "type": "array",
-      "items": { "type": "integer" },
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
       "minItems": 1
     },
     "taxId_display": {
       "type": "array",
-      "items": { "type": "integer" },
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
       "minItems": 1
     },
     "sequenceStart": {
@@ -143,25 +187,44 @@
       "minimum": 1
     },
     "globalMetricValue": {
-      "type": "number"
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
     },
     "isAMdata": {
       "type": "boolean"
     },
     "_version_": {
       "type": "integer"
+    },
+    "complexPredictionAccuracy_ipTM": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
     }
   },
   "patternProperties": {
     "^complexPredictionAccuracy_[A-Za-z0-9_]+$": {
-      "type": "number"
+      "type": [
+        "number",
+        "null"
+      ]
     }
   },
   "allOf": [
     {
       "if": {
-        "properties": { "isComplex": { "const": true } },
-        "required": ["isComplex"]
+        "properties": {
+          "isComplex": {
+            "const": true
+          }
+        },
+        "required": [
+          "isComplex"
+        ]
       },
       "then": {
         "required": [
@@ -201,22 +264,100 @@
           "complexPredictionAccuracy_ipsae_dist_nres2_BA",
           "complexPredictionAccuracy_pDockQ",
           "complexPredictionAccuracy_ipsae_n0chn"
+        ],
+        "properties": {
+          "complexName": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "else": {
+        "patternProperties": {
+          "^complexPredictionAccuracy_": false
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "complexName"
+              ]
+            },
+            {
+              "required": [
+                "assemblyType"
+              ]
+            },
+            {
+              "required": [
+                "oligomericState"
+              ]
+            },
+            {
+              "required": [
+                "oligomericStateDescription"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "sequenceStart"
+        ]
+      },
+      "then": {
+        "required": [
+          "sequenceEnd"
         ]
       }
     },
     {
       "if": {
-        "properties": { "isUniProt": { "const": true } },
-        "required": ["isUniProt"]
+        "required": [
+          "sequenceEnd"
+        ]
       },
       "then": {
-        "required": ["uniprotAccession", "uniprotDescription"]
+        "required": [
+          "sequenceStart"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "isUniProt": {
+            "const": true
+          }
+        },
+        "required": [
+          "isUniProt"
+        ]
+      },
+      "then": {
+        "required": [
+          "uniprotAccession",
+          "uniprotDescription",
+          "organismScientificName",
+          "taxId"
+        ]
       },
       "else": {
         "not": {
           "anyOf": [
-            { "required": ["uniprotAccession"] },
-            { "required": ["uniprotDescription"] }
+            {
+              "required": [
+                "uniprotAccession"
+              ]
+            },
+            {
+              "required": [
+                "uniprotDescription"
+              ]
+            }
           ]
         }
       }

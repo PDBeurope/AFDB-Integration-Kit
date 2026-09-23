@@ -1,0 +1,2 @@
+pdb_path,pae_cutoff,dist_cutoff,iptm_af,ipsae_AB,ipsae_BA,ipsae_d0chn_AB,ipsae_d0chn_BA,ipsae_d0dom_AB,ipsae_d0dom_BA,iptm_d0chn_AB,iptm_d0chn_BA,pDockQ2_AB,pDockQ2_BA,LIS_AB,LIS_BA,n0res_AB,n0res_BA,n0dom_AB,n0dom_BA,d0res_AB,d0res_BA,nres1_AB,nres1_BA,nres2_AB,nres2_BA,dist_nres1_AB,dist_nres1_BA,dist_nres2_AB,dist_nres2_BA,pDockQ,n0chn
+AF-0000000066074510-model_v1.pdb,10,10,0.8,0.7,0.71,0.72,0.73,0.74,0.75,0.76,0.77,0.78,0.79,0.8,0.81,10,11,1,1,2,2,461,461,461,461,20,20,21,21,0.82,2

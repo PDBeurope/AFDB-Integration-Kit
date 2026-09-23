@@ -8,7 +8,29 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""GPU clash/interface analysis with lazy optional imports."""
+"""
+Clashes - GPU-accelerated protein structure analysis.
+
+Computes atomic clashes and interface residues using efficient
+batched processing on GPU with torch_cluster.
+
+Example (small datasets):
+    >>> from clashes import analyze_pdb_files
+    >>> results = analyze_pdb_files(
+    ...     ["complex1.pdb", "complex2.pdb"],
+    ...     output_dir="results/",
+    ...     device="cuda",
+    ... )
+
+Example (large datasets, >500 proteins):
+    >>> from clashes import analyze_pdb_files_pipelined
+    >>> results = analyze_pdb_files_pipelined(
+    ...     pdb_paths,  # List of 10M paths
+    ...     output_dir="results/",
+    ...     device="cuda",
+    ... )
+    # ~1.4x faster due to pipelined parsing/compute/writing
+"""
 from __future__ import annotations
 
 from importlib import import_module

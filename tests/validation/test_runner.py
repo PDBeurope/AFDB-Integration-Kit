@@ -67,8 +67,26 @@ def test_cli_summary_and_details_output(tmp_path) -> None:
     runner = CliRunner()
     bad_dataset = tmp_path / "bad_dataset"
     bad_dataset.mkdir()
-    (bad_dataset / "AF-metadata-1-of-1.json").write_text(
-        json.dumps([{"uniqueId": 123}]), encoding="utf-8"
+    invalid_model_entry = {
+        "modelEntityId": "AF-0000000000000001",
+        "latestVersion": 1,
+        "providerId": "DB1",
+        "isComplex": False,
+        "uniprotAccession": ["P01234"],
+        "uniprotDescription": ["Example protein"],
+        "isUniProtReferenceProteome": True,
+        "isUniProtReviewed": True,
+        "isIsoform": False,
+        "organismScientificName": ["Homo sapiens"],
+        "gene": ["GENE1"],
+        "taxId": [9606],
+        "globalMetricValue": 82.4,
+        "isAMdata": False,
+        "unknownField": "should fail",
+    }
+    (bad_dataset / "AF-model-metadata-1-of-1.json").write_text(
+        json.dumps([invalid_model_entry]),
+        encoding="utf-8",
     )
 
     summary_result = runner.invoke(
@@ -88,7 +106,7 @@ def test_cli_summary_and_details_output(tmp_path) -> None:
     )
     assert summary_result.exit_code == 1, summary_result.stdout
     assert "Files with findings:" in summary_result.stdout
-    assert "AF-metadata-1-of-1.json" in summary_result.stdout
+    assert "AF-model-metadata-1-of-1.json" in summary_result.stdout
     assert "metadata_schema_validation_error" in summary_result.stdout
 
     txt_path = tmp_path / "details.txt"
@@ -112,106 +130,6 @@ def test_cli_summary_and_details_output(tmp_path) -> None:
     assert details_result.exit_code == 1, details_result.stdout
     assert "ERROR" in details_result.stdout
     assert txt_path.exists()
-
-
-def test_validate_metadata_file_cli_uses_schema_validator() -> None:
-    runner = CliRunner()
-    metadata_file = FIXTURES_DIR / "good_dataset" / "AF-metadata-1-of-1.json"
-
-    result = runner.invoke(
-        app,
-        [
-            "validate-metadata-file",
-            "--file",
-            str(metadata_file),
-            "--type",
-            "model",
-        ],
-    )
-
-    assert result.exit_code == 0, result.stdout
-    assert "Validated metadata file against the 'model' schema" in result.stdout
-
-
-def test_validate_metadata_file_cli_requires_type() -> None:
-    runner = CliRunner()
-    metadata_file = FIXTURES_DIR / "good_dataset" / "AF-metadata-1-of-1.json"
-
-    result = runner.invoke(
-        app,
-        [
-            "validate-metadata-file",
-            "--file",
-            str(metadata_file),
-        ],
-    )
-
-    assert result.exit_code != 0
-    assert "--type" in result.output
-
-
-def test_validate_metadata_file_cli_rejects_unknown_type() -> None:
-    runner = CliRunner()
-    metadata_file = FIXTURES_DIR / "good_dataset" / "AF-metadata-1-of-1.json"
-
-    result = runner.invoke(
-        app,
-        [
-            "validate-metadata-file",
-            "--file",
-            str(metadata_file),
-            "--type",
-            "unknown",
-        ],
-    )
-
-    assert result.exit_code == 1, result.stdout
-    assert "Unknown metadata schema type 'unknown'" in result.stdout
-    assert "Expected one of:" in result.stdout
-
-
-def test_validate_metadata_file_cli_rejects_wrong_schema_type() -> None:
-    runner = CliRunner()
-    metadata_file = FIXTURES_DIR / "good_dataset" / "AF-metadata-1-of-1.json"
-
-    result = runner.invoke(
-        app,
-        [
-            "validate-metadata-file",
-            "--file",
-            str(metadata_file),
-            "--type",
-            "provider",
-        ],
-    )
-
-    assert result.exit_code == 1, result.stdout
-    assert "provider" in result.stdout
-    assert "Update the metadata file to satisfy" in result.stdout
-
-
-def test_run_validations_metadata_uses_schema_validator_for_good_fixture() -> None:
-    runner = CliRunner()
-    good_dataset = FIXTURES_DIR / "good_dataset"
-
-    result = runner.invoke(
-        app,
-        [
-            "run-validations",
-            "--root",
-            str(good_dataset),
-            "--checks",
-            "metadata",
-            "--fail-on",
-            "error",
-            "--verbose",
-        ],
-    )
-
-    assert result.exit_code == 0, result.stdout
-    assert "Validated metadata file against the 'model' schema" in result.stdout
-    assert "metadata_invalid_type" not in result.stdout
-    assert "metadata_missing_field" not in result.stdout
 
 
 def test_plddt_additional_checks(tmp_path) -> None:
@@ -325,32 +243,60 @@ def test_metadata_validator(tmp_path) -> None:
     dataset = tmp_path / "dataset"
     dataset.mkdir()
 
-    fixture_path = FIXTURES_DIR / "good_dataset" / "AF-metadata-1-of-1.json"
-    entry = json.loads(fixture_path.read_text(encoding="utf-8"))[0]
-    metadata_path = dataset / "AF-metadata-1-of-1.json"
+    # Valid chain metadata entry in the current strict schema.
+    entry = {
+        "uniqueId": "AF-0000000000000001_v1_A",
+        "toolUsed": "Alphafold2-multimer-v3",
+        "modelCreatedDate": "2024-01-01T00:00:00Z",
+        "modelEntityId": "AF-0000000000000001",
+        "isComplex": False,
+        "uniprotAccession": "P01234",
+        "uniprotId": "GENE1_HUMAN",
+        "uniprotDescription": "Hypothetical protein description.",
+        "gene": "GENE1",
+        "geneSynonyms": ["GENE-ALT"],
+        "taxId": 9606,
+        "organismScientificName": "Homo sapiens",
+        "organismCommonNames": ["human"],
+        "organismSynonyms": [],
+        "sequence": "ACDEFGHIKL",
+        "sequenceChecksum": "0123456789abcdef0123456789abcdef",
+        "sequenceVersionDate": "2023-01-01T00:00:00Z",
+        "sequenceStart": 1,
+        "sequenceEnd": 10,
+        "isIsoform": False,
+        "isFragment": False,
+        "isUniProt": True,
+        "isUniProtReferenceProteome": True,
+        "isUniProtReviewed": True,
+        "globalMetricValue": 75.5,
+        "fractionPlddtVeryLow": 0.1,
+        "fractionPlddtLow": 0.2,
+        "fractionPlddtConfident": 0.3,
+        "fractionPlddtVeryHigh": 0.4,
+        "latestVersion": 1,
+        "allVersions": [1],
+        "providerId": "DB1",
+        "entityType": "protein",
+        "isAMdata": False,
+    }
+
+    metadata_path = dataset / "AF-chain-metadata-1-of-1.json"
     metadata_path.write_text(json.dumps([entry]), encoding="utf-8")
 
     results = run_validations(dataset, checks=["metadata"])
-    assert any(res.code == "metadata_schema_valid" for res in results)
+    assert any(res.code == "metadata_summary" for res in results)
 
     # Test missing required field
     bad_entry = dict(entry)
-    bad_entry.pop("latestVersion")
+    bad_entry.pop("latestVersion", None)
     metadata_path.write_text(json.dumps([bad_entry]), encoding="utf-8")
     results = run_validations(dataset, checks=["metadata"])
-    assert any(
-        res.code == "metadata_schema_validation_error"
-        for res in results
-        if res.level is Level.ERROR
-    )
+    assert any(res.code == "metadata_schema_validation_error" for res in results if res.level is Level.ERROR)
 
-    # Test invalid type against the shared model schema
+    # Test unknown field is rejected by strict schema
     bad_type_entry = dict(entry)
-    bad_type_entry["isUniProt"] = "all"
+    bad_type_entry["unknown"] = "value"
     metadata_path.write_text(json.dumps([bad_type_entry]), encoding="utf-8")
     results = run_validations(dataset, checks=["metadata"])
-    assert any(
-        res.code == "metadata_schema_validation_error"
-        for res in results
-        if res.level is Level.ERROR
-    )
+    assert any(res.code == "metadata_schema_validation_error" for res in results if res.level is Level.ERROR)

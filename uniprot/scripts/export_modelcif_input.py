@@ -10,6 +10,7 @@ import argparse
 import csv
 import logging
 import os
+import sys
 
 import orjson
 from collections import OrderedDict, defaultdict
@@ -18,7 +19,15 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Sequence
 
 import duckdb
-from afdb_integration_kit.modelcif.provenance import normalize_modelcif_provenance
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from afdb_integration_kit.modelcif.provenance import (  # noqa: E402
+    normalize_modelcif_provenance,
+)
+from afdb_integration_kit.uniprot.naming import protein_description  # noqa: E402
 
 
 LOG = logging.getLogger("uniprot.export_modelcif_input")
@@ -32,6 +41,7 @@ class ManifestEntry:
     uniprot_ac: str
     sequence_start: int | None = None
     sequence_end: int | None = None
+    protein_name: str | None = None
 
 
 @dataclass
@@ -41,6 +51,7 @@ class EntityAssignment:
     chain_ids: List[str]
     sequence_start: int | None = None
     sequence_end: int | None = None
+    protein_name: str | None = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -89,7 +100,7 @@ def parse_args() -> argparse.Namespace:
         "--dssp-algorithm",
         default="mkdssp",
         choices=["mkdssp", "pydssp"],
-        help="Secondary-structure provenance mode to encode in the exported ModelCIF input.",
+        help="Secondary-structure provenance mode to encode in exported ModelCIF input.",
     )
     return parser.parse_args()
 
@@ -120,6 +131,7 @@ def load_manifest(path: Path, model_id: str) -> List[ManifestEntry]:
                 uniprot_ac=(row.get("uniprot_ac") or "").strip(),
                 sequence_start=int(row["sequence_start"]) if (row.get("sequence_start") or "").strip() else None,
                 sequence_end=int(row["sequence_end"]) if (row.get("sequence_end") or "").strip() else None,
+                protein_name=(row.get("protein_name") or "").strip() or None,
             )
             if not entry.entity_id or not entry.chain_id or not entry.uniprot_ac:
                 raise ValueError(f"Incomplete manifest row for model {model_id}: {row}")
@@ -141,6 +153,7 @@ def group_entities(entries: Sequence[ManifestEntry]) -> List[EntityAssignment]:
                 chain_ids=[entry.chain_id],
                 sequence_start=entry.sequence_start,
                 sequence_end=entry.sequence_end,
+                protein_name=entry.protein_name,
             )
         else:
             if entry.uniprot_ac != current.uniprot_ac:
@@ -159,6 +172,17 @@ def group_entities(entries: Sequence[ManifestEntry]) -> List[EntityAssignment]:
                 raise ValueError(
                     f"Entity {entry.entity_id} has inconsistent fragment ranges across chains."
                 )
+            if (
+                entry.protein_name
+                and current.protein_name
+                and entry.protein_name != current.protein_name
+            ):
+                raise ValueError(
+                    f"Entity {entry.entity_id} has conflicting "
+                    "protein_name values."
+                )
+            if current.protein_name is None:
+                current.protein_name = entry.protein_name
             current.chain_ids.append(entry.chain_id)
     return list(grouped.values())
 
@@ -301,10 +325,11 @@ def populate_categories(
     descriptions: List[str] = []
     for assignment in entities:
         entry = entries_by_entity[assignment.entity_id]
-        full_names = entry.get("protein_full_names") or []
-        if isinstance(full_names, str):
-            full_names = [full_names]
-        description = full_names[0] if full_names else entry.get("entry_name") or assignment.uniprot_ac
+        description = protein_description(
+            assignment.protein_name,
+            entry,
+            assignment.uniprot_ac,
+        )
         entity_ids.append(assignment.entity_id)
         entity_types.append("polymer")
         src_method.append("man")
@@ -375,6 +400,10 @@ def populate_categories(
             raise ValueError(f"No sequence stored for accession {assignment.uniprot_ac}.")
         seq_start = assignment.sequence_start or 1
         seq_end = assignment.sequence_end or len(sequence)
+        if seq_start < 1 or seq_end < seq_start or seq_end > len(sequence):
+            raise ValueError(
+                f"Invalid fragment range {seq_start}-{seq_end} for accession {assignment.uniprot_ac}."
+            )
         fragment_length = seq_end - seq_start + 1
         for chain_id in assignment.chain_ids:
             align_ids.append(align_counter)

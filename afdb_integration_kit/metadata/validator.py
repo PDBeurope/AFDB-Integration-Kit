@@ -1,10 +1,40 @@
 import logging
+import re
+from datetime import datetime
 from enum import Enum
 from importlib.resources import files
 from pathlib import Path
 
 import jsonschema
 import orjson
+
+FORMAT_CHECKER = jsonschema.FormatChecker()
+FORMAT_CHECKER.checkers = FORMAT_CHECKER.checkers.copy()
+_RFC3339_DATETIME = re.compile(
+    r"^(?P<year>[0-9]{4})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})"
+    r"[Tt](?P<hour>[01][0-9]|2[0-3]):(?P<minute>[0-5][0-9]):"
+    r"(?P<second>[0-5][0-9]|60)(?:\.[0-9]+)?"
+    r"(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])$"
+)
+
+
+def _is_rfc3339_datetime(value: object) -> bool:
+    """Validate RFC 3339 date-time syntax and calendar values."""
+    if not isinstance(value, str):
+        return False
+    match = _RFC3339_DATETIME.fullmatch(value)
+    if match is None:
+        return False
+    parts = {name: int(raw) for name, raw in match.groupdict().items()}
+    parts["second"] = min(parts["second"], 59)
+    try:
+        datetime(**parts)
+    except ValueError:
+        return False
+    return True
+
+
+FORMAT_CHECKER.checkers["date-time"] = (_is_rfc3339_datetime, ())
 
 # --- Logger setup ---
 logger = logging.getLogger("schema_validator")
@@ -101,6 +131,7 @@ class SchemaType(Enum):
     MODEL_SUMMARY = "model-summary"
     COLLECTION_DOC = "collection-doc"
     PROVIDER = "provider"
+    MODELCIF_METADATA = "modelcif-metadata"
 
 
 SCHEMA_PATHS = {
@@ -115,6 +146,9 @@ SCHEMA_PATHS = {
     ),
     SchemaType.PROVIDER: files("afdb_integration_kit.metadata.resources").joinpath(
         "provider_schema.json"
+    ),
+    SchemaType.MODELCIF_METADATA: files("afdb_integration_kit.modelcif.resources").joinpath(
+        "schema.json"
     ),
 }
 
@@ -142,9 +176,7 @@ def _instances_to_validate(data, schema_enum: SchemaType):
         and isinstance(data["response"].get("docs"), list)
     ):
         return data["response"]["docs"]
-    if isinstance(data, list):
-        return data
-    return [data]
+    return data if isinstance(data, list) else [data]
 
 
 def _validate_complex_metric_contract(
@@ -186,6 +218,25 @@ def _validate_complex_metric_contract(
     chain_id = unique_id.rsplit("_", 1)[-1] if isinstance(unique_id, str) and "_" in unique_id else None
     directional_fields = COMPLEX_COLLECTION_DIRECTIONAL_REQUIRED_FIELDS.get(chain_id)
     if directional_fields is None:
+        # The directional metrics are defined pairwise (_AB / _BA), so only a
+        # two-chain complex has a contract to check. A dimer whose chain falls
+        # outside that pair is a defect rather than an unsupported shape; for
+        # higher-order complexes there is nothing defined to enforce, so say so
+        # rather than skipping silently.
+        oligomeric_state = str(entry.get("oligomericState") or "").strip().lower()
+        if oligomeric_state == "dimer":
+            raise jsonschema.ValidationError(
+                f"{unique_id or f'entry #{index}'}: dimer collection doc has chain "
+                f"{chain_id!r}, which is outside the A/B pair the directional iPSAE "
+                "metrics are defined for"
+            )
+        logger.warning(
+            "%s: no directional iPSAE contract defined for chain %r "
+            "(oligomericState=%r); directional metrics not enforced",
+            unique_id or f"entry #{index}",
+            chain_id,
+            entry.get("oligomericState"),
+        )
         return
 
     directional_missing = [field for field in directional_fields if field not in entry]
@@ -213,9 +264,7 @@ def validate_against_schema(input_file: Path, schema_type: str):
         schema_enum = SchemaType(schema_type.lower())
     except ValueError:
         expected = ", ".join(schema.value for schema in SchemaType)
-        logger.error(
-            "Unknown schema type '%s'. Expected one of: %s.", schema_type, expected
-        )
+        logger.error("Unknown schema type '%s'. Expected one of: %s.", schema_type, expected)
         raise ValueError(
             f"Unknown schema type '{schema_type}'. Expected one of: {expected}."
         )
@@ -232,8 +281,12 @@ def validate_against_schema(input_file: Path, schema_type: str):
         instances = _instances_to_validate(data, schema_enum)
         if not instances:
             raise jsonschema.ValidationError("No documents found to validate")
-        for index, entry in enumerate(instances, start=1):
-            jsonschema.validate(instance=entry, schema=schema)
+        for index, entry in enumerate(instances):
+            jsonschema.validate(
+                instance=entry,
+                schema=schema,
+                format_checker=FORMAT_CHECKER,
+            )
             _validate_complex_metric_contract(entry, schema_enum, index)
         logger.info(
             "Validation successful for '%s' against schema '%s'",

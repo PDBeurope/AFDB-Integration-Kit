@@ -1,6 +1,5 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Collection Document Metadata Schema",
   "type": "object",
   "required": [
     "uniqueId",
@@ -31,10 +30,11 @@
   "properties": {
     "uniqueId": {
       "type": "string",
-      "pattern": "^AF-[0-9]{16}_v[0-9]+_[A-Za-z0-9]+$"
+      "pattern": "^AF-[0-9]{16}_v[1-9][0-9]*_[A-Za-z0-9]+$"
     },
     "toolUsed": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "modelCreatedDate": {
       "type": "string",
@@ -47,25 +47,26 @@
     "isComplex": {
       "type": "boolean"
     },
+    "numberOfInteractions": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of inter-chain interface interactions for a complex."
+    },
     "complexName": {
       "type": "string",
-      "minLength": 1,
-      "pattern": ".*\\S.*"
+      "minLength": 1
     },
     "uniprotAccession": {
       "type": "string",
-      "minLength": 1,
-      "pattern": ".*\\S.*"
+      "minLength": 1
     },
     "uniprotId": {
       "type": "string",
-      "minLength": 1,
-      "pattern": ".*\\S.*"
+      "minLength": 1
     },
     "uniprotDescription": {
       "type": "string",
-      "minLength": 1,
-      "pattern": ".*\\S.*"
+      "minLength": 1
     },
     "gene": {
       "type": "string",
@@ -74,48 +75,68 @@
     },
     "geneSynonyms": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },
-      "minItems": 1
+      "items": {
+        "type": "string"
+      }
     },
     "taxId": {
-      "type": "integer"
+      "type": "integer",
+      "minimum": 1
     },
     "organismScientificName": {
-      "type": "string",
-      "minLength": 1,
-      "pattern": ".*\\S.*"
+      "type": "string"
     },
     "organismScientificNameT": {
-      "type": "string",
-      "minLength": 1,
-      "pattern": ".*\\S.*"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "organismCommonNames": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },
-      "minItems": 1
+      "items": {
+        "type": "string"
+      }
     },
     "organismSynonyms": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },
-      "minItems": 1
+      "items": {
+        "type": "string"
+      }
     },
     "assemblyType": {
       "type": "string",
-      "enum": ["Homo", "Hetero"]
+      "enum": [
+        "Homo",
+        "Hetero"
+      ]
     },
     "oligomericState": {
       "type": "string",
-      "minLength": 1,
-      "pattern": ".*\\S.*"
+      "enum": [
+        "monomer",
+        "dimer",
+        "trimer",
+        "tetramer",
+        "pentamer",
+        "hexamer",
+        "heptamer",
+        "octamer",
+        "nonamer",
+        "decamer",
+        "oligomer"
+      ]
     },
     "oligomericStateDescription": {
-      "type": "string",
-      "minLength": 1,
-      "pattern": ".*\\S.*"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "sequence": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Z]+$"
     },
     "sequenceChecksum": {
       "type": "string",
@@ -149,19 +170,29 @@
       "type": "boolean"
     },
     "globalMetricValue": {
-      "type": "number"
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
     },
     "fractionPlddtVeryLow": {
-      "type": "number"
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
     },
     "fractionPlddtLow": {
-      "type": "number"
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
     },
     "fractionPlddtConfident": {
-      "type": "number"
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
     },
     "fractionPlddtVeryHigh": {
-      "type": "number"
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
     },
     "latestVersion": {
       "type": "integer",
@@ -169,36 +200,61 @@
     },
     "allVersions": {
       "type": "array",
-      "items": { "type": "integer" },
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
       "minItems": 1
     },
     "providerId": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "entityType": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "isAMdata": {
       "type": "boolean"
     },
     "complexComposition": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^[A-Za-z0-9-]+_[1-9][0-9]*(,[A-Za-z0-9-]+_[1-9][0-9]*)*$"
     },
     "_version_": {
       "type": "integer"
+    },
+    "complexPredictionAccuracy_ipTM": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 1
     }
   },
   "patternProperties": {
     "^complexPredictionAccuracy_[A-Za-z0-9_]+$": {
-      "type": "number"
+      "type": [
+        "number",
+        "null"
+      ]
     }
   },
   "allOf": [
     {
       "if": {
-        "properties": { "isComplex": { "const": true } },
-        "required": ["isComplex"]
+        "properties": {
+          "isComplex": {
+            "const": true
+          }
+        },
+        "required": [
+          "isComplex"
+        ]
       },
       "then": {
         "required": [
@@ -209,27 +265,76 @@
           "complexPredictionAccuracy_iptm_af",
           "complexPredictionAccuracy_pDockQ",
           "complexPredictionAccuracy_ipsae_n0chn"
-        ]
+        ],
+        "properties": {
+          "complexName": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "else": {
+        "patternProperties": {
+          "^complexPredictionAccuracy_": false
+        },
+        "properties": {
+          "assemblyType": {
+            "type": "null"
+          },
+          "oligomericState": {
+            "type": "null"
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "complexComposition"
+              ]
+            }
+          ]
+        }
       }
     },
     {
       "if": {
-        "properties": { "isUniProt": { "const": true } },
-        "required": ["isUniProt"]
+        "properties": {
+          "isUniProt": {
+            "const": true
+          }
+        },
+        "required": [
+          "isUniProt"
+        ]
       },
       "then": {
         "required": [
           "uniprotAccession",
           "uniprotId",
-          "uniprotDescription"
+          "uniprotDescription",
+          "taxId",
+          "organismScientificName",
+          "sequenceVersionDate"
         ]
       },
       "else": {
         "not": {
           "anyOf": [
-            { "required": ["uniprotAccession"] },
-            { "required": ["uniprotId"] },
-            { "required": ["uniprotDescription"] }
+            {
+              "required": [
+                "uniprotAccession"
+              ]
+            },
+            {
+              "required": [
+                "uniprotId"
+              ]
+            },
+            {
+              "required": [
+                "uniprotDescription"
+              ]
+            }
           ]
         }
       }
