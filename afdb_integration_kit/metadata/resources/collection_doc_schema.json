@@ -25,13 +25,7 @@
     "allVersions",
     "providerId",
     "entityType",
-    "isAMdata",
-    "uniprotAccession",
-    "uniprotId",
-    "uniprotDescription",
-    "taxId",
-    "organismScientificName",
-    "sequenceVersionDate"
+    "isAMdata"
   ],
   "properties": {
     "uniqueId": {
