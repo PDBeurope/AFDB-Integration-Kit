@@ -54,20 +54,14 @@
       ]
     },
     "complexName": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "description": "Name of the complex",
       "examples": [
         "Hemoglobin Tetramer"
       ]
     },
     "complexComposition": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "description": "Comma-separated list of components in the format <sequenceChecksum>_<stoichiometry>",
       "examples": [
         "408C22731C6EDFBE_2,A8B880A25617EC96_1"
@@ -78,10 +72,7 @@
       "description": "Boolean indicating whether the model represents a complex"
     },
     "assemblyType": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "enum": [
         "Homo",
         "Hetero",
@@ -89,46 +80,31 @@
       ]
     },
     "oligomericState": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": "string"
     },
     "uniprotAccession": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "description": "UniProt accession",
       "examples": [
         "P12345"
       ]
     },
     "uniprotId": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "description": "UniProt identifier",
       "examples": [
         "HBA_HUMAN"
       ]
     },
     "uniprotDescription": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "description": "Description of the protein in UniProt",
       "examples": [
         "Hemoglobin subunit alpha"
       ]
     },
     "geneSynonyms": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "List of gene synonyms (strings)",
       "items": {
         "type": "string"
@@ -151,50 +127,35 @@
       ]
     },
     "isUniProtReferenceProteome": {
-      "type": [
-        "boolean",
-        "null"
-      ],
+      "type": "boolean",
       "description": "Boolean flag for UniProt reference proteome",
       "examples": [
         true
       ]
     },
     "isUniProtReviewed": {
-      "type": [
-        "boolean",
-        "null"
-      ],
+      "type": "boolean",
       "description": "Boolean flag for UniProt curation status",
       "examples": [
         true
       ]
     },
     "taxId": {
-      "type": [
-        "integer",
-        "null"
-      ],
+      "type": "integer",
       "description": "NCBI Taxonomy ID",
       "examples": [
         9606
       ]
     },
     "organismScientificName": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "description": "Scientific name of the organism",
       "examples": [
         "Homo sapiens"
       ]
     },
     "otherTaxIds": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "List of NCBI Taxonomy IDs representing additional taxa associated with the sequence",
       "items": {
         "type": "integer"
@@ -207,10 +168,7 @@
       ]
     },
     "otherOrganismScientificNames": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "List of scientific names corresponding to the otherTaxIds (must match order)",
       "items": {
         "type": "string"
@@ -230,30 +188,21 @@
       ]
     },
     "oligomericStateDescription": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "description": "Combined assembly type and oligomeric state for a complex",
       "examples": [
         "Heterodimer"
       ]
     },
     "ipTM": {
-      "type": [
-        "number",
-        "null"
-      ],
+      "type": "number",
       "description": "Quality metric (float)",
       "examples": [
         0.85
       ]
     },
     "ipSAE": {
-      "type": [
-        "number",
-        "null"
-      ],
+      "type": "number",
       "description": "Quality metric (float)",
       "examples": [
         0.12
@@ -288,10 +237,7 @@
       ]
     },
     "sequenceVersionDate": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "format": "date-time",
       "description": "Sequence version date in YYYY-MM-DDT00:00:00Z format (ISO 8601)",
       "examples": [
@@ -313,20 +259,14 @@
       ]
     },
     "isFragment": {
-      "type": [
-        "boolean",
-        "null"
-      ],
+      "type": "boolean",
       "description": "Boolean indicating whether the sequence is a fragment",
       "examples": [
         false
       ]
     },
     "isIsoform": {
-      "type": [
-        "boolean",
-        "null"
-      ]
+      "type": "boolean"
     },
     "isUniProt": {
       "type": "boolean",
@@ -371,10 +311,7 @@
       ]
     },
     "organismCommonNames": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "List of common names of the organism, including those for otherOrganismScientificNames",
       "items": {
         "type": "string"
@@ -387,10 +324,7 @@
       ]
     },
     "organismSynonyms": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "List of synonyms of the organism, including those for otherOrganismScientificNames",
       "items": {
         "type": "string"
@@ -403,10 +337,7 @@
       ]
     },
     "proteinFullNames": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "Full names of the protein",
       "items": {
         "type": "string"
@@ -418,10 +349,7 @@
       ]
     },
     "proteinShortNames": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "Short names of the protein",
       "items": {
         "type": "string"
@@ -433,10 +361,7 @@
       ]
     },
     "keywords": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "List of descriptive keywords (from UniProt XML)",
       "items": {
         "type": "string"
@@ -449,10 +374,7 @@
       ]
     },
     "taxonomyLineage": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "List of taxonomy lineage terms (from UniProt XML)",
       "items": {
         "type": "string"
@@ -467,10 +389,7 @@
       ]
     },
     "functions": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "List of functions (from UniProt XML)",
       "items": {
         "type": "string"
@@ -482,10 +401,7 @@
       ]
     },
     "alternativeNames": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "List of alternative protein names (from UniProt XML)",
       "items": {
         "type": "string"
@@ -497,10 +413,7 @@
       ]
     },
     "catalyticActivities": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "List of catalytic activities (from UniProt XML)",
       "items": {
         "type": "string"
@@ -512,10 +425,7 @@
       ]
     },
     "isAMdata": {
-      "type": [
-        "boolean",
-        "null"
-      ]
+      "type": "boolean"
     },
     "latestVersion": {
       "type": "integer",
