@@ -25,6 +25,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from afdb_integration_kit.modelcif.provenance import (  # noqa: E402
+    BIOIR_TOOL_SOURCES,
     normalize_modelcif_provenance,
 )
 from afdb_integration_kit.uniprot.naming import protein_description  # noqa: E402
@@ -95,6 +96,10 @@ def parse_args() -> argparse.Namespace:
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Logging verbosity.",
+    )
+    parser.add_argument(
+        "--prediction-tool", choices=list(BIOIR_TOOL_SOURCES),
+        help="Explicit homogeneous BioIR method; its software version must come from producer evidence in the template.",
     )
     parser.add_argument(
         "--dssp-algorithm",
@@ -484,6 +489,7 @@ def generate_input(args: argparse.Namespace) -> None:
         template,
         dssp_algorithm=args.dssp_algorithm,
         allow_default_alphafold_version=True,
+        prediction_tool=getattr(args, "prediction_tool", None),
     )
 
     args.out.parent.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,282 @@
+{
+  "metadata": {
+    "version": "3.2",
+    "model_type": "OpenFold2 (BioNeMo IR) method"
+  },
+  "categories": {
+    "_audit_conform": {
+      "dict_name": [
+        "mmcif_ma.dic"
+      ],
+      "dict_version": [
+        "1.4.8"
+      ],
+      "dict_location": [
+        "https://raw.githubusercontent.com/ihmwg/ModelCIF/master/dist/mmcif_ma.dic"
+      ]
+    },
+    "_pdbx_data_usage": {
+      "id": [
+        "1",
+        "2"
+      ],
+      "type": [
+        "license",
+        "disclaimer"
+      ],
+      "details": [
+        "?",
+        "?"
+      ],
+      "url": [
+        "?",
+        "?"
+      ],
+      "name": [
+        "?",
+        "?"
+      ]
+    },
+    "_citation": {
+      "id": [
+        "Primary"
+      ],
+      "title": [
+        "?"
+      ],
+      "journal_full": [
+        "?"
+      ],
+      "journal_volume": [
+        "?"
+      ],
+      "page_first": [
+        "?"
+      ],
+      "page_last": [
+        "?"
+      ],
+      "year": [
+        "?"
+      ],
+      "journal_id_ASTM": [
+        "?"
+      ],
+      "country": [
+        "?"
+      ],
+      "journal_id_ISSN": [
+        "?"
+      ],
+      "journal_id_CSD": [
+        "?"
+      ],
+      "book_publisher": [
+        "?"
+      ],
+      "pdbx_database_id_PubMed": [
+        "?"
+      ],
+      "pdbx_database_id_DOI": [
+        "?"
+      ]
+    },
+    "_citation_author": {
+      "citation_id": [
+        "Primary"
+      ],
+      "ordinal": [
+        1
+      ],
+      "name": [
+        "?"
+      ]
+    },
+    "_ma_data": {
+      "id": [
+        "1"
+      ],
+      "name": [
+        "Model"
+      ],
+      "content_type": [
+        "model coordinates"
+      ]
+    },
+    "_ma_model_list": {
+      "ordinal_id": [
+        "1"
+      ],
+      "model_name": [
+        "Predicted model"
+      ],
+      "data_id": [
+        "1"
+      ],
+      "model_type": [
+        "Ab initio model"
+      ]
+    },
+    "_software": {
+      "pdbx_ordinal": [
+        "1"
+      ],
+      "name": [
+        "OpenFold2 (BioNeMo IR)"
+      ],
+      "version": [
+        "?"
+      ],
+      "type": [
+        "package"
+      ],
+      "description": [
+        "Structure prediction using BioNeMo Inference Runtime"
+      ],
+      "classification": [
+        "model building"
+      ]
+    },
+    "_ma_software_group": {
+      "ordinal_id": [
+        "1"
+      ],
+      "group_id": [
+        "1"
+      ],
+      "software_id": [
+        "1"
+      ]
+    },
+    "_ma_protocol_step": {
+      "ordinal_id": [
+        "1"
+      ],
+      "protocol_id": [
+        "1"
+      ],
+      "step_id": [
+        "1"
+      ],
+      "method_type": [
+        "modeling"
+      ],
+      "step_name": [
+        "model inference"
+      ],
+      "details": [
+        "BioIR model family must be explicitly declared"
+      ],
+      "software_group_id": [
+        "1"
+      ]
+    },
+    "_ma_qa_metric": {
+      "id": [
+        "1",
+        "2"
+      ],
+      "name": [
+        "pLDDT",
+        "pLDDT"
+      ],
+      "type": [
+        "pLDDT",
+        "pLDDT"
+      ],
+      "mode": [
+        "global",
+        "local"
+      ],
+      "software_group_id": [
+        "1",
+        "1"
+      ]
+    },
+    "_ma_qa_metric_global": {
+      "ordinal_id": [
+        "1"
+      ],
+      "model_id": [
+        "1"
+      ],
+      "metric_id": [
+        "1"
+      ]
+    },
+    "_entry": {
+      "id": [
+        "AF-PLACEHOLDER"
+      ]
+    },
+    "_database_2": {
+      "database_id": [
+        "AlphaFoldDB"
+      ],
+      "database_code": [
+        "AF-PLACEHOLDER"
+      ]
+    },
+    "_pdbx_database_status": {
+      "status_code": [
+        "?"
+      ],
+      "entry_id": [
+        "AF-PLACEHOLDER"
+      ],
+      "recvd_initial_deposition_date": [
+        "?"
+      ]
+    },
+    "_pdbx_audit_revision_history": {
+      "ordinal": [
+        1
+      ],
+      "data_content_type": [
+        "Structure model"
+      ],
+      "major_revision": [
+        1
+      ],
+      "minor_revision": [
+        0
+      ],
+      "revision_date": [
+        "?"
+      ]
+    },
+    "_pdbx_audit_revision_details": {
+      "ordinal": [
+        1
+      ],
+      "revision_ordinal": [
+        1
+      ],
+      "data_content_type": [
+        "Structure model"
+      ],
+      "provider": [
+        "?"
+      ],
+      "type": [
+        "?"
+      ]
+    },
+    "_audit_author": {
+      "pdbx_ordinal": [
+        1
+      ],
+      "name": [
+        "?"
+      ]
+    },
+    "_ma_target_ref_db_details": {},
+    "_ma_target_entity": {},
+    "_ma_target_entity_instance": {},
+    "_entity": {},
+    "_entity_poly": {},
+    "_struct_ref": {},
+    "_struct_ref_seq": {}
+  },
+  "chains": []
+}

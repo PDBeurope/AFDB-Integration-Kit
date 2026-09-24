@@ -514,3 +514,27 @@ remain compatible with the existing pipeline.
 
 For further context on the AlphaFold integration toolkit, see the repository
 root README.
+
+## BioIR ModelCIF attribution
+
+Both `export_modelcif_input.py` and `batch_export_modelcif_input.py` accept
+`--prediction-tool` with either `OpenFold2 (BioNeMo IR) / AlphaFold-Multimer` or
+`OpenFold2 (BioNeMo IR) / OpenFold-pTM`. Select
+`templates/bioir_modelcif_metadata.json` or a provider-authored compatible copy.
+A generic BioIR template requires this explicit method; an already exported
+input can retain it in `metadata.prediction_tool`. Conflicting declarations or
+legacy predictor rows are rejected.
+
+The software identity and model family survive both metadata export and actual
+ModelCIF generation. Monomer/complex classification controls postprocessing QA
+rows, not the prediction method. A supplied BioIR software version is retained;
+otherwise it remains `?`. Supply versions only from the original prediction
+producer's evidence, not the installed postprocessing toolkit. The generic
+BioIR template uses unknown placeholders for publication, authors, dates and
+data-usage information; provide those explicitly before deposition.
+
+These standalone exporters encode an operator-declared homogeneous method;
+they do not authenticate prediction execution. The production pipeline also
+checks the original score producer's `bioir_model_source` for every target; see
+[Homogeneous BioIR predictions](../scripts/README.md#homogeneous-bioir-predictions)
+for input requirements and the current mixed-predictor limitation.

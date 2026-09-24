@@ -6,6 +6,13 @@ from typing import Any
 DEFAULT_ALPHAFOLD2_VERSION = "2.3.2"
 DEFAULT_IPSAE_PAE_CUTOFF = "10.0"
 DEFAULT_IPSAE_DIST_CUTOFF = "15.0"
+BIOIR_SOFTWARE_NAME = "OpenFold2 (BioNeMo IR)"
+BIOIR_MULTIMER_TOOL = f"{BIOIR_SOFTWARE_NAME} / AlphaFold-Multimer"
+BIOIR_PTM_TOOL = f"{BIOIR_SOFTWARE_NAME} / OpenFold-pTM"
+BIOIR_TOOL_SOURCES = {
+    BIOIR_MULTIMER_TOOL: frozenset(f"alphafold2_multimer_{index}" for index in range(1, 6)),
+    BIOIR_PTM_TOOL: frozenset({"openfold2_ptm_1"}),
+}
 SECONDARY_STRUCTURE_DESCRIPTION = (
     "Secondary-structure assignment and annotation extraction from predicted coordinates"
 )
@@ -110,13 +117,57 @@ def _detect_is_complex(payload: dict[str, Any], explicit: bool | None) -> bool:
     return False
 
 
+def resolve_bioir_provenance(
+    payload: dict[str, Any], prediction_tool: str | None = None
+) -> tuple[str, str] | None:
+    """Validate an explicit BioIR method and preserve its supplied software version.
+
+    The method identifies a model family, not a package or checkpoint version.
+    An unknown producer version stays ``?``; the postprocessing environment
+    cannot establish the version that generated the coordinates.
+    """
+    metadata = payload.get("metadata", {})
+    if not isinstance(metadata, dict):
+        raise TypeError("ModelCIF metadata must be a dictionary.")
+    declared = metadata.get("prediction_tool")
+    if prediction_tool is not None and (not isinstance(prediction_tool, str) or prediction_tool not in BIOIR_TOOL_SOURCES):
+        raise ValueError(f"Unsupported BioIR prediction tool: {prediction_tool!r}")
+    if declared is not None and (not isinstance(declared, str) or declared not in BIOIR_TOOL_SOURCES):
+        raise ValueError(f"Unsupported metadata.prediction_tool: {declared!r}")
+    if prediction_tool is not None and declared is not None and prediction_tool != declared:
+        raise ValueError("BioIR prediction tool conflicts with the explicit ModelCIF template.")
+    tool = prediction_tool or declared
+    categories = payload.get("categories", {})
+    software = categories.get("_software", {}) if isinstance(categories, dict) else {}
+    rows = _collect_row_dicts(software) if isinstance(software, dict) else []
+    bioir_rows = [row for row in rows if row.get("name") == BIOIR_SOFTWARE_NAME]
+    if tool is None:
+        if bioir_rows:
+            raise ValueError("BioIR ModelCIF input requires an explicit --prediction-tool or metadata.prediction_tool.")
+        return None
+    if len(bioir_rows) != 1 or any(
+        str(row.get("name", "")).startswith(("AlphaFold", "ColabFold", "OpenFold-TRT"))
+        or (row.get("classification") == "model building" and row.get("name") != BIOIR_SOFTWARE_NAME)
+        for row in rows
+    ):
+        raise ValueError("BioIR prediction tool requires a matching BioIR software row, without conflicting predictors.")
+    version = bioir_rows[0].get("version", "?")
+    if not isinstance(version, str) or not version.strip() or version == ".":
+        raise ValueError("BioIR _software.version must be a supplied producer version or '?' for unknown.")
+    metadata["prediction_tool"] = tool
+    payload["metadata"] = metadata
+    return tool, version
+
+
 def normalize_modelcif_provenance(
     payload: dict[str, Any],
     *,
     dssp_algorithm: str | None = None,
     is_complex: bool | None = None,
     allow_default_alphafold_version: bool = False,
+    prediction_tool: str | None = None,
 ) -> None:
+    bioir = resolve_bioir_provenance(payload, prediction_tool)
     categories = payload.setdefault("categories", {})
     if not isinstance(categories, dict):
         raise TypeError("ModelCIF metadata payload must contain a 'categories' dictionary.")
@@ -127,7 +178,7 @@ def normalize_modelcif_provenance(
 
     detected_complex = _detect_is_complex(payload, is_complex)
     resolved_dssp = _canonicalize_dssp_algorithm(dssp_algorithm, software_names)
-    alphafold_version = _resolve_alphafold_version(
+    alphafold_version = bioir[1] if bioir else _resolve_alphafold_version(
         software_rows, allow_default=allow_default_alphafold_version
     )
 
@@ -141,7 +192,11 @@ def normalize_modelcif_provenance(
 
     dssp_name = "PyDSSP" if resolved_dssp == "pydssp" else "DSSP"
     dssp_type = "library" if resolved_dssp == "pydssp" else "package"
-    alphafold_name = "AlphaFold-Multimer" if detected_complex else "AlphaFold"
+    alphafold_name = BIOIR_SOFTWARE_NAME if bioir else ("AlphaFold-Multimer" if detected_complex else "AlphaFold")
+    inference_details = (
+        f"Predicted structure generated with {bioir[0]}"
+        if bioir else f"Predicted structure generated with {alphafold_name}"
+    )
 
     software_rows_out: list[dict[str, Any]] = [
         {
@@ -251,7 +306,7 @@ def normalize_modelcif_provenance(
                 "step_id": "1",
                 "method_type": "modeling",
                 "step_name": "model inference",
-                "details": "Predicted structure generated with AlphaFold-Multimer",
+                "details": inference_details,
                 "software_group_id": "1",
             },
             {
@@ -281,7 +336,7 @@ def normalize_modelcif_provenance(
                 "step_id": "1",
                 "method_type": "modeling",
                 "step_name": "model inference",
-                "details": "Predicted structure generated with AlphaFold",
+                "details": inference_details,
                 "software_group_id": "1",
             },
             {
