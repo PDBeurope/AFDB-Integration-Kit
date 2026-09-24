@@ -47,6 +47,10 @@ from afdb_integration_kit.complex_metrics import (  # noqa: E402
     build_model_enrichment as _build_model_enrichment,
     parse_ipsae_csv as _parse_ipsae_csv,
 )
+from afdb_integration_kit.modelcif.provenance import (  # noqa: E402
+    BIOIR_TOOL_SOURCES,
+    resolve_bioir_provenance,
+)
 
 
 # ============================================================================
@@ -460,11 +464,39 @@ class Config:
         # Select modelcif template based on tool_used if not explicitly provided
         if self.modelcif_template is None:
             is_colabfold = (self.tool_used or "").lower().startswith("colabfold")
-            if is_colabfold:
+            if self.tool_used in BIOIR_TOOL_SOURCES:
+                template_name = "bioir_modelcif_metadata.json"
+            elif is_colabfold:
                 template_name = "colabfold_modelcif_metadata.json"
             else:
                 template_name = "openfold_modelcif_metadata.json"
             self.modelcif_template = self.repo_dir / "uniprot/templates" / template_name
+        self.validate_prediction_configuration()
+
+    def validate_prediction_configuration(self) -> None:
+        """Prevent disagreement between BioIR declarations and export metadata."""
+        bioir = self.tool_used in BIOIR_TOOL_SOURCES
+        if bioir or self.homodimer_tool_used in BIOIR_TOOL_SOURCES:
+            if not bioir or self.tool_used != self.homodimer_tool_used:
+                raise ValueError(
+                    "Mixed BioIR predictors/model families are unsupported in one run. "
+                    "Set --tool-used and --homodimer-tool-used to the same explicit BioIR method; "
+                    "use separate homogeneous runs for different producers."
+                )
+        if self.modelcif_template is not None and self.modelcif_template.exists():
+            template = orjson.loads(self.modelcif_template.read_bytes())
+            selected = resolve_bioir_provenance(template, self.tool_used if bioir else None)
+            if selected is not None and not bioir:
+                raise ValueError("BioIR ModelCIF template conflicts with the declared legacy prediction tool.")
+        elif bioir:
+            raise ValueError(f"BioIR ModelCIF template does not exist: {self.modelcif_template}")
+        if self.dataset_config is not None and self.dataset_config.exists():
+            dataset = orjson.loads(self.dataset_config.read_bytes())
+            declared = (dataset.get("toolUsed"), dataset.get("homodimerToolUsed", dataset.get("toolUsed")))
+            if bioir and declared != (self.tool_used, self.tool_used):
+                raise ValueError("Dataset toolUsed/homodimerToolUsed must match the homogeneous BioIR method.")
+            if not bioir and any(isinstance(tool, str) and tool in BIOIR_TOOL_SOURCES for tool in declared):
+                raise ValueError("BioIR dataset configuration conflicts with the declared legacy prediction tool.")
 
     def get_hash(self) -> str:
         """Generate hash of configuration for cache validation"""
@@ -474,6 +506,9 @@ class Config:
             f"{self.chain_mapping}:{self.workers}:{self.model_version}:"
             f"{self.batch_size}:{self.heterodimers}:{self.provider_id}"
         )
+        if self.tool_used in BIOIR_TOOL_SOURCES:
+            template_digest = hashlib.sha256(self.modelcif_template.read_bytes()).hexdigest()
+            config_str += f":bioir-attribution-v1:{self.tool_used}:{template_digest}"
         return hashlib.sha256(config_str.encode()).hexdigest()[:16]
 
 
@@ -585,11 +620,16 @@ Examples:
 
     # Dataset metadata
     parser.add_argument(
+        "--modelcif-template", type=Path,
+        help="Explicit ModelCIF template; BioIR software identity must match the declared prediction method.",
+    )
+    parser.add_argument(
         "--tool-used",
         type=str,
         choices=[
             "ColabFold v1.6.0 / AlphaFold-Multimer",
             "OpenFold-TRT / AlphaFold-Multimer",
+            *BIOIR_TOOL_SOURCES,
         ],
         default="ColabFold v1.6.0 / AlphaFold-Multimer",
         help="Prediction tool recorded in dataset_config.json (default: %(default)s)."
@@ -600,6 +640,7 @@ Examples:
         choices=[
             "ColabFold v1.6.0 / AlphaFold-Multimer",
             "OpenFold-TRT / AlphaFold-Multimer",
+            *BIOIR_TOOL_SOURCES,
         ],
         default="ColabFold v1.6.0 / AlphaFold-Multimer",
         help="Prediction tool for homodimer (same-accession) models, recorded as "
@@ -840,6 +881,7 @@ Examples:
         mapping_file=args.mapping_file,
         chain_mapping=args.chain_mapping,
         dataset_config=args.dataset_config,
+        modelcif_template=args.modelcif_template,
         provider_json=args.provider_json,
         uniprot_db=args.uniprot_db,
         python_cmd=python_cmd,
@@ -1102,6 +1144,36 @@ def scan_input_dir(input_dir: Path) -> Dict[str, Tuple[Path, Path]]:
 
     matched = pdbs.keys() & metas.keys()
     return {mid: (pdbs[mid], metas[mid]) for mid in matched}
+
+
+def validate_prediction_inputs(model_ids: List[str], config: Config) -> None:
+    """Check producer evidence before cached stages or scientific work can run.
+
+    BioIR mode requires the original score producer's model source for every
+    target. Legacy inputs without that field retain their existing behavior.
+    Chain count and checkpoint filenames never determine the model family.
+    """
+    config.validate_prediction_configuration()
+    bioir = config.tool_used in BIOIR_TOOL_SOURCES
+    pairs = scan_input_dir(config.input_dir)
+    for model_id in model_ids:
+        pair = pairs.get(_canonicalize_model_id(_strip_afdb_prefix(model_id)))
+        if pair is None:
+            if bioir:
+                raise ValueError(f"BioIR target {model_id} lacks its original coordinate/score pair.")
+            continue
+        payload = orjson.loads(pair[1].read_bytes())
+        if not isinstance(payload, dict):
+            raise ValueError(f"Score metadata for {model_id} must be an object.")
+        if "bioir_model_source" not in payload:
+            if bioir:
+                raise ValueError(f"BioIR target {model_id} lacks producer bioir_model_source; do not infer or patch it.")
+            continue
+        source = payload["bioir_model_source"]
+        if not isinstance(source, str) or not any(source in sources for sources in BIOIR_TOOL_SOURCES.values()):
+            raise ValueError(f"Invalid producer bioir_model_source for {model_id}: {source!r}")
+        if not bioir or source not in BIOIR_TOOL_SOURCES[config.tool_used]:
+            raise ValueError(f"Producer bioir_model_source for {model_id} conflicts with declared tool {config.tool_used!r}.")
 
 
 def _symlink_model(
@@ -1683,6 +1755,8 @@ def stage_09_export_modelcif_input(
         "--failed-ids-file", str(failed_ids_file),
         "--stage-name", "stage_09_export_modelcif_input",
     ]
+    if config.tool_used in BIOIR_TOOL_SOURCES:
+        cmd.extend(["--prediction-tool", config.tool_used])
 
     duration, success, stdout, stderr = run_command(cmd, "stage_09", logger, error_tracker, config.repo_dir)
 
@@ -2200,6 +2274,9 @@ def main():
             logger.info(f"  Auto-generated {config.dataset_config}", indent=1)
 
         logger.info("")
+
+    # Attribution is checked even for dry-run/resume, before any stage is skipped.
+    validate_prediction_inputs(model_ids, config)
 
     # Run pre-flight checks
     if not config.dry_run:

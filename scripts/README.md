@@ -209,3 +209,46 @@ python prepare_inputs.py \
 
 It prints a ready-to-paste command for the next step (running the pipeline
 with the generated config files).
+
+## Homogeneous BioIR predictions
+
+The production CLI accepts these exact BioIR methods:
+
+- `OpenFold2 (BioNeMo IR) / AlphaFold-Multimer`
+- `OpenFold2 (BioNeMo IR) / OpenFold-pTM`
+
+For a BioIR run, set **both** `--tool-used` and `--homodimer-tool-used` to the
+same method. Each original score JSON must contain its producer-written
+`bioir_model_source`: `openfold2_ptm_1` for OpenFold-pTM, or
+`alphafold2_multimer_1` through `alphafold2_multimer_5` for AlphaFold-Multimer.
+The pipeline checks every target before executing or resuming stages, including
+in dry-run mode. Missing or conflicting source evidence is rejected; do not
+patch older scores to invent this provenance. A multimer model used on a
+single-chain target remains the multimer method; chain count never selects the
+predictor label.
+
+For example, add these arguments to the prepared-input command above:
+
+```bash
+--tool-used 'OpenFold2 (BioNeMo IR) / OpenFold-pTM' \
+--homodimer-tool-used 'OpenFold2 (BioNeMo IR) / OpenFold-pTM'
+```
+
+The default BioIR ModelCIF template records `OpenFold2 (BioNeMo IR)` as the
+prediction software and the declared model family in its protocol. Runtime
+package version is `?` (unknown): neither a model-family label nor a checkpoint
+filename proves a software release. To supply a known version, copy
+`uniprot/templates/bioir_modelcif_metadata.json`, set the BioIR `_software.version`
+from the actual prediction environment's retained evidence, and select it with
+`--modelcif-template PATH`. Do not use the postprocessing environment's version.
+The generic template also leaves publication, author, date and data-usage
+metadata unspecified; model providers must supply those before deposition.
+Conflicting templates or dataset `toolUsed`/`homodimerToolUsed` values fail
+rather than silently relabeling predictions. BioIR cache identity includes the
+method and template bytes, so changing attribution invalidates cached stages.
+
+This is support for one explicitly declared BioIR method per invocation.
+Mixed predictors or mixed pTM/multimer model families require separate
+homogeneous runs or a future per-model producer-provenance interface. This
+change does not qualify a mixed-policy benchmark, execute inference, or modify
+existing ColabFold/OpenFold defaults.

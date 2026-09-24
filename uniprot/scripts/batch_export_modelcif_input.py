@@ -28,6 +28,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from afdb_integration_kit.modelcif.provenance import (  # noqa: E402
+    BIOIR_TOOL_SOURCES,
     normalize_modelcif_provenance,
 )
 from afdb_integration_kit.uniprot.naming import protein_description  # noqa: E402
@@ -117,6 +118,10 @@ def parse_args() -> argparse.Namespace:
         "--stage-name",
         default="stage_09_export_modelcif_input",
         help="Stage label for the failed-ids file.",
+    )
+    parser.add_argument(
+        "--prediction-tool", choices=list(BIOIR_TOOL_SOURCES),
+        help="Explicit homogeneous BioIR method; its software version must come from producer evidence in the template.",
     )
     parser.add_argument(
         "--dssp-algorithm",
@@ -520,6 +525,7 @@ def process_model(
     base_template: Dict[str, Any],
     output_dir: Path,
     dssp_algorithm: str,
+    prediction_tool: str | None = None,
 ) -> bool:
     """Process a single model and write output JSON."""
     try:
@@ -535,6 +541,7 @@ def process_model(
             template,
             dssp_algorithm=dssp_algorithm,
             allow_default_alphafold_version=True,
+            prediction_tool=prediction_tool,
         )
         
         output_path = output_dir / f"{model_id}.json"
@@ -612,6 +619,7 @@ def main() -> int:
             base_template,
             args.output_dir,
             args.dssp_algorithm,
+            args.prediction_tool,
         )
         return success, model_id
 
