@@ -1,0 +1,103 @@
+ID   VP1_POVK3               Reviewed;         378 AA.
+AC   P0DOI4; A3R4M8; A3R4N3; A3R4N8;
+DT   20-DEC-2017, integrated into UniProtKB/Swiss-Prot.
+DT   20-DEC-2017, sequence version 1.
+DT   08-NOV-2023, entry version 14.
+DE   RecName: Full=Major capsid protein VP1;
+DE   AltName: Full=Major structural protein VP1;
+OS   KI polyomavirus (isolate Stockholm 380) (KIPyV).
+OC   Viruses; Monodnaviria; Shotokuvirae; Cossaviricota; Papovaviricetes;
+OC   Sepolyvirales; Polyomaviridae; Betapolyomavirus;
+OC   Betapolyomavirus tertihominis.
+OX   NCBI_TaxID=423448;
+OH   NCBI_TaxID=9606; Homo sapiens (Human).
+RN   [1]
+RP   NUCLEOTIDE SEQUENCE [GENOMIC DNA].
+RX   PubMed=17287263; DOI=10.1128/jvi.00028-07;
+RA   Allander T., Andreasson K., Gupta S., Bjerkner A., Bogdanovic G.,
+RA   Persson M.A., Dalianis T., Ramqvist T., Andersson B.;
+RT   "Identification of a third human polyomavirus.";
+RL   J. Virol. 81:4130-4136(2007).
+RN   [2]
+RP   REVIEW.
+RX   PubMed=19157478; DOI=10.1016/j.virol.2008.12.021;
+RA   Neu U., Stehle T., Atwood W.J.;
+RT   "The Polyomaviridae: Contributions of virus structure to our understanding
+RT   of virus receptors and infectious entry.";
+RL   Virology 384:389-399(2009).
+CC   -!- FUNCTION: Forms an icosahedral capsid with a T=7 symmetry and a 40 nm
+CC       diameter. The capsid is composed of 72 pentamers linked to each other
+CC       by disulfide bonds and associated with VP2 or VP3 proteins. Interacts
+CC       with sialic acids on the cell surface to provide virion attachment to
+CC       target cell. Once attached, the virion is internalized by endocytosis
+CC       and traffics to the endoplasmic reticulum. Inside the endoplasmic
+CC       reticulum, the protein folding machinery isomerizes VP1 interpentamer
+CC       disulfide bonds, thereby triggering initial uncoating. Next, the virion
+CC       uses the endoplasmic reticulum-associated degradation machinery to
+CC       probably translocate in the cytosol before reaching the nucleus.
+CC       Nuclear entry of the viral DNA involves the selective exposure and
+CC       importin recognition of VP2/Vp3 nuclear localization signal. In late
+CC       phase of infection, neo-synthesized VP1 encapsulates replicated genomic
+CC       DNA in the nucleus, and participates in rearranging nucleosomes around
+CC       the viral DNA. {ECO:0000250|UniProtKB:P03087,
+CC       ECO:0000305|PubMed:19157478}.
+CC   -!- SUBUNIT: Homomultimer. The virus capsid is composed of 72 icosahedral
+CC       units, each one composed of five disulfide-linked copies of VP1.
+CC       Interacts with minor capsid proteins VP2 and VP3.
+CC       {ECO:0000250|UniProtKB:P03087}.
+CC   -!- SUBCELLULAR LOCATION: Virion {ECO:0000250|UniProtKB:P03087}. Host
+CC       nucleus {ECO:0000250|UniProtKB:P03087}.
+CC   -!- ALTERNATIVE PRODUCTS:
+CC       Event=Alternative splicing, Alternative initiation; Named isoforms=3;
+CC       Name=VP1;
+CC         IsoId=P0DOI4-1, A3R4N3-1;
+CC         Sequence=Displayed;
+CC       Name=VP2; Synonyms=Minor capsid protein VP2;
+CC         IsoId=P0DOJ3-1, A3R4N1-1;
+CC         Sequence=External;
+CC       Name=VP3; Synonyms=Minor capsid protein VP3;
+CC         IsoId=P0DOJ3-2, A3R4N1-2;
+CC         Sequence=External;
+CC   -!- MISCELLANEOUS: [Isoform VP1]: Produced by alternative splicing of the
+CC       late mRNA.
+CC   -!- SIMILARITY: Belongs to the polyomaviruses coat protein VP1 family.
+CC       {ECO:0000305}.
+CC   ---------------------------------------------------------------------------
+CC   Copyrighted by the UniProt Consortium, see https://www.uniprot.org/terms
+CC   Distributed under the Creative Commons Attribution (CC BY 4.0) License
+CC   ---------------------------------------------------------------------------
+DR   EMBL; EF127908; ABN09927.1; -; Genomic_DNA.
+DR   SMR; P0DOI4; -.
+DR   Proteomes; UP000166765; Genome.
+DR   GO; GO:0042025; C:host cell nucleus; IEA:UniProtKB-SubCell.
+DR   GO; GO:0039620; C:T=7 icosahedral viral capsid; IEA:UniProtKB-KW.
+DR   GO; GO:0005198; F:structural molecule activity; IEA:InterPro.
+DR   GO; GO:0075509; P:endocytosis involved in viral entry into host cell; IEA:UniProtKB-KW.
+DR   GO; GO:0019062; P:virion attachment to host cell; IEA:UniProtKB-KW.
+DR   Gene3D; 2.60.175.10; Capsid protein VP1,Polyomavirus; 1.
+DR   InterPro; IPR000662; Capsid_VP1_Polyomavir.
+DR   InterPro; IPR011222; dsDNA_vir_gr_I_capsid.
+DR   InterPro; IPR036931; Polyomavir_VP1_sf.
+DR   Pfam; PF00718; Polyoma_coat; 1.
+DR   SUPFAM; SSF88648; Group I dsDNA viruses; 1.
+PE   3: Inferred from homology;
+KW   Alternative initiation; Alternative splicing; Capsid protein;
+KW   Disulfide bond; Host nucleus; Host-virus interaction; Late protein;
+KW   T=7 icosahedral capsid protein; Viral attachment to host cell;
+KW   Viral penetration into host cytoplasm; Virion; Virus endocytosis by host;
+KW   Virus entry into host cell.
+FT   CHAIN           1..378
+FT                   /note="Major capsid protein VP1"
+FT                   /id="PRO_0000442711"
+FT   REGION          1..21
+FT                   /note="Disordered"
+FT                   /evidence="ECO:0000256|SAM:MobiDB-lite"
+SQ   SEQUENCE   378 AA;  41578 MW;  34B60D4A14583C31 CRC64;
+     MSCTPCRPQK RLTRPRSQVP RVQTLATEVK KGGVEVLAAV PLSEETEFKV ELFVKPVIGN
+     TTAAQDGREP TPHYWSISSA IHDKESGSSI KVEETPDADT TVCYSLAEIA PPDIPNQVSE
+     CDMKVWELYR METELLVVPL VNALGNTNGV VHGLAGTQLY FWAVGGQPLD VVGVTPTDKY
+     KGPTTYTINP PGDPRTLHVY NSNTPKAKVT SERYSVESWA PDPSRNDNCR YFGRVVGGAA
+     TPPVVSYGNN STIPLLDENG IGILCLQGRL YITCADMLGT ANSRIHTPMA RFFRLHFRQR
+     RVKNPFTMNV LYKQVFNRPT ETVDAQVGVT EVTMVEEIGP LPPSIQTTLP TSVNLTQLPR
+     TVTLQSQAPL LNTQQNSK
+//

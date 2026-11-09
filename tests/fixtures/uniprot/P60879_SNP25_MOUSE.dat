@@ -1,0 +1,614 @@
+ID   SNP25_MOUSE             Reviewed;         206 AA.
+AC   P60879; A2AIC2; A2AIC3; P13795; P36974; P70557; P70558; Q8IXK3; Q96FM2;
+AC   Q9BR45;
+DT   13-APR-2004, integrated into UniProtKB/Swiss-Prot.
+DT   13-APR-2004, sequence version 1.
+DT   18-JUN-2025, entry version 194.
+DE   RecName: Full=Synaptosomal-associated protein 25;
+DE            Short=SNAP-25;
+DE   AltName: Full=Super protein;
+DE            Short=SUP;
+DE   AltName: Full=Synaptosomal-associated 25 kDa protein;
+GN   Name=Snap25; Synonyms=Snap;
+OS   Mus musculus (Mouse).
+OC   Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi; Mammalia;
+OC   Eutheria; Euarchontoglires; Glires; Rodentia; Myomorpha; Muroidea; Muridae;
+OC   Murinae; Mus; Mus.
+OX   NCBI_TaxID=10090;
+RN   [1]
+RP   NUCLEOTIDE SEQUENCE [MRNA] (ISOFORM 2), AND SUBCELLULAR LOCATION.
+RC   STRAIN=BALB/cJ;
+RX   PubMed=2592413; DOI=10.1083/jcb.109.6.3039;
+RA   Oyler G.A., Higgins G.A., Hart R.A., Battenberg E., Billingsley M.,
+RA   Bloom F.E., Wilson M.C.;
+RT   "The identification of a novel synaptosomal-associated protein, SNAP-25,
+RT   differentially expressed by neuronal subpopulations.";
+RL   J. Cell Biol. 109:3039-3052(1989).
+RN   [2]
+RP   NUCLEOTIDE SEQUENCE [MRNA] (ISOFORM 2).
+RC   STRAIN=ILS, and ISS;
+RX   PubMed=11471062; DOI=10.1007/s00335-001-1001-x;
+RA   Ehringer M.A., Thompson J., Conroy O., Xu Y., Yang F., Canniff J.,
+RA   Beeson M., Gordon L., Bennett B., Johnson T.E., Sikela J.M.;
+RT   "High-throughput sequence identification of gene coding variants within
+RT   alcohol-related QTLs.";
+RL   Mamm. Genome 12:657-663(2001).
+RN   [3]
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE MRNA] (ISOFORM 1).
+RC   STRAIN=C57BL/6J; TISSUE=Medulla oblongata;
+RX   PubMed=16141072; DOI=10.1126/science.1112014;
+RA   Carninci P., Kasukawa T., Katayama S., Gough J., Frith M.C., Maeda N.,
+RA   Oyama R., Ravasi T., Lenhard B., Wells C., Kodzius R., Shimokawa K.,
+RA   Bajic V.B., Brenner S.E., Batalov S., Forrest A.R., Zavolan M., Davis M.J.,
+RA   Wilming L.G., Aidinis V., Allen J.E., Ambesi-Impiombato A., Apweiler R.,
+RA   Aturaliya R.N., Bailey T.L., Bansal M., Baxter L., Beisel K.W., Bersano T.,
+RA   Bono H., Chalk A.M., Chiu K.P., Choudhary V., Christoffels A.,
+RA   Clutterbuck D.R., Crowe M.L., Dalla E., Dalrymple B.P., de Bono B.,
+RA   Della Gatta G., di Bernardo D., Down T., Engstrom P., Fagiolini M.,
+RA   Faulkner G., Fletcher C.F., Fukushima T., Furuno M., Futaki S.,
+RA   Gariboldi M., Georgii-Hemming P., Gingeras T.R., Gojobori T., Green R.E.,
+RA   Gustincich S., Harbers M., Hayashi Y., Hensch T.K., Hirokawa N., Hill D.,
+RA   Huminiecki L., Iacono M., Ikeo K., Iwama A., Ishikawa T., Jakt M.,
+RA   Kanapin A., Katoh M., Kawasawa Y., Kelso J., Kitamura H., Kitano H.,
+RA   Kollias G., Krishnan S.P., Kruger A., Kummerfeld S.K., Kurochkin I.V.,
+RA   Lareau L.F., Lazarevic D., Lipovich L., Liu J., Liuni S., McWilliam S.,
+RA   Madan Babu M., Madera M., Marchionni L., Matsuda H., Matsuzawa S., Miki H.,
+RA   Mignone F., Miyake S., Morris K., Mottagui-Tabar S., Mulder N., Nakano N.,
+RA   Nakauchi H., Ng P., Nilsson R., Nishiguchi S., Nishikawa S., Nori F.,
+RA   Ohara O., Okazaki Y., Orlando V., Pang K.C., Pavan W.J., Pavesi G.,
+RA   Pesole G., Petrovsky N., Piazza S., Reed J., Reid J.F., Ring B.Z.,
+RA   Ringwald M., Rost B., Ruan Y., Salzberg S.L., Sandelin A., Schneider C.,
+RA   Schoenbach C., Sekiguchi K., Semple C.A., Seno S., Sessa L., Sheng Y.,
+RA   Shibata Y., Shimada H., Shimada K., Silva D., Sinclair B., Sperling S.,
+RA   Stupka E., Sugiura K., Sultana R., Takenaka Y., Taki K., Tammoja K.,
+RA   Tan S.L., Tang S., Taylor M.S., Tegner J., Teichmann S.A., Ueda H.R.,
+RA   van Nimwegen E., Verardo R., Wei C.L., Yagi K., Yamanishi H.,
+RA   Zabarovsky E., Zhu S., Zimmer A., Hide W., Bult C., Grimmond S.M.,
+RA   Teasdale R.D., Liu E.T., Brusic V., Quackenbush J., Wahlestedt C.,
+RA   Mattick J.S., Hume D.A., Kai C., Sasaki D., Tomaru Y., Fukuda S.,
+RA   Kanamori-Katayama M., Suzuki M., Aoki J., Arakawa T., Iida J., Imamura K.,
+RA   Itoh M., Kato T., Kawaji H., Kawagashira N., Kawashima T., Kojima M.,
+RA   Kondo S., Konno H., Nakano K., Ninomiya N., Nishio T., Okada M., Plessy C.,
+RA   Shibata K., Shiraki T., Suzuki S., Tagami M., Waki K., Watahiki A.,
+RA   Okamura-Oho Y., Suzuki H., Kawai J., Hayashizaki Y.;
+RT   "The transcriptional landscape of the mammalian genome.";
+RL   Science 309:1559-1563(2005).
+RN   [4]
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA].
+RC   STRAIN=C57BL/6J;
+RX   PubMed=19468303; DOI=10.1371/journal.pbio.1000112;
+RA   Church D.M., Goodstadt L., Hillier L.W., Zody M.C., Goldstein S., She X.,
+RA   Bult C.J., Agarwala R., Cherry J.L., DiCuccio M., Hlavina W., Kapustin Y.,
+RA   Meric P., Maglott D., Birtle Z., Marques A.C., Graves T., Zhou S.,
+RA   Teague B., Potamousis K., Churas C., Place M., Herschleb J., Runnheim R.,
+RA   Forrest D., Amos-Landgraf J., Schwartz D.C., Cheng Z., Lindblad-Toh K.,
+RA   Eichler E.E., Ponting C.P.;
+RT   "Lineage-specific biology revealed by a finished genome assembly of the
+RT   mouse.";
+RL   PLoS Biol. 7:E1000112-E1000112(2009).
+RN   [5]
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA].
+RA   Mural R.J., Adams M.D., Myers E.W., Smith H.O., Venter J.C.;
+RL   Submitted (JUL-2005) to the EMBL/GenBank/DDBJ databases.
+RN   [6]
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE MRNA] (ISOFORM 2).
+RC   STRAIN=C57BL/6J; TISSUE=Eye;
+RX   PubMed=15489334; DOI=10.1101/gr.2596504;
+RG   The MGC Project Team;
+RT   "The status, quality, and expansion of the NIH full-length cDNA project:
+RT   the Mammalian Gene Collection (MGC).";
+RL   Genome Res. 14:2121-2127(2004).
+RN   [7]
+RP   PROTEIN SEQUENCE OF 18-31; 60-72; 125-135 AND 143-176, AND IDENTIFICATION
+RP   BY MASS SPECTROMETRY.
+RC   STRAIN=C57BL/6J; TISSUE=Brain;
+RA   Lubec G., Kang S.U.;
+RL   Submitted (APR-2007) to UniProtKB.
+RN   [8]
+RP   FUNCTION, AND PROTEOLYTIC CLEAVAGE (MICROBIAL INFECTION) BY C.BOTULINUM
+RP   NEUROTOXIN TYPES A AND E.
+RX   PubMed=8243676; DOI=10.1016/0014-5793(93)80448-4;
+RA   Schiavo G., Santtuci A., Dasgupta B.R., Mehta P.P., Jontes J.,
+RA   Benfenati F., Wilson M.C., Montecucco C.;
+RT   "Botulinum neurotoxins serotypes A and E cleave SNAP-25 at distinct COOH-
+RT   terminal peptide bonds.";
+RL   FEBS Lett. 335:99-103(1993).
+RN   [9]
+RP   PALMITOYLATION AT CYS-85; CYS-88; CYS-90 AND CYS-92, MUTAGENESIS OF CYS-85;
+RP   CYS-88; CYS-90 AND CYS-92, AND SUBCELLULAR LOCATION.
+RX   PubMed=9349529; DOI=10.1046/j.1471-4159.1997.69051864.x;
+RA   Lane S.R., Liu Y.;
+RT   "Characterization of the palmitoylation domain of SNAP-25.";
+RL   J. Neurochem. 69:1864-1869(1997).
+RN   [10]
+RP   FUNCTION, AND PROTEOLYTIC CLEAVAGE (MICROBIAL INFECTION) BY C.BOTULINUM
+RP   NEUROTOXIN TYPES A AND E.
+RX   PubMed=8103915; DOI=10.1038/365160a0;
+RA   Blasi J., Chapman E.R., Link E., Binz T., Yamasaki S., De Camilli P.,
+RA   Suedhof T.C., Niemann H., Jahn R.;
+RT   "Botulinum neurotoxin A selectively cleaves the synaptic protein SNAP-25.";
+RL   Nature 365:160-163(1993).
+RN   [11]
+RP   SUBCELLULAR LOCATION, AND PROTEOLYTIC CLEAVAGE (MICROBIAL INFECTION) BY
+RP   C.BOTULINUM NEUROTOXIN TYPES A AND E.
+RX   PubMed=10413679; DOI=10.1242/jcs.112.16.2715;
+RA   Lalli G., Herreros J., Osborne S.L., Montecucco C., Rossetto O.,
+RA   Schiavo G.;
+RT   "Functional characterisation of tetanus and botulinum neurotoxins binding
+RT   domains.";
+RL   J. Cell Sci. 112:2715-2724(1999).
+RN   [12]
+RP   INTERACTION WITH SNAPIN.
+RX   PubMed=10195194; DOI=10.1038/5673;
+RA   Ilardi J.M., Mochida S., Sheng Z.-H.;
+RT   "Snapin: a SNARE-associated protein implicated in synaptic transmission.";
+RL   Nat. Neurosci. 2:119-124(1999).
+RN   [13]
+RP   PHOSPHORYLATION AT THR-138 AND SER-187.
+RX   PubMed=12459461; DOI=10.1016/s0014-5793(02)03629-3;
+RA   Hepp R., Cabaniols J.-P., Roche P.A.;
+RT   "Differential phosphorylation of SNAP-25 in vivo by protein kinase C and
+RT   protein kinase A.";
+RL   FEBS Lett. 532:52-56(2002).
+RN   [14]
+RP   INTERACTION WITH SYT1; SV2B AND SYNTAXIN-1.
+RX   PubMed=15466855; DOI=10.1074/jbc.m407502200;
+RA   Lazzell D.R., Belizaire R., Thakur P., Sherry D.M., Janz R.;
+RT   "SV2B regulates synaptotagmin 1 by direct interaction.";
+RL   J. Biol. Chem. 279:52124-52131(2004).
+RN   [15]
+RP   INTERACTION WITH OTOF.
+RC   STRAIN=BALB/cJ; TISSUE=Cochlea;
+RX   PubMed=17055430; DOI=10.1016/j.cell.2006.08.040;
+RA   Roux I., Safieddine S., Nouvian R., Grati M., Simmler M.-C., Bahloul A.,
+RA   Perfettini I., Le Gall M., Rostaing P., Hamard G., Triller A., Avan P.,
+RA   Moser T., Petit C.;
+RT   "Otoferlin, defective in a human deafness form, is essential for exocytosis
+RT   at the auditory ribbon synapse.";
+RL   Cell 127:277-289(2006).
+RN   [16]
+RP   FUNCTION, SUBCELLULAR LOCATION, AND INTERACTION WITH CENPF.
+RX   PubMed=16672379; DOI=10.1091/mbc.e05-12-1127;
+RA   Pooley R.D., Reddy S., Soukoulis V., Roland J.T., Goldenring J.R.,
+RA   Bader D.M.;
+RT   "CytLEK1 is a regulator of plasma membrane recycling through its
+RT   interaction with SNAP-25.";
+RL   Mol. Biol. Cell 17:3176-3186(2006).
+RN   [17]
+RP   INTERACTION WITH VAMP2.
+RX   PubMed=19196426; DOI=10.1111/j.1471-4159.2008.05849.x;
+RA   Ito H., Atsuzawa K., Morishita R., Usuda N., Sudo K., Iwamoto I.,
+RA   Mizutani K., Katoh-Semba R., Nozawa Y., Asano T., Nagata K.;
+RT   "Sept8 controls the binding of vesicle-associated membrane protein 2 to
+RT   synaptophysin.";
+RL   J. Neurochem. 108:867-880(2009).
+RN   [18]
+RP   PHOSPHORYLATION [LARGE SCALE ANALYSIS] AT THR-138 AND SER-154, AND
+RP   IDENTIFICATION BY MASS SPECTROMETRY [LARGE SCALE ANALYSIS].
+RC   TISSUE=Brain, and Brown adipose tissue;
+RX   PubMed=21183079; DOI=10.1016/j.cell.2010.12.001;
+RA   Huttlin E.L., Jedrychowski M.P., Elias J.E., Goswami T., Rad R.,
+RA   Beausoleil S.A., Villen J., Haas W., Sowa M.E., Gygi S.P.;
+RT   "A tissue-specific atlas of mouse protein phosphorylation and expression.";
+RL   Cell 143:1174-1189(2010).
+RN   [19]
+RP   INTERACTION WITH EQTN.
+RX   PubMed=19285662; DOI=10.1016/j.fertnstert.2009.01.067;
+RA   Hu X.Q., Ji S.Y., Li Y.C., Fan C.H., Cai H., Yang J.L., Zhang C.P.,
+RA   Chen M., Pan Z.F., Hu Z.Y., Gao F., Liu Y.X.;
+RT   "Acrosome formation-associated factor is involved in fertilization.";
+RL   Fertil. Steril. 93:1482-1492(2010).
+RN   [20]
+RP   ASSOCIATION WITH THE BLOC-1 COMPLEX, SUBCELLULAR LOCATION, AND INTERACTION
+RP   WITH BLOC1S6.
+RX   PubMed=19546860; DOI=10.1038/mp.2009.58;
+RA   Ghiani C.A., Starcevic M., Rodriguez-Fernandez I.A., Nazarian R.,
+RA   Cheli V.T., Chan L.N., Malvar J.S., de Vellis J., Sabatti C.,
+RA   Dell'Angelica E.C.;
+RT   "The dysbindin-containing complex (BLOC-1) in brain: developmental
+RT   regulation, interaction with SNARE proteins and role in neurite
+RT   outgrowth.";
+RL   Mol. Psychiatry 15:204-215(2010).
+RN   [21]
+RP   INTERACTION WITH ALPHA-SYNUCLEIN/SNCA.
+RX   PubMed=20798282; DOI=10.1126/science.1195227;
+RA   Burre J., Sharma M., Tsetsenis T., Buchman V., Etherton M.R., Suedhof T.C.;
+RT   "Alpha-synuclein promotes SNARE-complex assembly in vivo and in vitro.";
+RL   Science 329:1663-1667(2010).
+RN   [22]
+RP   INTERACTION WITH SYT9 AND HSC70.
+RX   PubMed=20847230; DOI=10.1096/fj.09-152033;
+RA   Boal F., Laguerre M., Milochau A., Lang J., Scotti P.A.;
+RT   "A charged prominence in the linker domain of the cysteine-string protein
+RT   Cspalpha mediates its regulated interaction with the calcium sensor
+RT   synaptotagmin 9 during exocytosis.";
+RL   FASEB J. 25:132-143(2011).
+RN   [23]
+RP   INTERACTION WITH PRRT2.
+RX   PubMed=22832103; DOI=10.1016/j.celrep.2011.11.001;
+RA   Lee H.Y., Huang Y., Bruneau N., Roll P., Roberson E.D., Hermann M.,
+RA   Quinn E., Maas J., Edwards R., Ashizawa T., Baykan B., Bhatia K.,
+RA   Bressman S., Bruno M.K., Brunt E.R., Caraballo R., Echenne B., Fejerman N.,
+RA   Frucht S., Gurnett C.A., Hirsch E., Houlden H., Jankovic J., Lee W.L.,
+RA   Lynch D.R., Mohammed S., Mueller U., Nespeca M.P., Renner D., Rochette J.,
+RA   Rudolf G., Saiki S., Soong B.W., Swoboda K.J., Tucker S., Wood N.,
+RA   Hanna M., Bowcock A.M., Szepetowski P., Fu Y.H., Ptacek L.J.;
+RT   "Mutations in the gene PRRT2 cause paroxysmal kinesigenic dyskinesia with
+RT   infantile convulsions.";
+RL   Cell Rep. 1:2-12(2012).
+RN   [24]
+RP   INTERACTION WITH PLCL1.
+RX   PubMed=23341457; DOI=10.1074/jbc.m112.419317;
+RA   Zhang Z., Takeuchi H., Gao J., Wang D., James D.J., Martin T.F., Hirata M.;
+RT   "PRIP (phospholipase C-related but catalytically inactive protein) inhibits
+RT   exocytosis by direct interactions with syntaxin 1 and SNAP-25 through its
+RT   C2 domain.";
+RL   J. Biol. Chem. 288:7769-7780(2013).
+RN   [25]
+RP   INTERACTION WITH ZDHHC17 AND ZDHHC13.
+RX   PubMed=25253725; DOI=10.1091/mbc.e14-06-1169;
+RA   Lemonidis K., Gorleku O.A., Sanchez-Perez M.C., Grefen C.,
+RA   Chamberlain L.H.;
+RT   "The Golgi S-acylation machinery comprises zDHHC enzymes with major
+RT   differences in substrate affinity and S-acylation activity.";
+RL   Mol. Biol. Cell 25:3870-3883(2014).
+RN   [26]
+RP   INTERACTION WITH ZDHHC17 AND ZDHHC13.
+RX   PubMed=26198635; DOI=10.1074/jbc.m115.657668;
+RA   Lemonidis K., Sanchez-Perez M.C., Chamberlain L.H.;
+RT   "Identification of a novel sequence motif recognized by the ankyrin repeat
+RT   domain of zDHHC17/13 S-acyltransferases.";
+RL   J. Biol. Chem. 290:21939-21950(2015).
+RN   [27]
+RP   INTERACTION WITH PRPH2; ROM1 AND STX3, SUBCELLULAR LOCATION, AND TISSUE
+RP   SPECIFICITY.
+RX   PubMed=26406599; DOI=10.1371/journal.pone.0138508;
+RA   Zulliger R., Conley S.M., Mwoyosvi M.L., Stuck M.W., Azadi S., Naash M.I.;
+RT   "SNAREs Interact with Retinal Degeneration Slow and Rod Outer Segment
+RT   Membrane Protein-1 during Conventional and Unconventional Outer Segment
+RT   Targeting.";
+RL   PLoS ONE 10:E0138508-E0138508(2015).
+RN   [28]
+RP   INTERACTION WITH PRRT2.
+RX   PubMed=27052163; DOI=10.1016/j.celrep.2016.03.005;
+RA   Valente P., Castroflorio E., Rossi P., Fadda M., Sterlini B.,
+RA   Cervigni R.I., Prestigio C., Giovedi S., Onofri F., Mura E.,
+RA   Guarnieri F.C., Marte A., Orlando M., Zara F., Fassio A., Valtorta F.,
+RA   Baldelli P., Corradi A., Benfenati F.;
+RT   "PRRT2 Is a Key Component of the Ca(2+)-Dependent Neurotransmitter Release
+RT   Machinery.";
+RL   Cell Rep. 15:117-131(2016).
+RN   [29]
+RP   IDENTIFICATION IN SNARE COMPLEX.
+RX   PubMed=28821673; DOI=10.1523/jneurosci.0338-17.2017;
+RA   Park S., Bin N.R., Yu B., Wong R., Sitarska E., Sugita K., Ma K., Xu J.,
+RA   Tien C.W., Algouneh A., Turlova E., Wang S., Siriya P., Shahid W.,
+RA   Kalia L., Feng Z.P., Monnier P.P., Sun H.S., Zhen M., Gao S., Rizo J.,
+RA   Sugita S.;
+RT   "UNC-18 and Tomosyn Antagonistically Control Synaptic Vesicle Priming
+RT   Downstream of UNC-13 in Caenorhabditis elegans.";
+RL   J. Neurosci. 37:8797-8815(2017).
+RN   [30]
+RP   INTERACTION WITH PRRT2.
+RX   PubMed=29056747; DOI=10.1038/cr.2017.128;
+RA   Tan G.H., Liu Y.Y., Wang L., Li K., Zhang Z.Q., Li H.F., Yang Z.F., Li Y.,
+RA   Li D., Wu M.Y., Yu C.L., Long J.J., Chen R.C., Li L.X., Yin L.P., Liu J.W.,
+RA   Cheng X.W., Shen Q., Shu Y.S., Sakimura K., Liao L.J., Wu Z.Y., Xiong Z.Q.;
+RT   "PRRT2 deficiency induces paroxysmal kinesigenic dyskinesia by regulating
+RT   synaptic transmission in cerebellum.";
+RL   Cell Res. 28:90-110(2018).
+RN   [31]
+RP   3D-STRUCTURE MODELING OF 18-206 IN COMPLEX WITH VAMP2 AND STX1A.
+RX   PubMed=9731768; DOI=10.1038/1799;
+RA   Poirier M.A., Xiao W., Macosko J.C., Chan C., Shin Y.K., Bennett M.K.;
+RT   "The synaptic SNARE complex is a parallel four-stranded helical bundle.";
+RL   Nat. Struct. Biol. 5:765-769(1998).
+CC   -!- FUNCTION: t-SNARE involved in the molecular regulation of
+CC       neurotransmitter release (PubMed:8103915, PubMed:8243676). May play an
+CC       important role in the synaptic function of specific neuronal systems.
+CC       Associates with proteins involved in vesicle docking and membrane
+CC       fusion. Regulates plasma membrane recycling through its interaction
+CC       with CENPF (PubMed:16672379). Modulates the gating characteristics of
+CC       the delayed rectifier voltage-dependent potassium channel KCNB1 in
+CC       pancreatic beta cells (By similarity). {ECO:0000250|UniProtKB:P60881,
+CC       ECO:0000269|PubMed:16672379, ECO:0000305|PubMed:8103915,
+CC       ECO:0000305|PubMed:8243676}.
+CC   -!- SUBUNIT: Part of the SNARE core complex containing SNAP25, VAMP2 and
+CC       STX1A; this complex constitutes the basic catalytic machinery of the
+CC       complex neurotransmitter release apparatus (PubMed:19196426,
+CC       PubMed:28821673). Recruited to the SNARE complex following binding of
+CC       the SNARE complex component STX1A to STXBP1 (PubMed:28821673). This
+CC       complex binds CPLX1 (PubMed:19196426). Found in a complex containing
+CC       SYT1, SV2B and STX1A (PubMed:15466855). Found in a ternary complex with
+CC       STX1A and VAMP8 (PubMed:9731768). Interacts with HSC70 and with SYT9,
+CC       forming a complex with DNAJC5 (PubMed:20847230). The interaction with
+CC       SYT9 is inhibited in presence of calcium (PubMed:20847230). Isoform 1
+CC       and isoform 2 interact with BLOC1S6 (PubMed:19546860). Interacts with
+CC       CENPF (PubMed:16672379). Interacts with EQTN (PubMed:19285662).
+CC       Interacts with HGS (By similarity). Interacts with KCNB1 (via N-
+CC       terminus); reduces the voltage-dependent potassium channel KCNB1
+CC       activity in pancreatic beta cells (By similarity). Interacts with OTOF
+CC       (PubMed:17055430). Interacts with RIMS1 (By similarity). Interacts with
+CC       SNAPIN (PubMed:10195194). Interacts with STXBP6 (By similarity).
+CC       Interacts with TRIM9 (By similarity). Interacts with ZDHHC13 (via ANK
+CC       repeats) (PubMed:25253725). Interacts with ZDHHC17 (via ANK repeats)
+CC       (PubMed:25253725). Associates with the BLOC-1 complex
+CC       (PubMed:19546860). Interacts with PLCL1 (via C2 domain)
+CC       (PubMed:23341457). Interacts with PRRT2; this interaction may impair
+CC       the formation of the SNARE complex (PubMed:22832103, PubMed:27052163,
+CC       PubMed:29056747). Interacts with alpha-synuclein/SNCA
+CC       (PubMed:20798282). Interacts with PRPH2 (PubMed:26406599). Interacts
+CC       with ROM1 (PubMed:26406599). Interacts with STX3 isoform 3B
+CC       (PubMed:26406599). {ECO:0000250|UniProtKB:P60881,
+CC       ECO:0000269|PubMed:10195194, ECO:0000269|PubMed:15466855,
+CC       ECO:0000269|PubMed:16672379, ECO:0000269|PubMed:17055430,
+CC       ECO:0000269|PubMed:19196426, ECO:0000269|PubMed:19285662,
+CC       ECO:0000269|PubMed:19546860, ECO:0000269|PubMed:20798282,
+CC       ECO:0000269|PubMed:20847230, ECO:0000269|PubMed:22832103,
+CC       ECO:0000269|PubMed:23341457, ECO:0000269|PubMed:25253725,
+CC       ECO:0000269|PubMed:26406599, ECO:0000269|PubMed:27052163,
+CC       ECO:0000269|PubMed:28821673, ECO:0000269|PubMed:29056747,
+CC       ECO:0000269|PubMed:9731768}.
+CC   -!- INTERACTION:
+CC       P60879; Q155P7: Cenpf; NbExp=13; IntAct=EBI-445270, EBI-2211248;
+CC       P60879; O35526: Stx1a; NbExp=4; IntAct=EBI-445270, EBI-400878;
+CC       P60879; P63044: Vamp2; NbExp=18; IntAct=EBI-445270, EBI-521920;
+CC       P60879; P32851: Stx1a; Xeno; NbExp=7; IntAct=EBI-445270, EBI-539720;
+CC   -!- SUBCELLULAR LOCATION: Cytoplasm, perinuclear region
+CC       {ECO:0000269|PubMed:16672379}. Cell membrane
+CC       {ECO:0000269|PubMed:10413679, ECO:0000269|PubMed:9349529}; Lipid-anchor
+CC       {ECO:0000269|PubMed:9349529}. Synapse, synaptosome
+CC       {ECO:0000269|PubMed:2592413}. Photoreceptor inner segment
+CC       {ECO:0000269|PubMed:26406599}. Note=Membrane association requires
+CC       palmitoylation (PubMed:9349529). Expressed throughout cytoplasm,
+CC       concentrating at the perinuclear region (PubMed:16672379). Colocalizes
+CC       with KCNB1 at the cell membrane (By similarity). Colocalizes with PLCL1
+CC       at the cell membrane (By similarity). {ECO:0000250|UniProtKB:P60881,
+CC       ECO:0000269|PubMed:16672379, ECO:0000269|PubMed:9349529}.
+CC   -!- ALTERNATIVE PRODUCTS:
+CC       Event=Alternative splicing; Named isoforms=2;
+CC         Comment=Isoforms differ by the usage of two alternative homologous
+CC         exons (5a and 5b) which code for positions 56 to 94 and differ only
+CC         in 9 positions out of 39.;
+CC       Name=1; Synonyms=SNAP-25b;
+CC         IsoId=P60879-1, P13795-1;
+CC         Sequence=Displayed;
+CC       Name=2; Synonyms=SNAP-25a;
+CC         IsoId=P60879-2, P13795-2;
+CC         Sequence=VSP_010019;
+CC   -!- TISSUE SPECIFICITY: Expressed in the outer nuclear layer of the retina
+CC       (at protein level). {ECO:0000269|PubMed:26406599}.
+CC   -!- PTM: Palmitoylated. Cys-85 appears to be the main site, and
+CC       palmitoylation is required for membrane association.
+CC       {ECO:0000269|PubMed:9349529}.
+CC   -!- PTM: (Microbial infection) Targeted and hydrolyzed by C.botulinum
+CC       neurotoxin type A (BoNT/A, botA) which hydrolyzes the 197-Gln-|-Arg-198
+CC       bond and inhibits neurotransmitter release (PubMed:8103915,
+CC       PubMed:8243676). {ECO:0000269|PubMed:8243676,
+CC       ECO:0000305|PubMed:10413679, ECO:0000305|PubMed:8103915}.
+CC   -!- PTM: (Microbial infection) Targeted and hydrolyzed by C.botulinum
+CC       neurotoxin type E (BoNT/E) which hydrolyzes the 180-Arg-|-Ile-181 bond
+CC       and inhibits neurotransmitter release (PubMed:8103915, PubMed:8243676).
+CC       {ECO:0000269|PubMed:8243676, ECO:0000305|PubMed:10413679,
+CC       ECO:0000305|PubMed:8103915}.
+CC   -!- SIMILARITY: Belongs to the SNAP-25 family. {ECO:0000305}.
+CC   ---------------------------------------------------------------------------
+CC   Copyrighted by the UniProt Consortium, see https://www.uniprot.org/terms
+CC   Distributed under the Creative Commons Attribution (CC BY 4.0) License
+CC   ---------------------------------------------------------------------------
+DR   EMBL; M22012; AAA61741.1; -; mRNA.
+DR   EMBL; AF483516; AAL90790.1; -; mRNA.
+DR   EMBL; AF483517; AAL90791.1; -; mRNA.
+DR   EMBL; AK078038; BAC37105.1; -; mRNA.
+DR   EMBL; AL732447; -; NOT_ANNOTATED_CDS; Genomic_DNA.
+DR   EMBL; CH466519; EDL28390.1; -; Genomic_DNA.
+DR   EMBL; BC018249; AAH18249.1; -; mRNA.
+DR   CCDS; CCDS16793.1; -.
+DR   CCDS; CCDS71153.1; -. [P60879-2]
+DR   PIR; A33623; A33623.
+DR   RefSeq; NP_001277985.1; NM_001291056.2. [P60879-2]
+DR   RefSeq; NP_001342183.1; NM_001355254.1. [P60879-1]
+DR   RefSeq; NP_001399544.1; NM_001412615.1. [P60879-1]
+DR   RefSeq; NP_001399545.1; NM_001412616.1. [P60879-1]
+DR   RefSeq; NP_001399546.1; NM_001412617.1. [P60879-2]
+DR   RefSeq; NP_035558.1; NM_011428.4. [P60879-1]
+DR   RefSeq; XP_017172247.1; XM_017316758.1.
+DR   RefSeq; XP_017172249.1; XM_017316760.1.
+DR   AlphaFoldDB; P60879; -.
+DR   BMRB; P60879; -.
+DR   SMR; P60879; -.
+DR   BioGRID; 203362; 83.
+DR   CORUM; P60879; -.
+DR   DIP; DIP-29066N; -.
+DR   FunCoup; P60879; 482.
+DR   IntAct; P60879; 44.
+DR   MINT; P60879; -.
+DR   STRING; 10090.ENSMUSP00000028727; -.
+DR   TCDB; 1.F.1.1.4; the synaptosomal vesicle fusion pore (svf-pore) family.
+DR   GlyGen; P60879; 3 sites, 1 O-linked glycan (3 sites).
+DR   iPTMnet; P60879; -.
+DR   PhosphoSitePlus; P60879; -.
+DR   SwissPalm; P60879; -.
+DR   jPOST; P60879; -.
+DR   PaxDb; 10090-ENSMUSP00000028727; -.
+DR   PeptideAtlas; P60879; -.
+DR   ProteomicsDB; 257537; -.
+DR   ProteomicsDB; 257538; -. [P60879-2]
+DR   Pumba; P60879; -.
+DR   Antibodypedia; 713; 1205 antibodies from 47 providers.
+DR   DNASU; 20614; -.
+DR   Ensembl; ENSMUST00000028727.11; ENSMUSP00000028727.5; ENSMUSG00000027273.14. [P60879-1]
+DR   Ensembl; ENSMUST00000110098.4; ENSMUSP00000105725.4; ENSMUSG00000027273.14. [P60879-2]
+DR   GeneID; 20614; -.
+DR   KEGG; mmu:20614; -.
+DR   UCSC; uc008mop.1; mouse.
+DR   UCSC; uc056zpt.1; mouse. [P60879-2]
+DR   AGR; MGI:98331; -.
+DR   CTD; 6616; -.
+DR   MGI; MGI:98331; Snap25.
+DR   VEuPathDB; HostDB:ENSMUSG00000027273; -.
+DR   eggNOG; KOG3065; Eukaryota.
+DR   GeneTree; ENSGT00950000182843; -.
+DR   HOGENOM; CLU_096939_0_0_1; -.
+DR   InParanoid; P60879; -.
+DR   OMA; GMIQINE; -.
+DR   OrthoDB; 19261at2759; -.
+DR   PhylomeDB; P60879; -.
+DR   TreeFam; TF315125; -.
+DR   Reactome; R-MMU-181429; Serotonin Neurotransmitter Release Cycle.
+DR   Reactome; R-MMU-181430; Norepinephrine Neurotransmitter Release Cycle.
+DR   Reactome; R-MMU-210500; Glutamate Neurotransmitter Release Cycle.
+DR   Reactome; R-MMU-212676; Dopamine Neurotransmitter Release Cycle.
+DR   Reactome; R-MMU-264642; Acetylcholine Neurotransmitter Release Cycle.
+DR   Reactome; R-MMU-449836; Other interleukin signaling.
+DR   Reactome; R-MMU-6798695; Neutrophil degranulation.
+DR   Reactome; R-MMU-888590; GABA synthesis, release, reuptake and degradation.
+DR   BioGRID-ORCS; 20614; 3 hits in 76 CRISPR screens.
+DR   ChiTaRS; Snap25; mouse.
+DR   PRO; PR:P60879; -.
+DR   Proteomes; UP000000589; Chromosome 2.
+DR   RNAct; P60879; protein.
+DR   Bgee; ENSMUSG00000027273; Expressed in retrosplenial region and 161 other cell types or tissues.
+DR   GO; GO:0030424; C:axon; IDA:ParkinsonsUK-UCL.
+DR   GO; GO:0044295; C:axonal growth cone; ISO:MGI.
+DR   GO; GO:0031083; C:BLOC-1 complex; IEA:Ensembl.
+DR   GO; GO:0005938; C:cell cortex; IDA:SynGO-UCL.
+DR   GO; GO:0005737; C:cytoplasm; IDA:UniProtKB.
+DR   GO; GO:0005856; C:cytoskeleton; IEA:Ensembl.
+DR   GO; GO:0098978; C:glutamatergic synapse; IDA:SynGO.
+DR   GO; GO:0016020; C:membrane; IDA:UniProtKB.
+DR   GO; GO:0043209; C:myelin sheath; HDA:UniProtKB.
+DR   GO; GO:0043005; C:neuron projection; IDA:MGI.
+DR   GO; GO:0048471; C:perinuclear region of cytoplasm; IDA:UniProtKB.
+DR   GO; GO:0001917; C:photoreceptor inner segment; IEA:UniProtKB-SubCell.
+DR   GO; GO:0005886; C:plasma membrane; TAS:MGI.
+DR   GO; GO:0042734; C:presynaptic membrane; IDA:MGI.
+DR   GO; GO:0097470; C:ribbon synapse; IDA:MGI.
+DR   GO; GO:0031201; C:SNARE complex; ISS:UniProtKB.
+DR   GO; GO:0036477; C:somatodendritic compartment; IDA:ParkinsonsUK-UCL.
+DR   GO; GO:0045202; C:synapse; IDA:MGI.
+DR   GO; GO:0008021; C:synaptic vesicle; IDA:MGI.
+DR   GO; GO:0070044; C:synaptobrevin 2-SNAP-25-syntaxin-1a complex; ISO:MGI.
+DR   GO; GO:0070032; C:synaptobrevin 2-SNAP-25-syntaxin-1a-complexin I complex; IDA:MGI.
+DR   GO; GO:0005802; C:trans-Golgi network; IDA:UniProtKB.
+DR   GO; GO:0048306; F:calcium-dependent protein binding; ISS:ParkinsonsUK-UCL.
+DR   GO; GO:0005484; F:SNAP receptor activity; IDA:MGI.
+DR   GO; GO:0000149; F:SNARE binding; IDA:MGI.
+DR   GO; GO:0017075; F:syntaxin-1 binding; IDA:ParkinsonsUK-UCL.
+DR   GO; GO:0005249; F:voltage-gated potassium channel activity; IEA:InterPro.
+DR   GO; GO:0008306; P:associative learning; IMP:MGI.
+DR   GO; GO:0051649; P:establishment of localization in cell; ISO:MGI.
+DR   GO; GO:0030073; P:insulin secretion; ISO:MGI.
+DR   GO; GO:0007626; P:locomotory behavior; IMP:MGI.
+DR   GO; GO:0060291; P:long-term synaptic potentiation; IMP:MGI.
+DR   GO; GO:0007269; P:neurotransmitter secretion; IMP:MGI.
+DR   GO; GO:0031915; P:positive regulation of synaptic plasticity; EXP:MGI.
+DR   GO; GO:0099525; P:presynaptic dense core vesicle exocytosis; IDA:SynGO.
+DR   GO; GO:0070201; P:regulation of establishment of protein localization; IMP:MGI.
+DR   GO; GO:0010975; P:regulation of neuron projection development; IGI:ParkinsonsUK-UCL.
+DR   GO; GO:1990926; P:short-term synaptic potentiation; EXP:MGI.
+DR   GO; GO:0016079; P:synaptic vesicle exocytosis; IDA:SynGO.
+DR   CDD; cd15885; SNARE_SNAP25C; 1.
+DR   CDD; cd15894; SNARE_SNAP25N; 1.
+DR   FunFam; 1.20.5.110:FF:000007; Synaptosomal-associated protein; 1.
+DR   FunFam; 1.20.5.110:FF:000009; Synaptosomal-associated protein; 1.
+DR   Gene3D; 1.20.5.110; -; 2.
+DR   InterPro; IPR000928; SNAP-25_dom.
+DR   InterPro; IPR039077; SNAP-25_N_SNARE_chord.
+DR   InterPro; IPR000727; T_SNARE_dom.
+DR   PANTHER; PTHR19305; SYNAPTOSOMAL ASSOCIATED PROTEIN; 1.
+DR   PANTHER; PTHR19305:SF5; SYNAPTOSOMAL-ASSOCIATED PROTEIN 25; 1.
+DR   Pfam; PF00835; SNAP-25; 1.
+DR   SMART; SM00397; t_SNARE; 2.
+DR   SUPFAM; SSF58038; SNARE fusion complex; 2.
+DR   PROSITE; PS50192; T_SNARE; 2.
+PE   1: Evidence at protein level;
+KW   Alternative splicing; Cell membrane; Coiled coil; Cytoplasm;
+KW   Direct protein sequencing; Lipoprotein; Membrane; Palmitate;
+KW   Phosphoprotein; Reference proteome; Repeat; Synapse; Synaptosome.
+FT   CHAIN           1..206
+FT                   /note="Synaptosomal-associated protein 25"
+FT                   /id="PRO_0000213589"
+FT   DOMAIN          19..81
+FT                   /note="t-SNARE coiled-coil homology 1"
+FT                   /evidence="ECO:0000255|PROSITE-ProRule:PRU00202"
+FT   DOMAIN          140..202
+FT                   /note="t-SNARE coiled-coil homology 2"
+FT                   /evidence="ECO:0000255|PROSITE-ProRule:PRU00202"
+FT   REGION          1..75
+FT                   /note="Interaction with CENPF"
+FT                   /evidence="ECO:0000269|PubMed:16672379"
+FT   REGION          1..23
+FT                   /note="Disordered"
+FT                   /evidence="ECO:0000256|SAM:MobiDB-lite"
+FT   REGION          111..120
+FT                   /note="Interaction with ZDHHC17"
+FT                   /evidence="ECO:0000250|UniProtKB:P60880"
+FT   COMPBIAS        1..20
+FT                   /note="Basic and acidic residues"
+FT                   /evidence="ECO:0000256|SAM:MobiDB-lite"
+FT   SITE            180..181
+FT                   /note="(Microbial infection) Cleavage; by C.botulinum
+FT                   neurotoxin type E (BoNT/E)"
+FT                   /evidence="ECO:0000269|PubMed:8243676,
+FT                   ECO:0000305|PubMed:8103915"
+FT   SITE            197..198
+FT                   /note="(Microbial infection) Cleavage; by C.botulinum
+FT                   neurotoxin type A (BoNT/A, botA)"
+FT                   /evidence="ECO:0000269|PubMed:8243676,
+FT                   ECO:0000305|PubMed:8103915"
+FT   MOD_RES         138
+FT                   /note="Phosphothreonine; by PKC and PKA"
+FT                   /evidence="ECO:0000269|PubMed:12459461,
+FT                   ECO:0007744|PubMed:21183079"
+FT   MOD_RES         154
+FT                   /note="Phosphoserine"
+FT                   /evidence="ECO:0007744|PubMed:21183079"
+FT   MOD_RES         187
+FT                   /note="Phosphoserine; by PKC"
+FT                   /evidence="ECO:0000269|PubMed:12459461"
+FT   LIPID           85
+FT                   /note="S-palmitoyl cysteine"
+FT                   /evidence="ECO:0000269|PubMed:9349529"
+FT   LIPID           88
+FT                   /note="S-palmitoyl cysteine"
+FT                   /evidence="ECO:0000269|PubMed:9349529"
+FT   LIPID           90
+FT                   /note="S-palmitoyl cysteine"
+FT                   /evidence="ECO:0000269|PubMed:9349529"
+FT   LIPID           92
+FT                   /note="S-palmitoyl cysteine"
+FT                   /evidence="ECO:0000269|PubMed:9349529"
+FT   VAR_SEQ         58..89
+FT                   /note="ERIEEGMDQINKDMKEAEKNLTDLGKFCGLCV -> DRVEEGMNHINQDMKE
+FT                   AEKNLKDLGKCCGLFI (in isoform 2)"
+FT                   /evidence="ECO:0000303|PubMed:11471062,
+FT                   ECO:0000303|PubMed:15489334, ECO:0000303|PubMed:2592413"
+FT                   /id="VSP_010019"
+FT   MUTAGEN         85
+FT                   /note="C->S: 91% reduction in palmitoylation level. 14%
+FT                   membrane association. No palmitoylation and less than 8%
+FT                   membrane association; when associated with S-88 or A-88."
+FT                   /evidence="ECO:0000269|PubMed:9349529"
+FT   MUTAGEN         88
+FT                   /note="C->S: 79% reduction in palmitoylation level. 18%
+FT                   membrane association. No palmitoylation and less than 8%
+FT                   membrane association; when associated with S-85 or A-85."
+FT                   /evidence="ECO:0000269|PubMed:9349529"
+FT   MUTAGEN         90
+FT                   /note="C->S: 58% reduction in palmitoylation level. 28%
+FT                   membrane association. Very little palmitoylation and less
+FT                   than 8% membrane association; when associated with S-92 or
+FT                   A-92."
+FT                   /evidence="ECO:0000269|PubMed:9349529"
+FT   MUTAGEN         92
+FT                   /note="C->S: 65% reduction in palmitoylation level. 29%
+FT                   membrane association. No palmitoylation and less than 8%
+FT                   membrane association; when associated with S-90 or A-90."
+FT                   /evidence="ECO:0000269|PubMed:9349529"
+SQ   SEQUENCE   206 AA;  23315 MW;  FBED2B082A4CB6A6 CRC64;
+     MAEDADMRNE LEEMQRRADQ LADESLESTR RMLQLVEESK DAGIRTLVML DEQGEQLERI
+     EEGMDQINKD MKEAEKNLTD LGKFCGLCVC PCNKLKSSDA YKKAWGNNQD GVVASQPARV
+     VDEREQMAIS GGFIRRVTND ARENEMDENL EQVSGIIGNL RHMALDMGNE IDTQNRQIDR
+     IMEKADSNKT RIDEANQRAT KMLGSG
+//
