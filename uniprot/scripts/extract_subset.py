@@ -10,6 +10,7 @@ import gzip
 import hashlib
 import logging
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence
@@ -33,6 +34,7 @@ RE_TAXID = re.compile(r"NCBI_TaxID=(\d+)")
 RE_SQ_LEN = re.compile(r"(\d+)\s+AA;")
 RE_ISOFORM_ID = re.compile(r"IsoId=([^;]+)")
 RE_ISOFORM_SEQUENCE = re.compile(r"Sequence=([^;]+)")
+RE_CC_FIELD = re.compile(r"([A-Za-z]+)=([^;]*);")
 
 
 def stable_shard_for_accession(accession: str, shard_count: int) -> int:
@@ -163,14 +165,38 @@ def strip_annotations(value: str) -> str:
     return cleaned.rstrip(";").strip()
 
 
-def parse_alt_products(lines: Sequence[str]) -> Dict[str, List[str]]:
-    """
-    Extract isoform definitions from the CC ALTERNATIVE PRODUCTS block.
+@dataclass(frozen=True)
+class IsoformGroup:
+    """One isoform block of a CC ALTERNATIVE PRODUCTS comment.
 
-    Returns a mapping of isoform accession -> list of VSP ids (or ["Displayed"]).
+    ``isoid`` is the isoform ID owned by this entry; ``synonyms`` are the other
+    IDs listed in the same ``IsoId=`` field. After UniProt merges entries, the
+    synonyms are legacy isoform IDs (e.g. ``A3R4N1-1``) that are shared by every
+    entry the old accession was merged into, so they must not become rows.
     """
 
-    isoforms: Dict[str, List[str]] = {}
+    isoid: str
+    synonyms: tuple[str, ...]
+    tokens: tuple[str, ...]
+
+
+def _iso_base(isoform_id: str) -> str:
+    return isoform_id.rsplit("-", 1)[0]
+
+
+def parse_alt_product_groups(
+    lines: Sequence[str], primary_ac: Optional[str] = None
+) -> List[IsoformGroup]:
+    """
+    Parse the CC ALTERNATIVE PRODUCTS block into isoform groups.
+
+    ``IsoId=`` and ``Sequence=`` sit on separate (possibly wrapped) CC lines and
+    ``IsoId=`` may hold several comma-separated IDs, so the block is joined and
+    scanned field by field. Isoforms with ``Sequence=External`` are skipped: they
+    are cross-references to isoforms stored in another entry.
+    """
+
+    block_lines: List[str] = []
     in_block = False
     for raw in lines:
         if not raw.startswith("CC"):
@@ -180,21 +206,46 @@ def parse_alt_products(lines: Sequence[str]) -> Dict[str, List[str]]:
             in_block = True
             continue
         if in_block and content.startswith("-!- "):
-            # next CC subsection begins; stop parsing alternative products
             break
-        if not in_block:
-            continue
-        iso_match = RE_ISOFORM_ID.search(content)
-        seq_match = RE_ISOFORM_SEQUENCE.search(content)
-        if not iso_match or not seq_match:
-            continue
-        iso_id = iso_match.group(1).strip()
-        seq_field = seq_match.group(1).strip()
-        if not iso_id or not seq_field:
-            continue
-        tokens = [token.strip() for token in seq_field.split(",") if token.strip()]
-        isoforms[iso_id] = tokens or []
-    return isoforms
+        if in_block and content:
+            block_lines.append(content)
+    if not block_lines:
+        return []
+
+    groups: List[IsoformGroup] = []
+    current_ids: List[str] = []
+    for match in RE_CC_FIELD.finditer(" ".join(block_lines)):
+        key, value = match.group(1), match.group(2).strip()
+        if key == "Name":
+            current_ids = []
+        elif key == "IsoId":
+            current_ids = [tok.strip() for tok in value.split(",") if tok.strip()]
+        elif key == "Sequence" and current_ids:
+            tokens = tuple(tok.strip() for tok in value.split(",") if tok.strip())
+            ids = current_ids
+            current_ids = []
+            if any(tok.lower() == "external" for tok in tokens):
+                continue
+            owned = None
+            if primary_ac:
+                owned = next((i for i in ids if _iso_base(i) == primary_ac), None)
+            owned = owned or ids[0]
+            synonyms = tuple(i for i in ids if i != owned)
+            groups.append(IsoformGroup(owned, synonyms, tokens))
+    return groups
+
+
+def parse_alt_products(
+    lines: Sequence[str], primary_ac: Optional[str] = None
+) -> Dict[str, List[str]]:
+    """
+    Map each isoform ID owned by this entry to its VSP ids (or ["Displayed"]).
+
+    Legacy synonym IDs and External isoforms are excluded; see
+    :func:`parse_alt_product_groups`.
+    """
+
+    return {g.isoid: list(g.tokens) for g in parse_alt_product_groups(lines, primary_ac)}
 
 
 def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
@@ -220,7 +271,10 @@ def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
             continue
         range_token = parts[1]
         try:
-            start_str, end_str = range_token.split("..")
+            if ".." in range_token:
+                start_str, end_str = range_token.split("..", 1)
+            else:  # single-residue feature, e.g. "VAR_SEQ 163"
+                start_str = end_str = range_token
             start, end = int(start_str), int(end_str)
         except ValueError:
             idx += 1
@@ -229,6 +283,9 @@ def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
         replacement = ""
         vsp_id: Optional[str] = None
         idx += 1
+        # Qualifiers wrap across FT lines; wrapped residue runs carry no space, so
+        # continuation lines are concatenated without a separator.
+        qualifiers: List[List[str]] = []
         while idx < total_lines:
             cont = lines[idx]
             if not cont.startswith("FT"):
@@ -237,17 +294,23 @@ def parse_var_seq(lines: Sequence[str]) -> Dict[str, tuple[int, int, str]]:
             # New feature starts when column 6 is not space (continuation lines have a space here)
             if cont_content and not cont[5].isspace():
                 break
-            if cont_content.startswith("/note="):
-                note = cont_content[len("/note="):].strip().strip('"')
+            if cont_content.startswith("/"):
+                qualifiers.append([cont_content])
+            elif cont_content and qualifiers:
+                qualifiers[-1].append(cont_content)
+            idx += 1
+        for parts_q in qualifiers:
+            text = "".join(parts_q)
+            if text.startswith("/note="):
+                note = text[len("/note="):].strip().strip('"')
                 if "->" in note:
                     replacement = re.split(r"\s*\(", note.split("->", 1)[1].strip(), 1)[0].strip()
                 elif note.lower().startswith("missing"):
                     replacement = ""
                 else:
                     replacement = re.split(r"\s*\(", note, 1)[0].strip()
-            elif cont_content.startswith("/id="):
-                vsp_id = cont_content[len("/id="):].strip().strip('"')
-            idx += 1
+            elif text.startswith("/id="):
+                vsp_id = text[len("/id="):].strip().strip('"')
         if vsp_id:
             varseqs[vsp_id] = (start, end, replacement)
     return varseqs
@@ -513,7 +576,7 @@ def build_entry_payload(
     if not seq_str:
         return rows
 
-    isoform_map = parse_alt_products(lines)
+    isoform_map = parse_alt_products(lines, primary_ac)
     varseqs = parse_var_seq(lines)
 
     for isoform_id, tokens in isoform_map.items():
@@ -570,7 +633,7 @@ def process_inputs(
                 accessions = extract_accessions(record_lines)
                 if not accessions:
                     continue
-                isoform_ids = list(parse_alt_products(record_lines).keys())
+                isoform_ids = list(parse_alt_products(record_lines, accessions[0]).keys())
                 candidate_ids = accessions + isoform_ids
                 matching = [ac for ac in candidate_ids if ac in remaining]
                 if not matching:
